@@ -1,0 +1,10 @@
+{
+    "name": "Moonridge",
+    "version": "0.0.1",
+    "dependencies": {
+        "mongoose": "latest",
+        "socket.io": "latest",
+        "socket.io-rpc": "latest",
+        "when": "latest"
+    }
+}

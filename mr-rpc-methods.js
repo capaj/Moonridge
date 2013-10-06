@@ -6,17 +6,6 @@ var publish = function (socket) {
     //TODO implement
 };
 
-rpc.expose('Moonridge', {
-    getModels: function (cachedDate) {
-        if (runDate > cachedDate) {     // if server was restarted since the cached copy was stored
-            var models = mongoose.models;
-            return models;
-        } else {
-            return false;
-        }
-    }
-});
-
 var expose = function (modelName) {
     var model = mongoose.models[modelName];
     var findFn = function (query, limit, skip, populate, lean) {
@@ -54,7 +43,7 @@ var expose = function (modelName) {
             var lang = new model(newDoc);
             lang.save(function (err, savedDoc) {
                 if (err) {
-                    console.error("Document "+ newDoc.loc_id + " failed to save, error: " + err);
+                    console.error("Document "+ newDoc.toJSON() + " failed to save, error: " + err);
                     def.reject(err);
                 }else{
                     console.log("Following document was succesfully saved:" + savedDoc);
@@ -70,24 +59,15 @@ var expose = function (modelName) {
             if (typeof multi === 'undefined') {
                 multi = false;
             }
-            var def = when.defer();
+
             var id = toUpdate._id;
             delete toUpdate._id;
-            model.update({ _id: id }, toUpdate, {multi: multi}, function (err, numberAffected, raw) {
-                if (err) return def.reject("failed to update " + id);
-                console.log('The number of updated documents was %d', numberAffected);
-                console.log('The raw response from Mongo was ', raw);
-                def.resolve(numberAffected);
-            });
-            return def.promise;
+            return model.update({ _id: id }, toUpdate, {multi: multi}).exec();
         }
     };
     rpc.expose('MR-' + modelName, channel)
 };
 
-for(var modelName in mongoose.models){
-    expose(modelName);
-}
-
+module.exports = expose;
 
 

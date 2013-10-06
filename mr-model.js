@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var exposeMethods = require('./mr-rpc-methods');
 
 module.exports = function MRModel(name, schema) {
     var mgSchema = mongoose.Schema(schema);
@@ -70,6 +71,8 @@ module.exports = function MRModel(name, schema) {
         //todo implement
     });
 // Create model from schema
-    return mongoose.model(name, mgSchema);
+    var model = mongoose.model(name, mgSchema);
+    exposeMethods(model);
+    return model;
 
 };

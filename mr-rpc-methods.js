@@ -23,6 +23,9 @@ var expose = function (modelName, schema) {
     };
 
 	var subMethod = function (event) {
+		if (event && this.socket.mrEventIds && this.socket.mrEventIds[event]) {
+			return false;		// event already subscribed
+		}
 		var def = when.defer();
 		rpc.loadClientChannel(this.socket,'MR-' + modelName, function (socket, clFns) {
 			if (event === undefined) {
@@ -30,9 +33,14 @@ var expose = function (modelName, schema) {
 				eventNames.forEach(function (name) {
 					evIds[name] = schema.on(name, notifySubscriber(clFns.pub));
 				});
+				socket.mrEventIds = evIds;
 				def.resolve(evIds);
 			} else {
 				var evId = schema.on(event, notifySubscriber(clFns.pub));
+				if (socket.mrEventIds) {
+					socket.mrEventIds = {};
+				}
+				socket.mrEventIds[event] = evId;
 				def.resolve(evId);
 			}
 		});

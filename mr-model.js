@@ -1,15 +1,17 @@
 var mongoose = require('mongoose');
 var exposeMethods = require('./mr-rpc-methods');
+var IdGen = require('./simple-ids');
+
 
 module.exports = function MRModel(name, schema) {
     var mgSchema = mongoose.Schema(schema);
 
-    // Create subscribers hashmap, holds reference to all registered event handlers
-    var subscribers = {
-        create: {},
-        update: {},
-        remove: {}
-    };
+    // Create subscribers hashtable, holds reference to all registered event handlers
+    var eventNames = require('./schema-events');
+    var subscribers = {};	//TODO use node-hashtable here for better perf
+	eventNames.forEach(function (name) {
+		subscribers[name] = {};
+	});
 
     var fireEvent = function (name) {
         var evObj = subscribers[name];
@@ -17,6 +19,25 @@ module.exports = function MRModel(name, schema) {
             evObj[i](this, name);
         }
     };
+
+	var unsubscribe = function (id, event) {
+		if (event) {
+			if (Array.isArray(event)) {
+				var unsubscribed = {};
+				event.forEach(function (evName) {
+					unsubscribed[evName] = unsubscribe(id, evName);
+				});
+				return unsubscribed;
+			} else {
+				if (subscribers[event][id]) {
+					delete subscribers[event][id];
+					return true;
+				} else {
+					return false;
+				}
+			}
+		}
+	};
 
     schema.pre('save', function (next) {
         this._wasNew = this.isNew;
@@ -39,39 +60,19 @@ module.exports = function MRModel(name, schema) {
         console.log('%s has been removed', doc._id);
     });
 
-    // Add static method to schema for subscribing
-    // should be used by queries and
+    // static method for subscribing to events
     schema.static('on', function on (event, callback) {
         if (typeof callback == 'function') {
-            var unrFn;
-            if (event) {
-                var length = subscribers[event].push(callback);
-                var unregistered = false;
-                unrFn = function () {
-                    if (!unregistered) {
-                        subscribers.slice(length-1);
-                        unregistered = true;
-                        return true;
-                    }
-                    return false;
-                }
-            } else {
-                unrFn = [];
-                for(var anEvent in subscribers){
-                    unrFn.push( subscribe(callback, anEvent) );
-                }
-            }
-            return unrFn;
+			var newId = IdGen();
+			subscribers[event][newId] = callback;
+			return newId;
         } else {
             throw new Error('Callback is something else than a function');
         }
-        return false;
     });
+    schema.method('off', unsubscribe);
 
-    schema.method('unsub', function (obj) {
-        //todo implement
-    });
-// Create model from schema
+	// Create model from schema
     var model = mongoose.model(name, mgSchema);
     exposeMethods(model, schema);
     return model;

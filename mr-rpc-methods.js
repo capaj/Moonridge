@@ -1,6 +1,7 @@
 var rpc = require('socket.io-rpc');
 var mongoose = require('mongoose');
 var runDate = new Date();
+var eventNames = require('./schema-events');
 
 var notifySubscriber = function (clientPubMethod) {
     return function (doc, name) {   // will be called by schema's event firing
@@ -10,7 +11,7 @@ var notifySubscriber = function (clientPubMethod) {
 
 var expose = function (modelName, schema) {
     var model = mongoose.models[modelName];
-    var findFn = function (query, limit, skip, populate, lean) {
+    var findMethod = function (query, limit, skip, populate, lean) {
         if (lean === undefined) {
             lean = false;
         }
@@ -21,26 +22,34 @@ var expose = function (modelName, schema) {
         }
     };
 
+	var subMethod = function (event) {
+		var def = when.defer();
+		rpc.loadClientChannel(this.socket,'MR-' + modelName, function (socket, clFns) {
+			if (event === undefined) {
+				var evIds = {};
+				eventNames.forEach(function (name) {
+					evIds[name] = schema.on(name, notifySubscriber(clFns.pub));
+				});
+				def.resolve(evIds);
+			} else {
+				var evId = schema.on(event, notifySubscriber(clFns.pub));
+				def.resolve(evId);
+			}
+		});
+		return def.promise;
+	};
+
     var channel = {
-        find: function () {
-            return findFn.apply(model, arguments);
+        find: function (subscribe) {
+            return findMethod.apply(model, arguments);
+			subscribe && subMethod();
         },
-        findThenSub: function () {  //accepts same args as findFn
-            return findFn.apply(this, arguments).then(function (dbObjects) {
-                var iter = dbObjects.length;
-                while(iter--) {
-                    dbObjects[iter].sub(publish(this)); // TODO add method for subscribing on models
-                }
-            });
+		//unsubscribe
+        unsub: function (id, event) {  //accepts same args as findFn
+			return schema.off(id, event);
         },
-        sub: function (event) {
-            var def = when.defer();
-            rpc.loadClientChannel(this.socket,'MR-' + modelName, function (socket, clFns) {
-                var evId = schema.on(event, notifySubscriber(clFns.pub));
-                def.resolve(evId);
-            });
-            return def.promise;
-        },
+		//subscribe
+        sub: subMethod,
         create: function (model, newDoc) {
             var def = when.defer();
             var lang = new model(newDoc);

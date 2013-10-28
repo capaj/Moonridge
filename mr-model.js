@@ -4,16 +4,17 @@ var exposeMethods = require('./mr-rpc-methods');
 module.exports = function MRModel(name, schema) {
     var mgSchema = mongoose.Schema(schema);
 
-    // Create subscribers collection
+    // Create subscribers hashmap, holds reference to all registered event handlers
     var subscribers = {
-        create: [],
-        update: [],
-        remove: []
+        create: {},
+        update: {},
+        remove: {}
     };
 
-    var fireCallbacks = function (arr) {
-        for (var i in arr) {
-            arr[i](this);   // TODO decide if doc or this
+    var fireEvent = function (name) {
+        var evObj = subscribers[name];
+        for (var i in evObj) {
+            evObj[i](this, name);
         }
     };
 
@@ -26,25 +27,25 @@ module.exports = function MRModel(name, schema) {
     // Hook `save` post method called after creation/update
     schema.post('save', function (doc) {
         if (this._wasNew) {
-            fireCallbacks.call(this, subscribers.create);
+            fireEvent.call(this, 'create');
         } else {
-            fireCallbacks.call(this, subscribers.update);
+            fireEvent.call(this, 'update');
         }
         return true;
     });
 
     schema.post('remove', function (doc) {
-        fireCallbacks.call(this, subscribers.remove);
+        fireEvent.call(this, 'remove');
         console.log('%s has been removed', doc._id);
     });
 
     // Add static method to schema for subscribing
     // should be used by queries and
-    schema.static('sub', function subscribe (subscriber, event) {
-        if (typeof subscriber == 'function') {
+    schema.static('on', function on (event, callback) {
+        if (typeof callback == 'function') {
             var unrFn;
             if (event) {
-                var length = subscribers[event].push(subscriber);
+                var length = subscribers[event].push(callback);
                 var unregistered = false;
                 unrFn = function () {
                     if (!unregistered) {
@@ -57,12 +58,12 @@ module.exports = function MRModel(name, schema) {
             } else {
                 unrFn = [];
                 for(var anEvent in subscribers){
-                    unrFn.push( subscribe(subscriber, anEvent) );
+                    unrFn.push( subscribe(callback, anEvent) );
                 }
             }
             return unrFn;
         } else {
-            console.error("Subscribing something else than a function> " + subscriber);
+            throw new Error('Callback is something else than a function');
         }
         return false;
     });
@@ -72,7 +73,7 @@ module.exports = function MRModel(name, schema) {
     });
 // Create model from schema
     var model = mongoose.model(name, mgSchema);
-    exposeMethods(model);
+    exposeMethods(model, schema);
     return model;
 
 };

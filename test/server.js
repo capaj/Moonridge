@@ -20,7 +20,7 @@ var battleM = MR('battle', {
     name: String,
     started: Date,
     ended: Date,
-    consoles: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
+    fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
 });
 
 mongoose.connect(locals.connString, function (err) {

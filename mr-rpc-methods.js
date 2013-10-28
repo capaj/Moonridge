@@ -2,11 +2,13 @@ var rpc = require('socket.io-rpc');
 var mongoose = require('mongoose');
 var runDate = new Date();
 
-var publish = function (socket) {
-    //TODO implement
+var notifySubscriber = function (clientPubMethod) {
+    return function (doc, name) {   // will be called by schema's event firing
+        clientPubMethod(doc, name);
+    }
 };
 
-var expose = function (modelName) {
+var expose = function (modelName, schema) {
     var model = mongoose.models[modelName];
     var findFn = function (query, limit, skip, populate, lean) {
         if (lean === undefined) {
@@ -31,12 +33,13 @@ var expose = function (modelName) {
                 }
             });
         },
-        sub: function (id) {
-            model.findById(id).then(function (doc) {
-                doc.sub(publish(this));
-            }, function (err) {
-                console.error("while subscribing to model " + id + " error occured: " + err);
-            })
+        sub: function (event) {
+            var def = when.defer();
+            rpc.loadClientChannel(this.socket,'MR-' + modelName, function (socket, clFns) {
+                var evId = schema.on(event, notifySubscriber(clFns.pub));
+                def.resolve(evId);
+            });
+            return def.promise;
         },
         create: function (model, newDoc) {
             var def = when.defer();
@@ -52,7 +55,7 @@ var expose = function (modelName) {
             });
             return def.promise;
         },
-        delete: function (toRemove) {
+        remove: function (toRemove) {
             return model.remove(toRemove).exec();
         },
         update: function (toUpdate, multi) {

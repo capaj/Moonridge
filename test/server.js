@@ -5,7 +5,7 @@ var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
 var MR = require('../mr-model.js');
 
-var fighterM = MR('Fighter', {
+var Fighter = MR('Fighter', {
     name: String,
     health: Number,
     born: Date,
@@ -32,10 +32,10 @@ mongoose.connect(locals.connString, function (err) {
     }
 });
 
-fighterM.create({
+var bran = new Fighter({
     name: 'Bran'
     , health: 150
     , born: new Date()
-}, function (err, bran) {
-    console.log("after create");
+}).save(function (err) {
+    console.log("bran saved");
 });

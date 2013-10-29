@@ -22,42 +22,69 @@ var expose = function (modelName, schema) {
         }
     };
 
-	var subMethod = function (event) {
-		if (event && this.socket.mrEventIds && this.socket.mrEventIds[event]) {
-			return false;		// event already subscribed
-		}
-		var def = when.defer();
-		rpc.loadClientChannel(this.socket,'MR-' + modelName, function (socket, clFns) {
-			if (event === undefined) {
-				var evIds = {};
-				eventNames.forEach(function (name) {
-					evIds[name] = schema.on(name, notifySubscriber(clFns.pub));
-				});
-				socket.mrEventIds = evIds;
-				def.resolve(evIds);
-			} else {
-				var evId = schema.on(event, notifySubscriber(clFns.pub));
-				if (socket.mrEventIds) {
-					socket.mrEventIds = {};
-				}
-				socket.mrEventIds[event] = evId;
-				def.resolve(evId);
-			}
-		});
-		return def.promise;
-	};
+    var regEvent = function (evName, callback) {
 
+    };
+
+    var unsubscribe = function (id, event) {  //accepts same args as findFn
+        var res = schema.off(id, event);
+        if (res) {
+            delete this.socket.mrEventIds[event];
+        }
+        return res;
+    };
+
+    var unsubscribeAll = function (socket) {
+        var soc = socket || this.socket;
+        var mrEventIds = soc.mrEventIds;
+        for (var eN in mrEventIds) {
+            unsubscribe(mrEventIds[eN], eN);
+        }
+
+    };
+
+    var subscribe = function (evName) {
+        if (evName) {
+            var existing = this.socket.mrEventIds;
+            if (existing && existing[evName]) {
+                // event already subscribed, we don't want to support more than 1 remote listener so we unregister the old one
+                unsubscribe(existing[evName], evName);
+            }
+
+            var def = when.defer();
+            rpc.loadClientChannel(this.socket, 'MR-' + modelName, function (socket, clFns) {
+
+                var evId = schema.on(evName, notifySubscriber(clFns.pub));
+                if (!socket.mrEventIds) {
+                    socket.mrEventIds = {};
+                }
+                socket.mrEventIds[evName] = evId;
+                def.resolve(evId);
+
+            });
+            return def.promise;
+        } else {
+            throw new Error('event must be specified when subscribing to it');
+        }
+
+    };
+
+    var subscribeAll = function () {
+        eventNames.forEach(function (name) {
+            subscribe(name);
+        });
+    };
     var channel = {
-        find: function (subscribe) {
+        find: function (alsoSubscribe) {
             return findMethod.apply(model, arguments);
-			subscribe && subMethod();
+			alsoSubscribe && subscribeAll();
         },
 		//unsubscribe
-        unsub: function (id, event) {  //accepts same args as findFn
-			return schema.off(id, event);
-        },
+        unsub: unsubscribe,
+        unsubAll: unsubscribeAll,
 		//subscribe
-        sub: subMethod,
+        sub: subscribe,
+        subAll: subscribeAll,
         create: function (model, newDoc) {
             var def = when.defer();
             var lang = new model(newDoc);

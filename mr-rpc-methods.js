@@ -1,6 +1,5 @@
 var rpc = require('socket.io-rpc');
 var mongoose = require('mongoose');
-var runDate = new Date();
 var eventNames = require('./schema-events');
 
 var notifySubscriber = function (clientPubMethod) {
@@ -9,42 +8,47 @@ var notifySubscriber = function (clientPubMethod) {
     }
 };
 
-var expose = function (modelName, schema) {
-    var model = mongoose.models[modelName];
-    var findMethod = function (query, limit, skip, populate, lean) {
+var expose = function (model, schema, authFn) {
+    var modelName = model.modelName;
+    function find(query, limit, skip, populate, lean) {
         if (lean === undefined) {
             lean = false;
         }
         if (populate) {
-            return channel.find(query).populate(populate).limit(limit).skip(skip).lean(lean).exec();
+            return model.find(query).populate(populate).limit(limit).skip(skip).lean(lean).exec();
         } else {
-            return channel.find(query).limit(limit).skip(skip).lean(lean).exec();
+            return model.find(query).limit(limit).skip(skip).lean(lean).exec();
         }
-    };
+    }
 
-    var regEvent = function (evName, callback) {
-
-    };
-
-    var unsubscribe = function (id, event) {  //accepts same args as findFn
+    function unsubscribe(id, event) {  //accepts same args as findFn
         var res = schema.off(id, event);
         if (res) {
             delete this.socket.mrEventIds[event];
         }
         return res;
-    };
+    }
 
-    var unsubscribeAll = function (socket) {
+    /**
+     * @param {Socket} socket
+     */
+    function unsubscribeAll(socket) {
         var soc = socket || this.socket;
         var mrEventIds = soc.mrEventIds;
         for (var eN in mrEventIds) {
             unsubscribe(mrEventIds[eN], eN);
         }
+    }
 
-    };
-
-    var subscribe = function (evName) {
+    function subscribe(evName) {
         if (evName) {
+            var socket = this.socket;
+            if (!socket.mrEventIds) {
+                socket.mrEventIds = {};
+                socket.on('disconnect', function () {
+                    unsubscribeAll(socket);
+                });
+            }
             var existing = this.socket.mrEventIds;
             if (existing && existing[evName]) {
                 // event already subscribed, we don't want to support more than 1 remote listener so we unregister the old one
@@ -52,12 +56,11 @@ var expose = function (modelName, schema) {
             }
 
             var def = when.defer();
-            rpc.loadClientChannel(this.socket, 'MR-' + modelName, function (socket, clFns) {
 
+            rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
+                
                 var evId = schema.on(evName, notifySubscriber(clFns.pub));
-                if (!socket.mrEventIds) {
-                    socket.mrEventIds = {};
-                }
+
                 socket.mrEventIds[evName] = evId;
                 def.resolve(evId);
 
@@ -67,25 +70,27 @@ var expose = function (modelName, schema) {
             throw new Error('event must be specified when subscribing to it');
         }
 
-    };
+    }
 
-    var subscribeAll = function () {
+    function subscribeAll() {
         eventNames.forEach(function (name) {
             subscribe(name);
         });
-    };
+    }
+
     var channel = {
-        find: function (alsoSubscribe) {
-            return findMethod.apply(model, arguments);
-			alsoSubscribe && subscribeAll();
-        },
+        find: find,
 		//unsubscribe
         unsub: unsubscribe,
         unsubAll: unsubscribeAll,
+		findSubAll: function () {
+            find.apply(model, arguments);
+            subscribeAll();
+        },
 		//subscribe
         sub: subscribe,
         subAll: subscribeAll,
-        create: function (model, newDoc) {
+        create: function (newDoc) {
             var def = when.defer();
             var lang = new model(newDoc);
             lang.save(function (err, savedDoc) {
@@ -112,7 +117,7 @@ var expose = function (modelName, schema) {
             return model.update({ _id: id }, toUpdate, {multi: multi}).exec();
         }
     };
-    rpc.expose('MR-' + modelName, channel)
+    rpc.expose('MR-' + modelName, channel, authFn)
 };
 
 module.exports = expose;

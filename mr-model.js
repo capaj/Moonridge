@@ -3,7 +3,7 @@ var exposeMethods = require('./mr-rpc-methods');
 var IdGen = require('./simple-ids');
 
 
-module.exports = function MRModel(name, schema) {
+module.exports = function MRModel(name, schema, authFn) {
     var mgSchema = mongoose.Schema(schema);
 
     // Create subscribers hashtable, holds reference to all registered event handlers
@@ -74,7 +74,7 @@ module.exports = function MRModel(name, schema) {
 
 	// Create model from schema
     var model = mongoose.model(name, mgSchema);
-    exposeMethods(model, schema);
+    exposeMethods(model, schema, authFn);
     return model;
 
 };

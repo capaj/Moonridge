@@ -3,12 +3,6 @@ var mongoose = require('mongoose');
 var _ = require('lodash');
 var eventNames = require('./schema-events');
 
-var notifySubscriber = function (clientPubMethod) {
-    return function (doc, name) {   // will be called by schema's event firing
-        clientPubMethod(doc, name);
-    }
-};
-
 /**
  *
  * @param {Model} model
@@ -16,16 +10,37 @@ var notifySubscriber = function (clientPubMethod) {
  * @param {Object} opts
  */
 var expose = function (model, schema, opts) {
+    var notifySubscriber = function (clientPubMethod, query) {
+        if (query) {
+            return function (doc, name) {   // will be called by schema's event firing
+
+                model.findOne(query).where('_id').equals(doc._id).select('_id')
+                    .exec(function(err, id) {
+                        if (!err && id) {
+                            clientPubMethod(doc, name);
+                        }
+                    });
+            }
+        } else {
+            return function (doc, name) {   // will be called by schema's event firing
+                clientPubMethod(doc, name);
+            }
+        }
+
+    };
+
     var modelName = model.modelName;
-    function find(query, limit, skip, populate, lean) {
+    function makeFindQueries(qBase, limit, skip, populate, lean) {
         if (lean === undefined) {
             lean = false;
         }
+        var query;
         if (populate) {
-            return model.find(query).populate(populate).limit(limit).skip(skip).lean(lean).exec();
+            query = model.find(qBase).populate(populate).limit(limit).skip(skip).lean(lean);
         } else {
-            return model.find(query).limit(limit).skip(skip).lean(lean).exec();
+            query = model.find(qBase).limit(limit).skip(skip).lean(lean);
         }
+        return query;
     }
 
     function unsubscribe(id, event) {  //accepts same args as findFn
@@ -47,7 +62,7 @@ var expose = function (model, schema, opts) {
         }
     }
 
-    function subscribe(evName) {
+    function subscribe(evName, query) {
         if (evName) {
             var socket = this.socket;
             if (!socket.mrEventIds) {
@@ -66,7 +81,7 @@ var expose = function (model, schema, opts) {
 
             rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
                 
-                var evId = schema.on(evName, notifySubscriber(clFns.pub));
+                var evId = schema.on(evName, notifySubscriber(clFns.pub, query));
 
                 socket.mrEventIds[evName] = evId;
                 def.resolve(evId);
@@ -79,21 +94,34 @@ var expose = function (model, schema, opts) {
 
     }
 
-    function subscribeAll() {
+    function subscribeAll(query) {
         eventNames.forEach(function (name) {
-            subscribe(name);
+            subscribe(name, query);
         });
     }
-
+    var queries = {};
 	var channel = {
-		find: find,
+		find: function (qBase, limit, skip, populate, lean) {
+            var q = makeFindQueries.apply(model, arguments);
+            return q.exec();
+        },
 		//unsubscribe
 		unsub: unsubscribe,
 		unsubAll: unsubscribeAll,
-		findSubAll: function () {
-			find.apply(model, arguments);
-			subscribeAll();
-		},
+        /**
+         *
+         * @param qBase object to be used as a param for find() method
+         * @param {Number} limit
+         * @param {Number} skip
+         * @param {Boolean} populate
+         * @param lean
+         * @returns {Promise} from mongoose query
+         */
+        liveQuery: function (qBase, limit, skip, populate, lean) {
+            var query = makeFindQueries.apply(model, arguments);
+            subscribeAll(query);
+            return query.exec();
+        },
 		//subscribe
 		sub: subscribe,
 		subAll: subscribeAll,

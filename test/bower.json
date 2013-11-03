@@ -9,14 +9,13 @@
         "angular-loader": "~1.2.0",
         "angular-moment": "latest",
         "angular-translate": "~1.1.0",
-        "angularLocalStorage-nc": "~0.2.1",
+        "angularLocalStorage-nc": "~0.2.2",
         "script.js": "latest",
         "sly": "latest",
-        "jquery": "~2.0.3",
-        "jquery-ui": "~1.10.3"
+        "jquery": "~2.0.3"
     },
     "env": "dev",
     "resolutions": {
-        "angular": "~1.2.0-rc.2"
+        "angular": "~1.2.0-rc.3"
     }
 }

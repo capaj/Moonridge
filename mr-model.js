@@ -2,8 +2,16 @@ var mongoose = require('mongoose');
 var exposeMethods = require('./mr-rpc-methods');
 var IdGen = require('./simple-ids');
 
-
-module.exports = function MRModel(name, schema, authFn) {
+/**
+ * @param {String} name
+ * @param {Schema} schema
+ * @param {Object} opts
+ * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
+ * @param {Function} opts.authFn will be passed to socket.io-rpc as validation function
+ * @returns {*}
+ * @constructor
+ */
+module.exports = function MRModel(name, schema, opts) {
     var mgSchema = mongoose.Schema(schema);
 
     // Create subscribers hashtable, holds reference to all registered event handlers
@@ -74,7 +82,7 @@ module.exports = function MRModel(name, schema, authFn) {
 
 	// Create model from schema
     var model = mongoose.model(name, mgSchema);
-    exposeMethods(model, schema, authFn);
+    exposeMethods(model, schema, opts);
     return model;
 
 };

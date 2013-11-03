@@ -2,7 +2,8 @@
     "name": "Moonridge",
     "version": "0.0.1",
     "dependencies": {
-        "mongoose": "latest",
+        "lodash": "~2.2",
+        "mongoose": "~3.8",
         "socket.io": "latest",
         "socket.io-rpc": "latest",
         "when": "latest"

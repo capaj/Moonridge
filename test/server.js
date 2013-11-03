@@ -1,5 +1,4 @@
 var mongoose = require('mongoose');
-var when = require('when');
 var locals = require('./localVariables.json');
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
@@ -14,15 +13,11 @@ mongoose.connect(locals.connString, function (err) {
     } else {
         console.log("DB connected succesfully");
     }
-
 });
 
 var server = app.listen(app.get('port'), function () {
     console.info("Express server listening on port %d in %s mode", this.address().port, app.settings.env);
-    var MRi = MR(server, app);
-    var MRModel = MRi.model;
-    var io = MRi.io;
-
+    var MRModel = MR(server, app);
 
     var Fighter = MRModel('Fighter', {
         name: String,
@@ -45,5 +40,16 @@ var server = app.listen(app.get('port'), function () {
     }).save(function (err) {
         console.log("bran saved");
     });
+
+	setTimeout(function () {
+		var gof = new Fighter({
+			name: 'Geoffrey'
+			, health: 30
+			, born: new Date()
+		}).save(function (err) {
+			console.log("gof saved");
+		});
+	}, 3000);
+
 });
 

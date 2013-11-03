@@ -1,13 +1,23 @@
 var rpc = require('socket.io-rpc');
 var mongoose = require('mongoose');
+var _ = require('lodash');
 var model = require('./mr-model');
 var lastChangeDate = new Date();
 
-module.exports = function (server, app) {
-    var io = require('socket.io').listen(server);
-    io.set('log level', 1);
-    io.set('transports', [ 'websocket']);
-//    io.set('heartbeats', false);  // we would like this, but it does not work like this
+var defIOSetter = function (io) {
+	io.set('log level', 1);
+	io.set('transports', [ 'websocket']);
+	//    io.set('heartbeats', false);  // we would like this, but it does not work like this
+};
+
+module.exports = function (server, app, ioSetter) {
+	var io = require('socket.io').listen(server);
+	if (_.isFunction(ioSetter)) {
+		ioSetter(io)
+	} else {
+		defIOSetter(io);
+	}
+
     rpc.createServer(io, app);
 
     rpc.expose('Moonridge', {
@@ -21,10 +31,14 @@ module.exports = function (server, app) {
         }
     });
 
+	/**
+	 *
+	 * @returns {MRModel}
+	 */
     function regNewModel() {
         lastChangeDate = new Date();
         return model.apply(this, arguments);
     }
 
-    return {io: io, model: regNewModel};
+    return regNewModel;
 };

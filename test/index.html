@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html ng-app="MRTest">
 <head>
-    <script src="bower_components/angular/angular.js" type="text/javascript"></script>
     <title></title>
 </head>
-<body>
+<body ng-controller="testCtrl">
+<input type="text" ng-model='te'>
 
+
+<script src="bower_components/jquery/jquery.min.js" type="text/javascript"></script>
+<script src="bower_components/angular/angular.js" type="text/javascript"></script>
+<script type="text/javascript" src="bower_components/angular-moment/angular-moment.min.js"></script>
+<script type="text/javascript">
+    angular.module('MRTest',[]).controller('testCtrl', function ($scope) {
+        $scope.te = 'afef';
+
+    });
+</script>
 </body>
 </html>

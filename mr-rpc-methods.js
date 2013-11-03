@@ -1,5 +1,6 @@
 var rpc = require('socket.io-rpc');
 var mongoose = require('mongoose');
+var _ = require('lodash');
 var eventNames = require('./schema-events');
 
 var notifySubscriber = function (clientPubMethod) {
@@ -8,7 +9,13 @@ var notifySubscriber = function (clientPubMethod) {
     }
 };
 
-var expose = function (model, schema, authFn) {
+/**
+ *
+ * @param {Model} model
+ * @param {Schema} schema
+ * @param {Object} opts
+ */
+var expose = function (model, schema, opts) {
     var modelName = model.modelName;
     function find(query, limit, skip, populate, lean) {
         if (lean === undefined) {
@@ -78,46 +85,53 @@ var expose = function (model, schema, authFn) {
         });
     }
 
-    var channel = {
-        find: find,
+	var channel = {
+		find: find,
 		//unsubscribe
-        unsub: unsubscribe,
-        unsubAll: unsubscribeAll,
+		unsub: unsubscribe,
+		unsubAll: unsubscribeAll,
 		findSubAll: function () {
-            find.apply(model, arguments);
-            subscribeAll();
-        },
+			find.apply(model, arguments);
+			subscribeAll();
+		},
 		//subscribe
-        sub: subscribe,
-        subAll: subscribeAll,
-        create: function (newDoc) {
-            var def = when.defer();
-            var lang = new model(newDoc);
-            lang.save(function (err, savedDoc) {
-                if (err) {
-                    console.error("Document "+ newDoc.toJSON() + " failed to save, error: " + err);
-                    def.reject(err);
-                }else{
-                    console.log("Following document was succesfully saved:" + savedDoc);
-                    def.resolve(savedDoc);
-                }
-            });
-            return def.promise;
-        },
-        remove: function (toRemove) {
-            return model.remove(toRemove).exec();
-        },
-        update: function (toUpdate, multi) {
-            if (typeof multi === 'undefined') {
-                multi = false;
-            }
+		sub: subscribe,
+		subAll: subscribeAll,
+		populate: model.populate
+	};
 
-            var id = toUpdate._id;
-            delete toUpdate._id;
-            return model.update({ _id: id }, toUpdate, {multi: multi}).exec();
-        }
-    };
-    rpc.expose('MR-' + modelName, channel, authFn)
+	if (opts.readOnly !== true) {
+		_.extend(channel, {
+			create: function (newDoc) {
+				return model.create(newDoc);
+//				var def = when.defer();
+//				var lang = new model(newDoc);
+//				lang.save(function (err, savedDoc) {
+//					if (err) {
+//						console.error("Document " + newDoc.toJSON() + " failed to save, error: " + err);
+//						def.reject(err);
+//					} else {
+//						console.log("Following document was succesfully saved:" + savedDoc);
+//						def.resolve(savedDoc);
+//					}
+//				});
+//				return def.promise;
+			},
+			remove: function (toRemove) {
+				return model.remove(toRemove).exec();
+			},
+			update: function (toUpdate, multi) {
+				if (typeof multi === 'undefined') {
+					multi = false;
+				}
+
+				var id = toUpdate._id;
+				delete toUpdate._id;
+				return model.update({ _id: id }, toUpdate, {multi: multi}).exec();
+			}
+		});
+	}
+    rpc.expose('MR-' + modelName, channel, opts.authFn)
 };
 
 module.exports = expose;

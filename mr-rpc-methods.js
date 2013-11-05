@@ -1,7 +1,7 @@
 var rpc = require('socket.io-rpc');
-var mongoose = require('mongoose');
 var _ = require('lodash');
 var eventNames = require('./schema-events');
+var stringifyQuery = require('./mquery-stringify');
 
 /**
  *
@@ -13,28 +13,29 @@ var expose = function (model, schema, opts) {
     var notifySubscriber = function (clientPubMethod, socket, query) {
         if (query) {
             return function (doc, evName) {   // will be called by schema's event firing
-                var cQindex = socket.currQuerdDocIds.indexOf(doc._id);
+                var currQueried = socket.currQuerdDocIds[stringifyQuery(query)];
+				var cQindex = currQueried.indexOf(doc._id);
 
                 if (evName === 'remove' && cQindex !== -1) {
 
                     clientPubMethod(doc, evName);
-                    socket.currQuerdDocIds.splice(cQindex, 1);
+                    currQueried.splice(cQindex, 1);
 
                 } else {
                     model.findOne(query).where('_id').equals(doc._id).select('_id')
                         .exec(function(err, id) {
                             if (!err && id) {
                                 if (evName === 'create') {
-                                    socket.curQuerdDocIds.push(doc._id);
+									currQueried.push(doc._id);
                                     clientPubMethod(doc, evName);
                                 }
                                 if (evName === 'update' && cQindex === -1) {
-                                    socket.curQuerdDocIds.push(doc._id);
+									currQueried.push(doc._id);
                                     clientPubMethod(doc, evName);
                                 }
                             } else {
                                 if (evName === 'update' && cQindex !== -1) {
-                                    socket.currQuerdDocIds.splice(cQindex, 1);
+                                    currQueried.splice(cQindex, 1);
                                     clientPubMethod(doc, evName);
                                 }
                             }
@@ -144,12 +145,16 @@ var expose = function (model, schema, opts) {
             var query = makeFindQueries.apply(model, arguments);
             subscribeAll(query);
             return query.exec().then(function (LQdocs) {
-                this.socket.currQuerdDocIds = [];
+				if (!this.socket.currQuerdDocIds) {
+					this.socket.currQuerdDocIds = {};
+				}
+				var qKey = stringifyQuery(query);
+				this.socket.currQuerdDocIds[qKey] = [];
 
                 var i = LQdocs.length;
                 while(i--)
                 {
-                    this.socket.currQuerdDocIds[i] = LQdocs[i]._id;
+                    this.socket.currQuerdDocIds[qKey][i] = LQdocs[i]._id;
                 }
                 return LQdocs;
             });

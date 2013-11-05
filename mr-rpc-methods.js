@@ -10,20 +10,41 @@ var eventNames = require('./schema-events');
  * @param {Object} opts
  */
 var expose = function (model, schema, opts) {
-    var notifySubscriber = function (clientPubMethod, query) {
+    var notifySubscriber = function (clientPubMethod, socket, query) {
         if (query) {
-            return function (doc, name) {   // will be called by schema's event firing
+            return function (doc, evName) {   // will be called by schema's event firing
+                var cQindex = socket.currQuerdDocIds.indexOf(doc._id);
 
-                model.findOne(query).where('_id').equals(doc._id).select('_id')
-                    .exec(function(err, id) {
-                        if (!err && id) {
-                            clientPubMethod(doc, name);
-                        }
-                    });
+                if (evName === 'remove' && cQindex !== -1) {
+
+                    clientPubMethod(doc, evName);
+                    socket.currQuerdDocIds.splice(cQindex, 1);
+
+                } else {
+                    model.findOne(query).where('_id').equals(doc._id).select('_id')
+                        .exec(function(err, id) {
+                            if (!err && id) {
+                                if (evName === 'create') {
+                                    socket.curQuerdDocIds.push(doc._id);
+                                    clientPubMethod(doc, evName);
+                                }
+                                if (evName === 'update' && cQindex === -1) {
+                                    socket.curQuerdDocIds.push(doc._id);
+                                    clientPubMethod(doc, evName);
+                                }
+                            } else {
+                                if (evName === 'update' && cQindex !== -1) {
+                                    socket.currQuerdDocIds.splice(cQindex, 1);
+                                    clientPubMethod(doc, evName);
+                                }
+                            }
+                        });
+                }
+
             }
         } else {
-            return function (doc, name) {   // will be called by schema's event firing
-                clientPubMethod(doc, name);
+            return function (doc, evName) {   // will be called by schema's event firing
+                clientPubMethod(doc, evName);
             }
         }
 
@@ -81,7 +102,7 @@ var expose = function (model, schema, opts) {
 
             rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
                 
-                var evId = schema.on(evName, notifySubscriber(clFns.pub, query));
+                var evId = schema.on(evName, notifySubscriber(clFns.pub, socket, query));
 
                 socket.mrEventIds[evName] = evId;
                 def.resolve(evId);
@@ -95,11 +116,13 @@ var expose = function (model, schema, opts) {
     }
 
     function subscribeAll(query) {
+        var evIds = {};
         eventNames.forEach(function (name) {
-            subscribe(name, query);
+            evIds[name] = subscribe(name, query);
         });
+        return evIds;
     }
-    var queries = {};
+
 	var channel = {
 		find: function (qBase, limit, skip, populate, lean) {
             var q = makeFindQueries.apply(model, arguments);
@@ -120,7 +143,16 @@ var expose = function (model, schema, opts) {
         liveQuery: function (qBase, limit, skip, populate, lean) {
             var query = makeFindQueries.apply(model, arguments);
             subscribeAll(query);
-            return query.exec();
+            return query.exec().then(function (LQdocs) {
+                this.socket.currQuerdDocIds = [];
+
+                var i = LQdocs.length;
+                while(i--)
+                {
+                    this.socket.currQuerdDocIds[i] = LQdocs[i]._id;
+                }
+                return LQdocs;
+            });
         },
 		//subscribe
 		sub: subscribe,

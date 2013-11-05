@@ -27,37 +27,37 @@ function EventBus() {
     };
     /**
      *
+     * @param {String} evName
      * @param {Function} callback
      */
-    this.subscribe = function (callback) {
+    this.subscribe = function (evName, callback) {
         var newId = IdGen();
-        self.subscribers[event][newId] = callback;
+        self.subscribers[evName][newId] = callback;
+        return newId;
     };
 
     /**
      *
      * @param id
      * @param {String} event
-     * @returns {bool|Object}
+     * @returns {bool}
      */
     this.unsubscribe = function (id, event) {
         if (event) {
-            if (Array.isArray(event)) {
-                var unsubscribed = {};
-                event.forEach(function (evName) {
-                    unsubscribed[evName] = self.unsubscribe(id, evName);
-                });
-                return unsubscribed;
-            } else {
-                if (self.subscribers[event][id]) {
-                    delete self.subscribers[event][id];
-                    return true;
-                } else {
-                    return false;
-                }
+            if (self.subscribers[event][id]) {
+                delete self.subscribers[event][id];
+                return true;
             }
         }
+        return false;
+
     };
+
+    this.unsubscribeMany = function (evIds) {
+        for (var evName in evIds) {
+            evIds.self.unsubscribe(evIds[evName], evName)
+        }
+    }
 }
 
 module.exports = EventBus;

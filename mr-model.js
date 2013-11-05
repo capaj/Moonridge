@@ -40,13 +40,19 @@ module.exports = function MRModel(name, schema, opts) {
     });
 
     // static method for subscribing to events
-    schema.static('on', function on(event, callback) {
-        if (typeof callback == 'function') {
+	var on = function on(event, callback) {
+		if (typeof callback == 'function') {
 			return schemaEvS.subscribe(event, callback);
-        } else {
-            throw new Error('Callback is something else than a function');
-        }
-    });
+		} else {
+			throw new Error('Callback is something else than a function');
+		}
+	};
+	schema.static('on', on);
+    schema.method('onAll', function (callback) {
+		for (var ev in schemaEvS.subscribers) {
+			on(ev, callback);
+		}
+	});
     schema.method('off', unsubscribe);
 
 	// Create model from schema

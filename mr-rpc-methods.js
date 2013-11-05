@@ -10,44 +10,55 @@ var stringifyQuery = require('./mquery-stringify');
  * @param {Object} opts
  */
 var expose = function (model, schema, opts) {
-    var notifySubscriber = function (clientPubMethod, socket, query) {
-        if (query) {
-            return function (doc, evName) {   // will be called by schema's event firing
-                var currQueried = socket.currQuerdDocIds[stringifyQuery(query)];
-				var cQindex = currQueried.indexOf(doc._id);
+	var liveQueries = {};
+	schema.onAll(function (doc, evName) {   // will be called by schema's event firing
+		Object.keys(liveQueries).forEach(function (LQString) {
+			var LQ = liveQueries[LQString];
+			var currQueried = LQ.docIds;
+			var cQindex = currQueried.indexOf(doc._id);
 
-                if (evName === 'remove' && cQindex !== -1) {
+			var callListeners = function () {
+				var i = LQ.listeners.length;
+				while(i--) {
+					LQ.listeners[i](doc, evName, LQString);
+				}
+			};
+			if (evName === 'remove' && cQindex !== -1) {
 
-                    clientPubMethod(doc, evName);
-                    currQueried.splice(cQindex, 1);
+				callListeners();
+				currQueried.splice(cQindex, 1);
 
-                } else {
-                    model.findOne(query).where('_id').equals(doc._id).select('_id')
-                        .exec(function(err, id) {
-                            if (!err && id) {
-                                if (evName === 'create') {
+			} else {
+				model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
+					.exec(function(err, id) {
+						if (!err && id) {
+							if (evName === 'create') {
+								currQueried.push(doc._id);
+								callListeners();
+							}
+							if (evName === 'update') {
+								if (cQindex === -1) {
 									currQueried.push(doc._id);
-                                    clientPubMethod(doc, evName);
-                                }
-                                if (evName === 'update' && cQindex === -1) {
-									currQueried.push(doc._id);
-                                    clientPubMethod(doc, evName);
-                                }
-                            } else {
-                                if (evName === 'update' && cQindex !== -1) {
-                                    currQueried.splice(cQindex, 1);
-                                    clientPubMethod(doc, evName);
-                                }
-                            }
-                        });
-                }
+								}
+								callListeners();
+							}
+						} else {
+							if (evName === 'update' && cQindex !== -1) {
+								currQueried.splice(cQindex, 1);
+								callListeners();
+							}
+						}
+					}
+				);
+			}
+		});
 
-            }
-        } else {
-            return function (doc, evName) {   // will be called by schema's event firing
-                clientPubMethod(doc, evName);
-            }
-        }
+	});
+
+	var notifySubscriber = function (clientPubMethod) {
+		return function (doc, evName) {   // will be called by schema's event firing
+			clientPubMethod(doc, evName);
+		}
 
     };
 
@@ -84,7 +95,7 @@ var expose = function (model, schema, opts) {
         }
     }
 
-    function subscribe(evName, query) {
+    function subscribe(evName) {
         if (evName) {
             var socket = this.socket;
             if (!socket.mrEventIds) {
@@ -103,7 +114,7 @@ var expose = function (model, schema, opts) {
 
             rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
                 
-                var evId = schema.on(evName, notifySubscriber(clFns.pub, socket, query));
+                var evId = schema.on(evName, notifySubscriber(clFns.pub, socket));
 
                 socket.mrEventIds[evName] = evId;
                 def.resolve(evId);
@@ -144,17 +155,23 @@ var expose = function (model, schema, opts) {
         liveQuery: function (qBase, limit, skip, populate, lean) {
             var query = makeFindQueries.apply(model, arguments);
             subscribeAll(query);
+			var socket = this.socket;
             return query.exec().then(function (LQdocs) {
-				if (!this.socket.currQuerdDocIds) {
-					this.socket.currQuerdDocIds = {};
-				}
 				var qKey = stringifyQuery(query);
-				this.socket.currQuerdDocIds[qKey] = [];
+
+				if (!liveQueries[qKey]) {
+					liveQueries[qKey] = {docIds: [], listeners: [], query: query};
+				}
+
+				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
+					//TODO check whether this socket's listener is already registered
+					liveQueries[qKey].listeners.push({method: clFns.pub, socket: socket});
+				});
 
                 var i = LQdocs.length;
                 while(i--)
                 {
-                    this.socket.currQuerdDocIds[qKey][i] = LQdocs[i]._id;
+					liveQueries[qKey].docIds[i] = LQdocs[i]._id;
                 }
                 return LQdocs;
             });

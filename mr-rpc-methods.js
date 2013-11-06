@@ -63,23 +63,31 @@ var expose = function (model, schema, opts) {
     };
 
     var modelName = model.modelName;
-    function makeFindQueries(qBase, limit, skip, populate, lean) {
+
+    function prepareQuery(qBase, limit, skip, populate) {
+
+        var query;
+        if (populate) {
+            query = model.find(qBase).populate(populate).limit(limit).skip(skip);
+        } else {
+            query = model.find(qBase).limit(limit).skip(skip);
+        }
+        return query;
+    }
+
+    function prepareFindQuery(qBase, limit, skip, populate, lean) {
         if (lean === undefined) {
             lean = false;
         }
-        var query;
-        if (populate) {
-            query = model.find(qBase).populate(populate).limit(limit).skip(skip).lean(lean);
-        } else {
-            query = model.find(qBase).limit(limit).skip(skip).lean(lean);
-        }
-        return query;
+        var query = prepareQuery(qBase, limit, skip, populate);
+
+        return query.lean(lean);
     }
 
     function unsubscribe(id, event) {  //accepts same args as findFn
         var res = schema.off(id, event);
         if (res) {
-            delete this.socket.mrEventIds[event];
+            delete this.mrEventIds[event];
         }
         return res;
     }
@@ -88,7 +96,7 @@ var expose = function (model, schema, opts) {
      * @param {Socket} socket
      */
     function unsubscribeAll(socket) {
-        var soc = socket || this.socket;
+        var soc = socket || this;
         var mrEventIds = soc.mrEventIds;
         for (var eN in mrEventIds) {
             unsubscribe(mrEventIds[eN], eN);
@@ -97,14 +105,14 @@ var expose = function (model, schema, opts) {
 
     function subscribe(evName) {
         if (evName) {
-            var socket = this.socket;
+            var socket = this;
             if (!socket.mrEventIds) {
                 socket.mrEventIds = {};
                 socket.on('disconnect', function () {
                     unsubscribeAll(socket);
                 });
             }
-            var existing = this.socket.mrEventIds;
+            var existing = this.mrEventIds;
             if (existing && existing[evName]) {
                 // event already subscribed, we don't want to support more than 1 remote listener so we unregister the old one
                 unsubscribe(existing[evName], evName);
@@ -137,25 +145,36 @@ var expose = function (model, schema, opts) {
 
 	var channel = {
 		find: function (qBase, limit, skip, populate, lean) {
-            var q = makeFindQueries.apply(model, arguments);
+            var q = prepareFindQuery.apply(model, arguments);
             return q.exec();
         },
 		//unsubscribe
 		unsub: unsubscribe,
 		unsubAll: unsubscribeAll,
+        unsubLQ: function (qBase, limit, skip, populate) {
+            var query = prepareQuery(qBase, limit, skip, populate);
+            var qKey = stringifyQuery(query);
+            var LQ = liveQueries[qKey];
+            if (LQ) {
+                LQ.removeListener(this);
+                return true;
+            } else {
+                return false;
+            }
+        },
         /**
          *
-         * @param qBase object to be used as a param for find() method
+         * @param {Object} qBase object to be used as a param for find() method
          * @param {Number} limit
          * @param {Number} skip
          * @param {Boolean} populate
-         * @param lean
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
-        liveQuery: function (qBase, limit, skip, populate, lean) {
-            var query = makeFindQueries.apply(model, arguments);
+        liveQuery: function (qBase, limit, skip, populate) {
+            arguments[4] = true; // this should make query always lean
+            var query = prepareFindQuery.apply(model, arguments);
             subscribeAll(query);
-			var socket = this.socket;
+			var socket = this;
 			var qKey = stringifyQuery(query);
 			var LQ = liveQueries[qKey];
 			if (LQ) {
@@ -172,7 +191,24 @@ var expose = function (model, schema, opts) {
 			}
 			return query.exec().then(function (LQdocs) {
 				if (!liveQueries[qKey]) {
-					LQ = {docs: [], listeners: [], query: query};	//TODO refactor into a LiveQuery class
+                    LQ = {
+                        docs: [], listeners: [], query: query,
+                        destroy: function () {
+                            delete liveQueries[qKey];
+                        },
+                        removeListener: function (socket) {
+                            var li = LQ.listeners.length;
+                            while(li--) {
+                                if (LQ.listeners[li].socket === socket) {
+                                    LQ.listeners.splice(li, 1);
+                                    if (LQ.listeners.length === 0) {
+                                        LQ.destroy();
+                                    }
+                                    break;	// listener should be registered only once, so no need to continue loop
+                                }
+                            }
+                        }
+                    };
 					liveQueries[qKey] = LQ;
 				}
 

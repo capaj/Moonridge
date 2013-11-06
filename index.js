@@ -32,21 +32,13 @@ module.exports = function (server, app, ioSetter) {
     });
 
 	io.sockets.on('connection', function (socket) {
-		socket.on('disconnect', function() {
+        socket.registeredLQs = [];
+        socket.on('disconnect', function() {
 			//clearing out liveQueries listeners
 			var index = socket.registeredLQs.length;
 			while(index--) {
 				var LQ = socket.registeredLQs[index];
-				var li = LQ.listeners.length;
-				while(li--) {
-					if (LQ.listeners[li].socket === socket) {
-						LQ.listeners.splice(li, 1);
-						if (LQ.listeners.length === 0) {
-							//TODO destroy LQ when no listeners left
-						}
-						break;	// listener should be registered only once
-					}
-				}
+				LQ.removeListener(socket);
 			}
 		});
 	});

@@ -20,13 +20,12 @@ module.exports = function MRModel(name, schema, opts) {
 
     schema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
-        console.log("presave");
         next();
     });
 
     // Hook `save` post method called after creation/update
     schema.post('save', function postSave(doc) {
-        if (this._wasNew) {
+        if (doc._wasNew) {
             fireEvent.call(this, 'create');
         } else {
             fireEvent.call(this, 'update');

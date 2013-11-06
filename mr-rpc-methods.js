@@ -176,6 +176,7 @@ var expose = function (model, schema, opts) {
                 return LQdocs;
             });
         },
+		//TODO have a method to stop liveQuery
 		//subscribe
 		sub: subscribe,
 		subAll: subscribeAll,
@@ -199,17 +200,39 @@ var expose = function (model, schema, opts) {
 //				});
 //				return def.promise;
 			},
-			remove: function (toRemove) {
-				return model.remove(toRemove).exec();
+			remove: function (id) {
+				var def = when.defer();
+				model.findById(id, function (err, doc) {
+					if (doc) {
+						doc.remove(function (err) {
+							if (err) {
+								def.reject(err);
+							}
+							def.resolve();
+						});
+					} else {
+						def.reject(new Error('no document with _id: ' + id));
+					}
+				});
+				return def.promise;
 			},
-			update: function (toUpdate, multi) {
-				if (typeof multi === 'undefined') {
-					multi = false;
-				}
+			update: function (toUpdate) {
+				var def = when.defer();
 
 				var id = toUpdate._id;
 				delete toUpdate._id;
-				return model.update({ _id: id }, toUpdate, {multi: multi}).exec();
+				model.findById(id, function (err, doc) {
+					if (doc) {
+						_.extend(doc, toUpdate);
+						doc.save(function (err) {
+							if (err) {
+								def.reject(err);
+							}
+							def.resolve();
+						});
+					}
+				});
+				return def.promise;
 			}
 		});
 	}

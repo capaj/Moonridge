@@ -14,8 +14,8 @@ var expose = function (model, schema, opts) {
 	schema.onAll(function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
 			var LQ = liveQueries[LQString];
-			var currQueried = LQ.docIds;
-			var cQindex = currQueried.indexOf(doc._id);
+			var currQueried = LQ.docs;
+			var cQindex = currQueried.indexOf(doc);
 
 			var callListeners = function () {
 				var i = LQ.listeners.length;
@@ -33,12 +33,12 @@ var expose = function (model, schema, opts) {
 					.exec(function(err, id) {
 						if (!err && id) {
 							if (evName === 'create') {
-								currQueried.push(doc._id);
+								currQueried.push(doc);
 								callListeners();
 							}
 							if (evName === 'update') {
 								if (cQindex === -1) {
-									currQueried.push(doc._id);
+									currQueried.push(doc);
 								}
 								callListeners();
 							}
@@ -150,28 +150,35 @@ var expose = function (model, schema, opts) {
          * @param {Number} skip
          * @param {Boolean} populate
          * @param lean
-         * @returns {Promise} from mongoose query
+         * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (qBase, limit, skip, populate, lean) {
             var query = makeFindQueries.apply(model, arguments);
             subscribeAll(query);
 			var socket = this.socket;
-            return query.exec().then(function (LQdocs) {
-				var qKey = stringifyQuery(query);
+			var qKey = stringifyQuery(query);
+			var inMemory = liveQueries[qKey];
+			if (inMemory) {
+				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
+					//TODO check whether this socket's listener is already registered
+					liveQueries[qKey].listeners.push({method: clFns.pub, socket: socket});
+				});
 
+				return inMemory.docs;
+			}
+			return query.exec().then(function (LQdocs) {
 				if (!liveQueries[qKey]) {
-					liveQueries[qKey] = {docIds: [], listeners: [], query: query};
+					liveQueries[qKey] = {docs: [], listeners: [], query: query};
 				}
 
 				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-					//TODO check whether this socket's listener is already registered
 					liveQueries[qKey].listeners.push({method: clFns.pub, socket: socket});
 				});
 
                 var i = LQdocs.length;
                 while(i--)
                 {
-					liveQueries[qKey].docIds[i] = LQdocs[i]._id;
+					liveQueries[qKey].docs[i] = LQdocs[i];
                 }
                 return LQdocs;
             });

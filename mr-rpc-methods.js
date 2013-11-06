@@ -157,22 +157,28 @@ var expose = function (model, schema, opts) {
             subscribeAll(query);
 			var socket = this.socket;
 			var qKey = stringifyQuery(query);
-			var inMemory = liveQueries[qKey];
-			if (inMemory) {
+			var LQ = liveQueries[qKey];
+			if (LQ) {
 				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-					//TODO check whether this socket's listener is already registered
-					liveQueries[qKey].listeners.push({method: clFns.pub, socket: socket});
+					if (socket.registeredLQs.indexOf(LQ) !== -1) {
+						return 'MR_ERR_1';	//already listening for that query
+					}
+					LQ.listeners.push({method: clFns.pub, socket: socket});
+					socket.registeredLQs.push(LQ);
+
 				});
 
-				return inMemory.docs;
+				return LQ.docs;
 			}
 			return query.exec().then(function (LQdocs) {
 				if (!liveQueries[qKey]) {
-					liveQueries[qKey] = {docs: [], listeners: [], query: query};
+					LQ = {docs: [], listeners: [], query: query};	//TODO refactor into a LiveQuery class
+					liveQueries[qKey] = LQ;
 				}
 
 				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-					liveQueries[qKey].listeners.push({method: clFns.pub, socket: socket});
+					LQ.listeners.push({method: clFns.pub, socket: socket});
+					socket.registeredLQs.push(LQ);
 				});
 
                 var i = LQdocs.length;

@@ -1,5 +1,4 @@
 var rpc = require('socket.io-rpc');
-var mongoose = require('mongoose');
 var _ = require('lodash');
 var model = require('./mr-model');
 var lastChangeDate = new Date();
@@ -18,7 +17,7 @@ var defIOSetter = function (io) {
  * @param {Function} opts.ioSetter function for setting up socket io
  * @returns {Function}
  */
-module.exports = function (server, app, opts) {
+module.exports = function (mongoose, server, app, opts) {
 	var io = require('socket.io').listen(server);
 
     if (_.isFunction(opts && opts.ioSetter)) {
@@ -52,14 +51,14 @@ module.exports = function (server, app, opts) {
 		});
 	});
 
-//	/**
-//	 *
-//	 * @returns {MRModel}
-//	 */
-//    function regNewModel() {
-//        lastChangeDate = new Date();
-//        return model.apply(this, arguments);
-//    }
+	/**
+	 *
+	 * @returns {MRModel}
+	 */
+    function regNewModel() {
+        lastChangeDate = new Date();
+        return model.apply(mongoose, arguments);
+    }
 
-    return model;
+    return regNewModel;
 };

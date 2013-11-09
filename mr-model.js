@@ -1,4 +1,4 @@
-var mongoose = require('mongoose');
+
 var exposeMethods = require('./mr-rpc-methods');
 var EventBus = require('./schema-events');
 
@@ -12,7 +12,7 @@ var EventBus = require('./schema-events');
  * @constructor
  */
 module.exports = function MRModel(name, schema, opts) {
-    var mgSchema = new mongoose.Schema(schema);
+    var mgSchema = new this.Schema(schema);
 
     var schemaEvS = new EventBus();
     // Create subscribers hashtable, holds reference to all registered event handlers
@@ -56,7 +56,7 @@ module.exports = function MRModel(name, schema, opts) {
     mgSchema.method('off', unsubscribe);
     // Create model from schema
 
-    var model = mongoose.model(name, mgSchema);
+    var model = this.model(name, mgSchema);
     exposeMethods(model, mgSchema, opts);
     return model;
 

@@ -9,11 +9,19 @@ var defIOSetter = function (io) {
 	io.set('transports', [ 'websocket']);
 	//    io.set('heartbeats', false);  // we would like this, but it does not work like this
 };
-
-module.exports = function (server, app, ioSetter) {
+/**
+ *
+ * @param server
+ * @param app
+ * @param {Object} opts
+ * @param {Function} opts.ioSetter function for setting up socket io
+ * @returns {Function}
+ */
+module.exports = function (server, app, opts) {
 	var io = require('socket.io').listen(server);
-	if (_.isFunction(ioSetter)) {
-		ioSetter(io)
+
+    if (_.isFunction(opts.ioSetter)) {
+        opts.ioSetter(io)
 	} else {
 		defIOSetter(io);
 	}

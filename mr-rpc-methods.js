@@ -17,15 +17,16 @@ var expose = function (model, schema, opts) {
 			var currQueried = LQ.docs;
 			var cQindex = currQueried.indexOf(doc);
 
-			var callListeners = function () {
+			var callListeners = function (isInResult) {
 				var i = LQ.listeners.length;
 				while(i--) {
-					LQ.listeners[i](doc, evName, LQString);
+					var listener = LQ.listeners[i];
+                    listener.method(doc, evName, listener.clIndex, isInResult);
 				}
 			};
 			if (evName === 'remove' && cQindex !== -1) {
 
-				callListeners();
+				callListeners(false);
 				currQueried.splice(cQindex, 1);
 
 			} else {
@@ -34,18 +35,18 @@ var expose = function (model, schema, opts) {
 						if (!err && id) {
 							if (evName === 'create') {
 								currQueried.push(doc);
-								callListeners();
+								callListeners(true);
 							}
 							if (evName === 'update') {
 								if (cQindex === -1) {
 									currQueried.push(doc);
 								}
-								callListeners();
+								callListeners(true);
 							}
 						} else {
 							if (evName === 'update' && cQindex !== -1) {
 								currQueried.splice(cQindex, 1);
-								callListeners();
+								callListeners(false);
 							}
 						}
 					}
@@ -151,10 +152,9 @@ var expose = function (model, schema, opts) {
 		//unsubscribe
 		unsub: unsubscribe,
 		unsubAll: unsubscribeAll,
-        unsubLQ: function (qBase, limit, skip, populate) {
-            var query = prepareQuery(qBase, limit, skip, populate);
-            var qKey = stringifyQuery(query);
-            var LQ = liveQueries[qKey];
+        unsubLQ: function (index) {
+            var LQ = this.registeredLQs[index];
+            this.registeredLQs.splice(index, 1);
             if (LQ) {
                 LQ.removeListener(this);
                 return true;
@@ -182,14 +182,16 @@ var expose = function (model, schema, opts) {
 					if (socket.registeredLQs.indexOf(LQ) !== -1) {
 						return 'MR_ERR_1';	//already listening for that query
 					}
-					LQ.listeners.push({method: clFns.pub, socket: socket});
-					socket.registeredLQs.push(LQ);
+                    var clIndex = socket.registeredLQs.push(LQ) - 1;
+                    LQ.listeners.push({method: clFns.pub, socket: socket, clIndex: clIndex});
 
 				});
 
 				return LQ.docs;
 			}
-			return query.exec().then(function (LQdocs) {
+            var def = when.defer();
+
+            query.exec().then(function (LQdocs) {
 				if (!liveQueries[qKey]) {
                     LQ = {
                         docs: [], listeners: [], query: query,
@@ -212,18 +214,20 @@ var expose = function (model, schema, opts) {
 					liveQueries[qKey] = LQ;
 				}
 
-				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-					LQ.listeners.push({method: clFns.pub, socket: socket});
-					socket.registeredLQs.push(LQ);
-				});
-
                 var i = LQdocs.length;
                 while(i--)
                 {
 					liveQueries[qKey].docs[i] = LQdocs[i];
                 }
-                return LQdocs;
+
+                rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
+                    LQ.listeners.push({method: clFns.pub, socket: socket});
+                    var length = socket.registeredLQs.push(LQ);
+                    def.resolve({docs: LQdocs, index: length-1});
+                });
+
             });
+            return def.promise;
         },
 		//TODO have a method to stop liveQuery
 		//subscribe

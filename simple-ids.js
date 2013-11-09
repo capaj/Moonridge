@@ -8,5 +8,5 @@ setInterval(function () {
 
 module.exports = function () {
 	counter += 1;
-	return 	now.toJSON() + '|' + counter;
+	return JSON.stringify(now) + '|' + counter;
 };

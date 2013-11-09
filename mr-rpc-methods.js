@@ -11,7 +11,8 @@ var stringifyQuery = require('./mquery-stringify');
  */
 var expose = function (model, schema, opts) {
 	var liveQueries = {};
-	schema.onAll(function (doc, evName) {   // will be called by schema's event firing
+
+	model.onAll(function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
 			var LQ = liveQueries[LQString];
 			var currQueried = LQ.docs;
@@ -236,7 +237,7 @@ var expose = function (model, schema, opts) {
 		populate: model.populate
 	};
 
-	if (opts.readOnly !== true) {
+	if (opts && opts.readOnly !== true) {
 		_.extend(channel, {
 			create: function (newDoc) {
 				return model.create(newDoc);
@@ -289,7 +290,8 @@ var expose = function (model, schema, opts) {
 			}
 		});
 	}
-    rpc.expose('MR-' + modelName, channel, opts.authFn)
+    var authFn = opts && opts.authFn;
+    rpc.expose('MR-' + modelName, channel, authFn)
 };
 
 module.exports = expose;

@@ -1,12 +1,19 @@
 angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $log) {
+    var MRs = {}; //MR can be only one for each backend
 
     function Moonridge(backendUrl) {
-        var self = this;
+        var self;
+        if (MRs[backendUrl]) {
+            return MRs[backendUrl];
+        } else {
+            self = {};
+            MRs[backendUrl] = self;
+        }
 
         var models = {};
 		$rpc.connect('http:'+ backendUrl);
 
-        this.getAllModels = function () {
+        self.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
                 mrChnl.getModels().then(function (models) {
 //                    TODO call getModel for all models
@@ -72,7 +79,7 @@ angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $
             }
         }
 
-		this.getModel = function (name) {
+		self.getModel = function (name) {
             var model = models[name];
             if (model) {
                 return model.deferred.promise
@@ -106,8 +113,32 @@ angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $
 
 		};
 
-        return this;
+        return self;
     }
 
     return Moonridge;
+}).directive('mrController', function ($controller, $q, $MR) {
+    return {
+        scope: true,
+        compile: function compile(tEl, tAttrs) {
+            return {
+                pre: function (scope, iElement, attr, controller) {
+                    var ctrlName = attr.mrController;
+                    var url = attr.mrUrl;
+                    var MR = $MR(url);
+                    MR.getModel(attr.modelName).then(function (model) {
+                        scope.model = model;
+                        var ctrl = $controller(ctrlName, {
+                            $scope: scope
+                        });
+                        iElement.children().data('$ngControllerController', ctrl);
+                    }, function (err) {
+                        console.error("Cannot instantiate mr-controller - error: " + err);
+                    });
+
+                }
+            };
+        }
+    }
+
 });

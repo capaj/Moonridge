@@ -4,7 +4,12 @@
     <title></title>
 </head>
 <body ng-controller="testCtrl">
-<input type="text" ng-model='te'>
+<label for="query"></label><input type="text" id="query" ng-model='te'>
+<div mr-controller="fighter">
+    <p ng-repeat="fighter in LQ.docs">
+        {{ fighter.name }}
+    </p>
+</div>
 
 
 <script src="bower_components/jquery/jquery.min.js" type="text/javascript"></script>
@@ -12,8 +17,7 @@
 <script type="text/javascript" src="bower_components/angular-moment/angular-moment.min.js"></script>
 <script type="text/javascript">
     angular.module('MRTest',[]).controller('testCtrl', function ($scope) {
-        $scope.te = 'afef';
-
+        $scope.LQ = $scope.model.liveQuery({}, 20, 0);
     });
 </script>
 </body>

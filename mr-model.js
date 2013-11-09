@@ -12,19 +12,19 @@ var EventBus = require('./schema-events');
  * @constructor
  */
 module.exports = function MRModel(name, schema, opts) {
-    var mgSchema = mongoose.Schema(schema);
+    var mgSchema = new mongoose.Schema(schema);
     var schemaEvS = new EventBus();
     // Create subscribers hashtable, holds reference to all registered event handlers
     var fireEvent = schemaEvS.fire;
 	var unsubscribe = schemaEvS.unsubscribe;
 
-    schema.pre('save', function preSave(next) {
+    mgSchema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
         next();
     });
 
     // Hook `save` post method called after creation/update
-    schema.post('save', function postSave(doc) {
+    mgSchema.post('save', function postSave(doc) {
         if (doc._wasNew) {
             fireEvent.call(this, 'create');
         } else {
@@ -33,7 +33,7 @@ module.exports = function MRModel(name, schema, opts) {
         return true;
     });
 
-    schema.post('remove', function postRemove(doc) {
+    mgSchema.post('remove', function postRemove(doc) {
         fireEvent.call(this, 'remove');
         console.log('%s has been removed', doc._id);
     });
@@ -46,17 +46,17 @@ module.exports = function MRModel(name, schema, opts) {
 			throw new Error('Callback is something else than a function');
 		}
 	};
-	schema.static('on', on);
-    schema.method('onAll', function (callback) {
+	mgSchema.static('on', on);
+    mgSchema.static('onAll', function (callback) {
 		for (var ev in schemaEvS.subscribers) {
 			on(ev, callback);
 		}
 	});
-    schema.method('off', unsubscribe);
+    mgSchema.method('off', unsubscribe);
 
 	// Create model from schema
     var model = mongoose.model(name, mgSchema);
-    exposeMethods(model, schema, opts);
+    exposeMethods(model, mgSchema, opts);
     return model;
 
 };

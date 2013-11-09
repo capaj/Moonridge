@@ -20,7 +20,7 @@ var defIOSetter = function (io) {
 module.exports = function (server, app, opts) {
 	var io = require('socket.io').listen(server);
 
-    if (_.isFunction(opts.ioSetter)) {
+    if (_.isFunction(opts && opts.ioSetter)) {
         opts.ioSetter(io)
 	} else {
 		defIOSetter(io);
@@ -60,5 +60,5 @@ module.exports = function (server, app, opts) {
         return model.apply(this, arguments);
     }
 
-    return regNewModel;
+    return model;
 };

@@ -9,6 +9,7 @@ var defIOSetter = function (io) {
 	io.set('transports', [ 'websocket']);
 	//    io.set('heartbeats', false);  // we would like this, but it does not work like this
 };
+
 /**
  *
  * @param server
@@ -51,14 +52,14 @@ module.exports = function (server, app, opts) {
 		});
 	});
 
-	/**
-	 *
-	 * @returns {MRModel}
-	 */
-    function regNewModel() {
-        lastChangeDate = new Date();
-        return model.apply(this, arguments);
-    }
+//	/**
+//	 *
+//	 * @returns {MRModel}
+//	 */
+//    function regNewModel() {
+//        lastChangeDate = new Date();
+//        return model.apply(this, arguments);
+//    }
 
     return model;
 };

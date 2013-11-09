@@ -13,6 +13,7 @@ var EventBus = require('./schema-events');
  */
 module.exports = function MRModel(name, schema, opts) {
     var mgSchema = new mongoose.Schema(schema);
+
     var schemaEvS = new EventBus();
     // Create subscribers hashtable, holds reference to all registered event handlers
     var fireEvent = schemaEvS.fire;
@@ -53,8 +54,8 @@ module.exports = function MRModel(name, schema, opts) {
 		}
 	});
     mgSchema.method('off', unsubscribe);
+    // Create model from schema
 
-	// Create model from schema
     var model = mongoose.model(name, mgSchema);
     exposeMethods(model, mgSchema, opts);
     return model;

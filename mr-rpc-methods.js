@@ -6,7 +6,7 @@ var stringifyQuery = require('./mquery-stringify');
 /**
  *
  * @param {Model} model
- * @param {Schema} schema
+ * @param {Schema} schema mongoose schema
  * @param {Object} opts
  */
 var expose = function (model, schema, opts) {

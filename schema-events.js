@@ -7,7 +7,6 @@ var IdGen = require('./simple-ids');
  */
 var eventNames = ['create', 'update', 'remove'];
 
-
 function EventBus() {
     var self = this;
     self.subscribers = {};  //TODO use node-hashtable here for better perf
@@ -59,5 +58,5 @@ function EventBus() {
         }
     }
 }
-
+EventBus.eventNames = eventNames;
 module.exports = EventBus;

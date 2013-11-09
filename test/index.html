@@ -3,20 +3,23 @@
 <head>
     <title></title>
 </head>
-<body ng-controller="testCtrl">
+<body mr-controller="testCtrl" mr-url="http://localhost:8080" model-name="fighter">
 <label for="query"></label><input type="text" id="query" ng-model='te'>
-<div mr-controller="fighter">
+<div>
     <p ng-repeat="fighter in LQ.docs">
         {{ fighter.name }}
     </p>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
 
 <script src="bower_components/jquery/jquery.min.js" type="text/javascript"></script>
 <script src="bower_components/angular/angular.js" type="text/javascript"></script>
 <script type="text/javascript" src="bower_components/angular-moment/angular-moment.min.js"></script>
+<script src="/rpc/rpc-client-angular.js"></script>
+<script type="text/javascript" src="/mr-angular-client.js"></script>
 <script type="text/javascript">
-    angular.module('MRTest',[]).controller('testCtrl', function ($scope) {
+    angular.module('MRTest',['Moonridge']).controller('testCtrl', function ($scope) {
         $scope.LQ = $scope.model.liveQuery({}, 20, 0);
     });
 </script>

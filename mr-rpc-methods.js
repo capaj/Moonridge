@@ -1,6 +1,7 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
-var eventNames = require('./schema-events');
+var when = require('when');
+var eventNames = require('./schema-events').eventNames;
 var stringifyQuery = require('./mquery-stringify');
 
 /**
@@ -110,6 +111,7 @@ var expose = function (model, schema, opts) {
             var socket = this;
             if (!socket.mrEventIds) {
                 socket.mrEventIds = {};
+
                 socket.on('disconnect', function () {
                     unsubscribeAll(socket);
                 });
@@ -139,8 +141,10 @@ var expose = function (model, schema, opts) {
 
     function subscribeAll(query) {
         var evIds = {};
+        var socket = this;
         eventNames.forEach(function (name) {
-            evIds[name] = subscribe(name, query);
+            debugger;
+            evIds[name] = subscribe.call(socket, name, query);
         });
         return evIds;
     }
@@ -174,9 +178,9 @@ var expose = function (model, schema, opts) {
         liveQuery: function (qBase, limit, skip, populate) {
             arguments[4] = true; // this should make query always lean
             var query = prepareFindQuery.apply(model, arguments);
-            subscribeAll(query);
 			var socket = this;
-			var qKey = stringifyQuery(query);
+            subscribeAll.call(this, query);
+            var qKey = stringifyQuery(query);
 			var LQ = liveQueries[qKey];
 			if (LQ) {
 				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {

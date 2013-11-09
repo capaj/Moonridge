@@ -1,4 +1,4 @@
-angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $log) {
+angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
     var MRs = {}; //MR can be only one for each backend
 
     function Moonridge(backendUrl) {
@@ -11,7 +11,7 @@ angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $
         }
 
         var models = {};
-		$rpc.connect('http:'+ backendUrl);
+		$rpc.connect(backendUrl);
 
         self.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
@@ -27,10 +27,10 @@ angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $
         function Model() {
             var self = this;
             this._LQs = [];
-
+            self.deferred = $q.defer();
 //            this.methods = rpc;
             this.liveQuery = function (qBase, limit, skip, populate) {
-                return rpc.liveQuery.apply(this, arguments).then(function (LQ) {
+                return self.rpc.liveQuery.apply(this, arguments).then(function (LQ) {
                     self._LQs[LQ.index] = LQ;
                     LQ.getDocById = function (id) {
                         var i = LQ.docs.length;
@@ -87,8 +87,6 @@ angular.module('Moonridge', []).factory('$MR', function $MR($rpc, storage, $q, $
                 model = new Model();
                 models[name] = model;
             }
-
-            models[name] = {deferred: $q.defer()};
 
             var promises = {
                 client: $rpc.expose('MR-' + name, {

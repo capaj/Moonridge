@@ -6,6 +6,26 @@ var MRinit = require('../index');
 var express = require('express');
 var app = module.exports = express();
 
+app.configure(function(){
+    app.set('port', 8080);
+    app.use(express.favicon());
+    app.use(express.bodyParser());
+    app.use(express.methodOverride());
+    app.use(express.static('./test/'));
+    app.use(app.router);
+
+});
+app.get('/mr-angular-client.js', function (req, res) {
+    res.sendfile('./client/mr-angular-client.js');
+});
+var server = app.listen(app.get('port'));
+
+var MR = MRinit(mongoose, server, app);
+
+app.get('*', function (req, res) {
+    res.sendfile('./test/index.html');
+});
+
 
 mongoose.connect(locals.connString, function (err) {
     // if we failed to connect, abort
@@ -15,33 +35,28 @@ mongoose.connect(locals.connString, function (err) {
         console.log("DB connected succesfully");
     }
 
-    var server = app.listen(app.get('port'), function () {
-        console.info("Express server listening on port %d in %s mode", this.address().port, app.settings.env);
-        var MR = MRinit(mongoose, server, app);
 
-        var Schema = mongoose.Schema;
+    var Fighter = MR('fighter', {
+        name: String,
+        health: Number,
+        born: Date,
+        death: Date
+    });
 
-        var Fighter = MR('fighter', {
-            name: String,
-            health: Number,
-            born: Date,
-            death: Date
+    var battleM = MR('battle', {
+        name: String,
+        started: Date,
+        ended: Date,
+        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
+    });
+
+    Fighter.create({
+        name: 'Bran'
+        , health: 150
+        , born: new Date()
+    }).then(function () {
+            console.log("created");
         });
-
-        var battleM = MR('battle', {
-            name: String,
-            started: Date,
-            ended: Date,
-            fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
-        });
-
-        Fighter.create({
-            name: 'Bran'
-            , health: 150
-            , born: new Date()
-        }).then(function () {
-                console.log("created");
-            });
 //
 //        var c = 7;
 //        setInterval(function () {
@@ -55,8 +70,6 @@ mongoose.connect(locals.connString, function (err) {
 //                });
 //            c++;
 //        }, 2000);
-
-    });
 
 
 });

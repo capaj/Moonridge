@@ -124,7 +124,7 @@ var expose = function (model, schema, opts) {
 
             var def = when.defer();
 
-            rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
+            rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
                 
                 var evId = schema.on(evName, notifySubscriber(clFns.pub, socket));
 
@@ -143,7 +143,6 @@ var expose = function (model, schema, opts) {
         var evIds = {};
         var socket = this;
         eventNames.forEach(function (name) {
-            debugger;
             evIds[name] = subscribe.call(socket, name, query);
         });
         return evIds;
@@ -179,59 +178,58 @@ var expose = function (model, schema, opts) {
             arguments[4] = true; // this should make query always lean
             var query = prepareFindQuery.apply(model, arguments);
 			var socket = this;
+
             subscribeAll.call(this, query);
             var qKey = stringifyQuery(query);
 			var LQ = liveQueries[qKey];
-			if (LQ) {
-				rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-					if (socket.registeredLQs.indexOf(LQ) !== -1) {
-						return 'MR_ERR_1';	//already listening for that query
-					}
+            var def = when.defer();
+            var pushListeners = function () {
+                rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+                    if (socket.registeredLQs.indexOf(LQ) !== -1) {
+                        return 'MR_ERR_1';	//already listening for that query
+                    }
                     var clIndex = socket.registeredLQs.push(LQ) - 1;
                     LQ.listeners.push({method: clFns.pub, socket: socket, clIndex: clIndex});
-
-				});
-
-				return LQ.docs;
-			}
-            var def = when.defer();
-
-            query.exec().then(function (LQdocs) {
-				if (!liveQueries[qKey]) {
-                    LQ = {
-                        docs: [], listeners: [], query: query,
-                        destroy: function () {
-                            delete liveQueries[qKey];
-                        },
-                        removeListener: function (socket) {
-                            var li = LQ.listeners.length;
-                            while(li--) {
-                                if (LQ.listeners[li].socket === socket) {
-                                    LQ.listeners.splice(li, 1);
-                                    if (LQ.listeners.length === 0) {
-                                        LQ.destroy();
+                    def.resolve({docs: LQ.docs, index: clIndex});
+                });
+            };
+            if (LQ) {
+                pushListeners();
+			} else {
+                query.exec().then(function (rDocs) {
+                    if (!liveQueries[qKey]) {
+                        LQ = {
+                            docs: [], listeners: [], query: query,
+                            destroy: function () {
+                                delete liveQueries[qKey];
+                            },
+                            removeListener: function (socket) {
+                                var li = LQ.listeners.length;
+                                while(li--) {
+                                    if (LQ.listeners[li].socket === socket) {
+                                        LQ.listeners.splice(li, 1);
+                                        if (LQ.listeners.length === 0) {
+                                            LQ.destroy();
+                                        }
+                                        break;	// listener should be registered only once, so no need to continue loop
                                     }
-                                    break;	// listener should be registered only once, so no need to continue loop
                                 }
                             }
-                        }
-                    };
-					liveQueries[qKey] = LQ;
-				}
+                        };
+                        liveQueries[qKey] = LQ;
+                    }
 
-                var i = LQdocs.length;
-                while(i--)
-                {
-					liveQueries[qKey].docs[i] = LQdocs[i];
-                }
+                    var i = rDocs.length;
+                    while(i--)
+                    {
+                        liveQueries[qKey].docs[i] = rDocs[i];
+                    }
 
-                rpc.loadClientChannel(socket, 'MR-' + modelName, function (socket, clFns) {
-                    LQ.listeners.push({method: clFns.pub, socket: socket});
-                    var length = socket.registeredLQs.push(LQ);
-                    def.resolve({docs: LQdocs, index: length-1});
+                    pushListeners();
+
                 });
+            }
 
-            });
             return def.promise;
         },
 		//TODO have a method to stop liveQuery

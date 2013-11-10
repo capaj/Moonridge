@@ -1,6 +1,6 @@
 {
     "name": "moonridge",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "dependencies": {
         "lodash": "~2.2",
         "mongoose": "~3.8",

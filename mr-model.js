@@ -58,6 +58,6 @@ module.exports = function MRModel(name, schema, opts) {
 
     var model = this.model(name, mgSchema);
     exposeMethods(model, mgSchema, opts);
-    return model;
+    return {model: model, schema: mgSchema};
 
 };

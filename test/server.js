@@ -48,7 +48,7 @@ mongoose.connect(locals.connString, function (err) {
         fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
     });
 
-    Fighter.create({
+    Fighter.model.create({
         name: 'Bran'
         , health: 150
         , born: new Date()

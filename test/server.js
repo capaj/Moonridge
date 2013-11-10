@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var locals = require('./localVariables.json');
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
-var MRinit = require('../index');
+var MRinit = require('../main');
 var express = require('express');
 var app = module.exports = express();
 

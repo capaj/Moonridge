@@ -20,6 +20,10 @@ var defIOSetter = function (io) {
 module.exports = function (mongoose, server, app, opts) {
 	var io = require('socket.io').listen(server);
 
+    app.get('/mr-angular-client.js', function (req, res) { //exposed client file
+        res.sendfile('./client/mr-angular-client.js');
+    });
+
     if (_.isFunction(opts && opts.ioSetter)) {
         opts.ioSetter(io)
 	} else {

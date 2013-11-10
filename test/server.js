@@ -15,9 +15,7 @@ app.configure(function(){
     app.use(app.router);
 
 });
-app.get('/mr-angular-client.js', function (req, res) {
-    res.sendfile('./client/mr-angular-client.js');
-});
+
 var server = app.listen(app.get('port'));
 
 var MR = MRinit(mongoose, server, app);

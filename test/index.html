@@ -21,9 +21,9 @@
 <script type="text/javascript">
     angular.module('MRTest',['Moonridge']).controller('testCtrl', function ($scope) {
 
-        $scope.LQ = $scope.model.liveQuery({}, 20, 0).then(function (d) {
-            console.log(d);
-            debugger;
+        $scope.model.liveQuery({}, 20, 0).then(function (LQ) {
+            console.log(LQ);
+            $scope.LQ = LQ;
         });
     });
 </script>

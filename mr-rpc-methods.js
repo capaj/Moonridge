@@ -185,7 +185,7 @@ var expose = function (model, schema, opts) {
 					console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
 				}
 				var clIndex = socket.registeredLQs.push(LQ) - 1;
-				LQ.listeners.push({method: clFns.pub, socket: socket, clIndex: clIndex});
+				LQ.listeners.push({method: clFns.pubLQ, socket: socket, clIndex: clIndex});
 				def.resolve({docs: LQ.docs, index: clIndex});
 
             };

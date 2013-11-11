@@ -76,6 +76,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							}
 						}
 					};
+                    LQ.destroy = function () {
+                        self.rpc.unsubLQ(LQ.index);
+                        self.docs.length = 0;
+                        delete self._LQs[LQ.index];
+                    };
 					return LQ;
 				}, function (err) {
 					$log.error(err);
@@ -95,11 +100,16 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 
             var promises = {
                 client: $rpc.expose('MR-' + name, {
-                    pub: function (doc, eventName, LQId, isInResult) {
-                        if (LQId) {
+                    pub: function (doc, eventName) {
+                        //todo implement
+                    },
+                    pubLQ: function (doc, eventName, LQId, isInResult) {
+                        console.dir(arguments);
+                        if (model._LQs[LQId]) {
                             //updateLQ
                             model._LQs[LQId]['on_' + eventName](doc, isInResult);
-
+                        } else {
+                            $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
                         }
                     }
                 }),

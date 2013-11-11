@@ -58,18 +58,18 @@ mongoose.connect(locals.connString, function (err) {
 //    }).then(function () {
 //            console.log("created");
 //        });
-//
-//        var c = 7;
-//        setInterval(function () {
-//            Fighter.model.create({
-//                name: 'goldCloak' + c
-//                , health: 30
-//                , born: new Date()
-//            }).then(function (doc) {
-//                    console.log(doc.name + " saved");
-//                });
-//            c++;
-//        }, 2000);
+
+        var c = 1;
+        setInterval(function () {
+            Fighter.model.create({
+                name: 'goldCloak' + c
+                , health: 30
+                , born: new Date()
+            }).then(function (doc) {
+                    console.log(doc.name + " saved");
+                });
+            c++;
+        }, 2000);
 
 
 });

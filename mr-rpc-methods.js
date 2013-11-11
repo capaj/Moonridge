@@ -102,7 +102,7 @@ var expose = function (model, schema, opts) {
         var soc = socket || this;
         var mrEventIds = soc.mrEventIds;
         for (var eN in mrEventIds) {
-            unsubscribe(mrEventIds[eN], eN);
+            unsubscribe.call(soc, mrEventIds[eN], eN);
         }
     }
 
@@ -124,7 +124,7 @@ var expose = function (model, schema, opts) {
 
 			var clFns = socket.cRpcChnl;
 
-			var evId = schema.on(evName, notifySubscriber(clFns.pub, socket));
+			var evId = model.on(evName, notifySubscriber(clFns.pub, socket));
 
 			socket.mrEventIds[evName] = evId;
 
@@ -294,6 +294,16 @@ var expose = function (model, schema, opts) {
 		rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
 			socket.cRpcChnl = clFns;	// client RPC channel
 		});
+
+        socket.registeredLQs = [];
+        socket.on('disconnect', function() {
+            //clearing out liveQueries listeners
+            var index = socket.registeredLQs.length;
+            while(index--) {
+                var LQ = socket.registeredLQs[index];
+                LQ.removeListener(socket);
+            }
+        });
 	});
 };
 

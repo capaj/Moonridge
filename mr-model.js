@@ -46,13 +46,14 @@ module.exports = function MRModel(name, schema, opts) {
 			throw new Error('Callback is something else than a function');
 		}
 	};
+
 	mgSchema.static('on', on);
     mgSchema.static('onAll', function (callback) {
 		for (var ev in schemaEvS.subscribers) {
 			on(ev, callback);
 		}
 	});
-    mgSchema.method('off', unsubscribe);
+    mgSchema.static('off', unsubscribe);
     // Create model from schema
 
     var model = this.model(name, mgSchema);

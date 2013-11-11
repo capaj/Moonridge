@@ -43,18 +43,6 @@ module.exports = function (mongoose, server, app, opts) {
         }
     });
 
-	io.sockets.on('connection', function (socket) {
-        socket.registeredLQs = [];
-        socket.on('disconnect', function() {
-			//clearing out liveQueries listeners
-			var index = socket.registeredLQs.length;
-			while(index--) {
-				var LQ = socket.registeredLQs[index];
-				LQ.removeListener(socket);
-			}
-		});
-	});
-
 	/**
 	 *
 	 * @returns {MRModel}

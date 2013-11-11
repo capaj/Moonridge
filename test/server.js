@@ -19,6 +19,9 @@ app.configure(function(){
 var server = app.listen(app.get('port'));
 
 var MR = MRinit(mongoose, server, app);
+app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
+	res.sendfile('./client/moonridge-angular-client.js');
+});
 
 app.get('*', function (req, res) {
     res.sendfile('./test/index.html');

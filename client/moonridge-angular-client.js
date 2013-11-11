@@ -30,52 +30,57 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             self.deferred = $q.defer();
 //            this.methods = rpc;
             this.liveQuery = function (qBase, limit, skip, populate) {
-                return self.rpc.liveQuery.apply(this, arguments).then(function (LQ) {
-                    self._LQs[LQ.index] = LQ;
-                    LQ.getDocById = function (id) {
-                        var i = LQ.docs.length;
-                        while(i--){
-                            if (LQ.docs[i]._id === id) {
-                                return LQ.docs[i];
-                            }
-                        }
-                        return null;
-                    };
 
-                    LQ.on_create = function (doc) {
-                        LQ.docs.push(doc);
-                    };
-                    LQ.on_update = function (doc, isInResult) {
-                        var i = LQ.docs.length;
-                        while(i--){
-                            var updated;
-                            if (LQ.docs[i]._id === doc._id) {
-                                if (isInResult === false) {
-                                    docs.splice(i, 1);
-                                    return;
-                                }
-                                updated = LQ.docs[i];
-                                angular.extend(updated, doc);
-                                return;
-                            }
-                        }
-                        if (isInResult) {
-                            LQ.docs.push(doc);
-                            //TODO solve sorting and other problems
-                            return;
-                        }
-                        $log.error('Failed to find updated document.');
-                    };
-                    LQ.on_remove = function (doc) {
-                        var i = LQ.docs.length;
-                        while(i--){
-                            if (LQ.docs[i]._id === doc._id) {
-                                delete LQ.docs[i];
-                            }
-                        }
-                    };
-                    return LQ;
-                });
+				var promise = self.rpc.liveQuery.apply(this, arguments);
+				promise.then(function (LQ) {
+					self._LQs[LQ.index] = LQ;
+					LQ.getDocById = function (id) {
+						var i = LQ.docs.length;
+						while (i--) {
+							if (LQ.docs[i]._id === id) {
+								return LQ.docs[i];
+							}
+						}
+						return null;
+					};
+
+					LQ.on_create = function (doc) {
+						LQ.docs.push(doc);
+					};
+					LQ.on_update = function (doc, isInResult) {
+						var i = LQ.docs.length;
+						while (i--) {
+							var updated;
+							if (LQ.docs[i]._id === doc._id) {
+								if (isInResult === false) {
+									docs.splice(i, 1);
+									return;
+								}
+								updated = LQ.docs[i];
+								angular.extend(updated, doc);
+								return;
+							}
+						}
+						if (isInResult) {
+							LQ.docs.push(doc);
+							//TODO solve sorting and other problems
+							return;
+						}
+						$log.error('Failed to find updated document.');
+					};
+					LQ.on_remove = function (doc) {
+						var i = LQ.docs.length;
+						while (i--) {
+							if (LQ.docs[i]._id === doc._id) {
+								delete LQ.docs[i];
+							}
+						}
+					};
+					return LQ;
+				}, function (err) {
+					$log.error(err);
+				});
+				return promise;
             }
         }
 

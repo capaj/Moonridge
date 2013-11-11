@@ -1,4 +1,3 @@
-
 var exposeMethods = require('./mr-rpc-methods');
 var EventBus = require('./schema-events');
 
@@ -57,7 +56,9 @@ module.exports = function MRModel(name, schema, opts) {
     // Create model from schema
 
     var model = this.model(name, mgSchema);
+
     exposeMethods(model, mgSchema, opts);
+
     return {model: model, schema: mgSchema};
 
 };

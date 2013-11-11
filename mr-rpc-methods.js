@@ -122,17 +122,13 @@ var expose = function (model, schema, opts) {
                 unsubscribe(existing[evName], evName);
             }
 
-            var def = when.defer();
+			var clFns = socket.cRpcChnl;
 
-            rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
-                
-                var evId = schema.on(evName, notifySubscriber(clFns.pub, socket));
+			var evId = schema.on(evName, notifySubscriber(clFns.pub, socket));
 
-                socket.mrEventIds[evName] = evId;
-                def.resolve(evId);
+			socket.mrEventIds[evName] = evId;
 
-            });
-            return def.promise;
+            return evId;
         } else {
             throw new Error('event must be specified when subscribing to it');
         }
@@ -184,14 +180,14 @@ var expose = function (model, schema, opts) {
 			var LQ = liveQueries[qKey];
             var def = when.defer();
             var pushListeners = function () {
-                rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
-                    if (socket.registeredLQs.indexOf(LQ) !== -1) {
-                        return 'MR_ERR_1';	//already listening for that query
-                    }
-                    var clIndex = socket.registeredLQs.push(LQ) - 1;
-                    LQ.listeners.push({method: clFns.pub, socket: socket, clIndex: clIndex});
-                    def.resolve({docs: LQ.docs, index: clIndex});
-                });
+            	var clFns = socket.cRpcChnl;
+				if (socket.registeredLQs.indexOf(LQ) !== -1) {
+					console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
+				}
+				var clIndex = socket.registeredLQs.push(LQ) - 1;
+				LQ.listeners.push({method: clFns.pub, socket: socket, clIndex: clIndex});
+				def.resolve({docs: LQ.docs, index: clIndex});
+
             };
             if (LQ) {
                 pushListeners();
@@ -293,7 +289,12 @@ var expose = function (model, schema, opts) {
 		});
 	}
     var authFn = opts && opts.authFn;
-    rpc.expose('MR-' + modelName, channel, authFn)
+    var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
+	chnlSockets.on('connection', function (socket) {
+		rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+			socket.cRpcChnl = clFns;	// client RPC channel
+		});
+	});
 };
 
 module.exports = expose;

@@ -17,11 +17,11 @@ app.configure(function(){
 });
 
 var server = app.listen(app.get('port'));
-
-var MR = MRinit(mongoose, server, app);
-app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
+app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
 	res.sendfile('./client/moonridge-angular-client.js');
 });
+var MR = MRinit(mongoose, server, app);
+
 
 app.get('*', function (req, res) {
     res.sendfile('./test/index.html');
@@ -51,23 +51,22 @@ mongoose.connect(locals.connString, function (err) {
         fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
     });
 
-    Fighter.model.create({
-        name: 'Bran'
-        , health: 150
-        , born: new Date()
-    }).then(function () {
-            console.log("created");
-        });
+//    Fighter.model.create({
+//        name: 'Bran'
+//        , health: 150
+//        , born: new Date()
+//    }).then(function () {
+//            console.log("created");
+//        });
 //
 //        var c = 7;
 //        setInterval(function () {
-//            console.log("ppp");
-//            var gof = new Fighter({
+//            Fighter.model.create({
 //                name: 'goldCloak' + c
 //                , health: 30
 //                , born: new Date()
-//            }).save(function (err) {
-//                    console.log("gold cloak" + c + " saved");
+//            }).then(function (doc) {
+//                    console.log(doc.name + " saved");
 //                });
 //            c++;
 //        }, 2000);

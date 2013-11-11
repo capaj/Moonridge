@@ -88,7 +88,7 @@ var expose = function (model, schema, opts) {
     }
 
     function unsubscribe(id, event) {  //accepts same args as findFn
-        var res = schema.off(id, event);
+        var res = model.off(id, event);
         if (res) {
             delete this.mrEventIds[event];
         }

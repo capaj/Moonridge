@@ -2,7 +2,7 @@ var rpc = require('socket.io-rpc');
 var _ = require('lodash');
 var when = require('when');
 var eventNames = require('./schema-events').eventNames;
-var stringifyQuery = require('./mquery-stringify');
+var queryBuilder = require('./query-builder');
 
 /**
  *
@@ -12,6 +12,11 @@ var stringifyQuery = require('./mquery-stringify');
  */
 var expose = function (model, schema, opts) {
 	var liveQueries = {};
+	var modelName = model.modelName;
+
+	var queryValidation = function (callback) {
+		callback(true);
+	};
 
 	model.onAll(function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
@@ -20,6 +25,9 @@ var expose = function (model, schema, opts) {
 
 			var callListeners = function (isInResult) {
 				var i = LQ.listeners.length;
+				if (evName === 'remove') {
+					doc = doc._id;
+				}
 				while(i--) {
 					var listener = LQ.listeners[i];
                     listener.method(doc, evName, listener.clIndex, isInResult);
@@ -63,28 +71,6 @@ var expose = function (model, schema, opts) {
 		}
 
     };
-
-    var modelName = model.modelName;
-
-    function prepareQuery(qBase, limit, skip, populate) {
-
-        var query;
-        if (populate) {
-            query = model.find(qBase).populate(populate).limit(limit).skip(skip);
-        } else {
-            query = model.find(qBase).limit(limit).skip(skip);
-        }
-        return query;
-    }
-
-    function prepareFindQuery(qBase, limit, skip, populate, lean) {
-        if (lean === undefined) {
-            lean = false;
-        }
-        var query = prepareQuery(qBase, limit, skip, populate);
-
-        return query.lean(lean);
-    }
 
     function unsubscribe(id, event) {  //accepts same args as findFn
         var res = model.off(id, event);
@@ -144,9 +130,15 @@ var expose = function (model, schema, opts) {
     }
 
 	var channel = {
-		find: function (qBase, limit, skip, populate, lean) {
-            var q = prepareFindQuery.apply(model, arguments);
-            return q.exec();
+		/**
+		 *
+		 * @param clientQuery
+		 * @returns {Promise}
+		 */
+		find: function (clientQuery) {
+			clientQuery.lean = true; // this should make query always lean
+			var mQuery = queryBuilder(model, clientQuery);
+            return mQuery.exec();
         },
 		//unsubscribe
 		unsub: unsubscribe,
@@ -163,20 +155,21 @@ var expose = function (model, schema, opts) {
         },
         /**
          *
-         * @param {Object} qBase object to be used as a param for find() method
-         * @param {Number} limit
-         * @param {Number} skip
-         * @param {Boolean} populate
+         * @param {Object} clientQuery object to be parsed by queryBuilder, consult mongoose query.js docs for reference
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
-        liveQuery: function (qBase, limit, skip, populate) {
-            arguments[4] = true; // this should make query always lean
-            var query = prepareFindQuery.apply(model, arguments);
+        liveQuery: function (clientQuery) {
+			clientQuery.lean = true; // this should make query always lean
+            var mQuery = queryBuilder(model, clientQuery);
+			if (!mQuery.exec) {
+				return new Error('query builder has returned invalid query');
+			}
 			var socket = this;
 
-            var qKey = stringifyQuery(query);
+            var qKey = JSON.stringify(clientQuery);
 			var LQ = liveQueries[qKey];
-            var def = when.defer();
+            var def;
+
             var pushListeners = function () {
             	var clFns = socket.cRpcChnl;
 				if (socket.registeredLQs.indexOf(LQ) !== -1) {
@@ -184,16 +177,23 @@ var expose = function (model, schema, opts) {
 				}
 				var clIndex = socket.registeredLQs.push(LQ) - 1;
 				LQ.listeners.push({method: clFns.pubLQ, socket: socket, clIndex: clIndex});
-				def.resolve({docs: LQ.docs, index: clIndex});
+				var retVal = {docs: LQ.docs, index: clIndex};
+				if (def) {
+					def.resolve(retVal);
+				} else {
+					return retVal;
+				}
 
             };
             if (LQ) {
-                pushListeners();
+                return pushListeners();	// no need for a promise, if we have it in memory
 			} else {
-                query.exec().then(function (rDocs) {
+				def = when.defer();
+
+				mQuery.exec().then(function (rDocs) {
                     if (!liveQueries[qKey]) {
                         LQ = {
-                            docs: [], listeners: [], query: query,
+                            docs: [], listeners: [], query: mQuery,
                             destroy: function () {
                                 delete liveQueries[qKey];
                             },
@@ -234,9 +234,8 @@ var expose = function (model, schema, opts) {
                     pushListeners();
 
                 });
-            }
-
-            return def.promise;
+				return def.promise;
+			}
         },
 		//TODO have a method to stop liveQuery
 		//subscribe

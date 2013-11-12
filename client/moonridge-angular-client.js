@@ -63,16 +63,16 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 						}
 						if (isInResult) {
 							LQ.docs.push(doc); // pushing into docs if it was not found by loop
-							//TODO solve sorting by having a sorting method generated from initial queries and running them
+							//we don't care about sorting-LQ.docs is a set, sorting is done on client side
 							return;
 						}
 						$log.error('Failed to find updated document.');
 					};
-					LQ.on_remove = function (doc) {
+					LQ.on_remove = function (id) {
 						var i = LQ.docs.length;
 						while (i--) {
-							if (LQ.docs[i]._id === doc._id) {
-								delete LQ.docs[i];
+							if (LQ.docs[i]._id === id) {
+								LQ.docs.splice(i, 1);
                                 return true;
 							}
 						}
@@ -108,7 +108,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
                         //todo implement
                     },
                     pubLQ: function (doc, eventName, LQId, isInResult) {
-                        console.dir(arguments);
                         if (model._LQs[LQId]) {
                             //updateLQ
                             model._LQs[LQId]['on_' + eventName](doc, isInResult);
@@ -150,7 +149,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
                         });
                         iElement.children().data('$ngControllerController', ctrl);
                     }, function (err) {
-                        console.error("Cannot instantiate mr-controller - error: " + err);
+						throw new Error("Cannot instantiate mr-controller - error: " + err);
                     });
 
                 }

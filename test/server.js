@@ -21,6 +21,10 @@ var server = app.listen(app.get('port'));
 app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
 	res.sendfile('./client/moonridge-angular-client.js');
 });
+app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
+    res.sendfile('./client/moonridge-angular-client-rpcbundle.js');
+});
+
 var MR = MRinit(mongoose, server, app);
 
 
@@ -77,18 +81,18 @@ mongoose.connect(locals.connString, function (err) {
             });
         }
     );
-    var c = 0;
-
-    setInterval(function () {
-        Fighter.model.create({
-            name: 'gold cloak ' + c
-            , health: 30
-            , born: new Date()
-        }).then(function (doc) {
-                console.log(doc.name + " saved");
-            });
-        c++;
-    }, 3000);
+//    var c = 0;
+//
+//    setInterval(function () {
+//        Fighter.model.create({
+//            name: 'gold cloak ' + c
+//            , health: 30
+//            , born: new Date()
+//        }).then(function (doc) {
+//                console.log(doc.name + " saved");
+//            });
+//        c++;
+//    }, 3000);
 
 
 

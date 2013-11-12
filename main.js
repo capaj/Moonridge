@@ -24,6 +24,10 @@ module.exports = function (mongoose, server, app, opts) {
 		res.sendfile('/node_modules/moonridge/client/moonridge-angular-client.js');
 	});
 
+    app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //exposed client file
+		res.sendfile('/node_modules/moonridge/client/moonridge-angular-client-rpcbundle.js');
+	});
+
     if (_.isFunction(opts && opts.ioSetter)) {
         opts.ioSetter(io)
 	} else {

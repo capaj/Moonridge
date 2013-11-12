@@ -1,12 +1,23 @@
 {
     "name": "moonridge",
-    "version": "0.0.6",
+    "version": "0.0.9",
     "main": "main.js",
+    "author": "Capaj <capajj@gmail.com>",
+    "description": "Bring your Mongoose models straight into your angular app with live Query support, all thx to the magic os socket.io",
+    "keywords": [
+        "socket.io",
+        "rpc",
+        "model",
+        "liveQuery",
+        "realtime",
+        "mongoose"
+    ],
     "dependencies": {
         "lodash": "~2.2",
         "mongoose": "~3.8",
         "socket.io": "latest",
         "socket.io-rpc": "latest",
         "when": "latest"
-    }
+    },
+    "license": "MIT"
 }

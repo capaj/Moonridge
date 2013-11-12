@@ -53,7 +53,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							var updated;
 							if (LQ.docs[i]._id === doc._id) {
 								if (isInResult === false) {
-									docs.splice(i, 1);
+									docs.splice(i, 1);  //removing from docs
 									return;
 								}
 								updated = LQ.docs[i];
@@ -62,8 +62,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							}
 						}
 						if (isInResult) {
-							LQ.docs.push(doc);
-							//TODO solve sorting and other problems
+							LQ.docs.push(doc); // pushing into docs if it was not found by loop
+							//TODO solve sorting by having a sorting method generated from initial queries and running them
 							return;
 						}
 						$log.error('Failed to find updated document.');
@@ -73,8 +73,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 						while (i--) {
 							if (LQ.docs[i]._id === doc._id) {
 								delete LQ.docs[i];
+                                return true;
 							}
 						}
+                        $log.error('Failed to find deleted document.');
+
+                        return false;
 					};
                     LQ.destroy = function () {
                         self.rpc.unsubLQ(LQ.index);

@@ -16,8 +16,7 @@ var expose = function (model, schema, opts) {
 	model.onAll(function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
 			var LQ = liveQueries[LQString];
-			var currQueried = LQ.docs;
-			var cQindex = currQueried.indexOf(doc);
+			var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
 			var callListeners = function (isInResult) {
 				var i = LQ.listeners.length;
@@ -26,28 +25,28 @@ var expose = function (model, schema, opts) {
                     listener.method(doc, evName, listener.clIndex, isInResult);
 				}
 			};
-			if (evName === 'remove' && cQindex !== -1) {
+			if (evName === 'remove' && LQ.docs[cQindex]) {
 
 				callListeners(false);
-				currQueried.splice(cQindex, 1);
+				LQ.docs.splice(cQindex, 1);
 
 			} else {
 				model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
 					.exec(function(err, id) {
 						if (!err && id) {
 							if (evName === 'create') {
-								currQueried.push(doc);
+								LQ.docs.push(doc);
 								callListeners(true);
 							}
 							if (evName === 'update') {
 								if (cQindex === -1) {
-									currQueried.push(doc);
+									LQ.docs.push(doc);
 								}
 								callListeners(true);
 							}
 						} else {
 							if (evName === 'update' && cQindex !== -1) {
-								currQueried.splice(cQindex, 1);
+								LQ.docs.splice(cQindex, 1);
 								callListeners(false);
 							}
 						}
@@ -175,7 +174,6 @@ var expose = function (model, schema, opts) {
             var query = prepareFindQuery.apply(model, arguments);
 			var socket = this;
 
-            subscribeAll.call(this, query);
             var qKey = stringifyQuery(query);
 			var LQ = liveQueries[qKey];
             var def = when.defer();
@@ -198,6 +196,18 @@ var expose = function (model, schema, opts) {
                             docs: [], listeners: [], query: query,
                             destroy: function () {
                                 delete liveQueries[qKey];
+                            },
+                            getIndexById: function (id) {
+                                id = id.id;
+                                var i = LQ.docs.length;
+                                while(i--)
+                                {
+                                    var doc = LQ.docs[i];
+                                    if (doc._id.id === id) {
+                                        return i;
+                                    }
+                                }
+                                return undefined;
                             },
                             removeListener: function (socket) {
                                 var li = LQ.listeners.length;

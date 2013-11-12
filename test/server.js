@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var _ = require('lodash');
 var locals = require('./localVariables.json');
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.Types.ObjectId;
@@ -51,25 +52,44 @@ mongoose.connect(locals.connString, function (err) {
         fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
     });
 
-//    Fighter.model.create({
-//        name: 'Bran'
-//        , health: 150
-//        , born: new Date()
-//    }).then(function () {
-//            console.log("created");
-//        });
+    Fighter.model.create({
+        name: 'Rob Stark', health: 150, born: new Date()
+    }).then(function () {
 
-        var c = 1;
-        setInterval(function () {
-            Fighter.model.create({
-                name: 'goldCloak' + c
-                , health: 30
-                , born: new Date()
-            }).then(function (doc) {
-                    console.log(doc.name + " saved");
-                });
-            c++;
-        }, 2000);
+            console.log("created");
+
+            Fighter.model.find({}, function (err, docs) {
+                if (docs) {
+                    setTimeout(function () {
+
+                        var doc = docs[0];
+                        if (doc) {
+                            doc.remove(function (err) {
+                                if (err) {
+
+                                }
+                                console.log("deleted");
+                            });
+                        }
+
+                    }, 8000);
+                }
+            });
+        }
+    );
+    var c = 0;
+
+    setInterval(function () {
+        Fighter.model.create({
+            name: 'gold cloak ' + c
+            , health: 30
+            , born: new Date()
+        }).then(function (doc) {
+                console.log(doc.name + " saved");
+            });
+        c++;
+    }, 3000);
+
 
 
 });

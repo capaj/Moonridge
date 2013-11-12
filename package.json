@@ -1,9 +1,9 @@
 {
     "name": "moonridge",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "main": "main.js",
     "author": "Capaj <capajj@gmail.com>",
-    "description": "Bring your Mongoose models straight into your angular app with live Query support, all thx to the magic os socket.io",
+    "description": "Bring your Mongoose models straight into angular web app with live Query support, all thx to the magic of socket.io",
     "keywords": [
         "socket.io",
         "rpc",

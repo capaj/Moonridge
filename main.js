@@ -14,6 +14,8 @@ var defIOSetter = function (io) {
  * @param server
  * @param app
  * @param {Object} opts
+ * @param {Object} opts.auth
+ * 		example: {global: function(handshake, CB){CB()}, methods: {method: }}
  * @param {Function} opts.ioSetter function for setting up socket io
  * @returns {Function}
  */

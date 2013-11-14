@@ -3,7 +3,7 @@
 <head>
     <title></title>
 </head>
-<body mr-controller="testCtrl" mr-url="http://localhost:8080" model-name="fighter">
+<body mr-controller="testCtrl" mr-backend="local" model-name="fighter">
 <label for="query"></label><input type="text" id="query" ng-model='te'>
 <div>
     <p ng-repeat="fighter in LQ.docs">
@@ -24,6 +24,8 @@
             console.log(LQ);
             $scope.LQ = LQ;
         });
+    }).run(function ($MR) {
+        $MR.backends = {local: 'http://localhost:8080'};
     });
 </script>
 </body>

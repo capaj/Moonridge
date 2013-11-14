@@ -302,12 +302,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             this._LQs = [];
             self.deferred = $q.defer();
 //            this.methods = rpc;
-            this.liveQuery = function (qBase, limit, skip, populate) {
+            this.liveQuery = function (query) {
 
 				var promise = self.rpc.liveQuery.apply(this, arguments);
 				promise.then(function (LQ) {
 					self._LQs[LQ.index] = LQ;
-					LQ.getDocById = function (id) {
+					LQ.query = query;
+                    LQ.getDocById = function (id) {
 						var i = LQ.docs.length;
 						while (i--) {
 							if (LQ.docs[i]._id === id) {
@@ -413,7 +414,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var url = attr.mrUrl;
+                    var url = attr.mrUrl || $MR.backends[attr.mrBackend];
+
                     var MR = $MR(url);
                     MR.getModel(attr.modelName).then(function (model) {
                         scope.model = model;
@@ -429,5 +431,28 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             };
         }
     }
+}).directive('mrRepeat', function ($controller, $q, $MR) {
+    return {
+        compile: function compile(tEl, tAttrs) {
+            var LQprop = tEl.attr('mr-repeat');
+            tEl.attr('ng-repeat', LQprop + '.docs');
+            return {
+                pre: function (scope, iElement, attr, controller) {
+                    var LQ = scope[LQprop];
+//                    scope.$watch(LQprop + '.query', function (nV, oV) {
+//                        if (nV) {
+//                            if (nV.sort) {
+//                                if (angular.isString()) {
+//                                    var val = iElement.attr('ng-repeat');
+//                                    iElement.attr('ng-repeat', val + "| orderBy:'" + LQ.query.sort + "'");
+//                                }
+//                            }
+//                        }
+//                    });
 
+
+                }
+            };
+        }
+    }
 });

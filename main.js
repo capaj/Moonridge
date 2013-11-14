@@ -10,7 +10,6 @@ var defIOSetter = function (io) {
 };
 
 /**
- *
  * @param server
  * @param app
  * @param {Object} opts
@@ -58,5 +57,11 @@ module.exports = function (mongoose, server, app, opts) {
         return model.apply(mongoose, arguments);
     }
 
-    return regNewModel;
+	function registerUserModel(schemaExtend, opts) {
+		var userSchema = require('./user-model-base');
+		_.extend(userSchema, schemaExtend);
+		return model.call(mongoose, 'user', schemaExtend)
+	}
+
+    return {model: regNewModel, userModel: registerUserModel};
 };

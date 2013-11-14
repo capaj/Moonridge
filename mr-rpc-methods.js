@@ -12,8 +12,8 @@ var queryBuilder = require('./query-builder');
  */
 var expose = function (model, schema, opts) {
 	var liveQueries = {};
+	opts = opts || {};
 	var modelName = model.modelName;
-
 	var queryValidation = function (callback) {
 		callback(true);
 	};
@@ -129,6 +129,21 @@ var expose = function (model, schema, opts) {
         return evIds;
     }
 
+	/**
+	 *
+	 * @param {Document} user
+	 * @param {String} op operation to check
+	 * @returns {bool}
+	 */
+	opts.checkPermission = function (user, op) {
+		if (this.permissions && this.permissions[op]) {
+			if (user.privilige_level < this.permissions[op]) {
+				return false;
+			}
+		}
+		return true;
+	};
+
 	var channel = {
 		/**
 		 *
@@ -159,6 +174,9 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery) {
+			if (!opts.checkPermission('R')) {
+				return new Error('You lack a privilege to read this document');
+			}
 			clientQuery.lean = true; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
 			if (!mQuery.exec) {
@@ -247,21 +265,16 @@ var expose = function (model, schema, opts) {
 	if (opts && opts.readOnly !== true) {
 		_.extend(channel, {
 			create: function (newDoc) {
+				if (!opts.checkPermission(this.user, 'C')) {
+					return new Error('You lack a privilege to create this document');
+				}
 				return model.create(newDoc);
-//				var def = when.defer();
-//				var lang = new model(newDoc);
-//				lang.save(function (err, savedDoc) {
-//					if (err) {
-//						console.error("Document " + newDoc.toJSON() + " failed to save, error: " + err);
-//						def.reject(err);
-//					} else {
-//						console.log("Following document was succesfully saved:" + savedDoc);
-//						def.resolve(savedDoc);
-//					}
-//				});
-//				return def.promise;
+
 			},
 			remove: function (id) {
+				if (!opts.checkPermission(this.user, 'D')) {
+					return new Error('You lack a privilege to delete this document');
+				}
 				var def = when.defer();
 				model.findById(id, function (err, doc) {
 					if (doc) {
@@ -278,6 +291,10 @@ var expose = function (model, schema, opts) {
 				return def.promise;
 			},
 			update: function (toUpdate) {
+				if (!opts.checkPermission(this.user, 'U')) {
+					return new Error('You lack a privilege to update this document');
+				}
+
 				var def = when.defer();
 
 				var id = toUpdate._id;

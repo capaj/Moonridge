@@ -18,7 +18,7 @@
 <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
 <script type="text/javascript" src="/moonridge-angular-client-rpcbundle.js"></script>
 <script type="text/javascript">
-    angular.module('MRTest',['Moonridge']).controller('testCtrl', function ($scope) {
+    angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
 
         $scope.model.liveQuery({limit: 7, skip: 0}).then(function (LQ) {
             console.log(LQ);

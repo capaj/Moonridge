@@ -6,7 +6,14 @@ var EventBus = require('./schema-events');
  * @param {Schema} schema
  * @param {Object} opts
  * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
- * @param {Function} opts.authFn will be passed to socket.io-rpc as validation function
+ * @param {Object} opts.permissions should look something like:
+ * 		example: {
+			C: 1,
+			R: 0,
+			U: 5,
+			D: 5
+		}
+ * @param {Function} opts.authFn will be passed to socket.io-rpc as authorization function for the whole model channel
  * @returns {*}
  * @constructor
  */

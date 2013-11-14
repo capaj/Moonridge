@@ -25,7 +25,7 @@ app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose
     res.sendfile('./client/moonridge-angular-client-rpcbundle.js');
 });
 
-var MR = MRinit(mongoose, server, app);
+var MR = MRinit(mongoose, server, app).model;
 
 
 app.get('*', function (req, res) {

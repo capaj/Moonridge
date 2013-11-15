@@ -255,6 +255,9 @@ var expose = function (model, schema, opts) {
 
             var pushListeners = function () {
             	var clFns = socket.cRpcChnl;
+				if (!clFns) {
+					throw new Error('client RPC channel must be loaded and available');
+				}
 				if (socket.registeredLQs.indexOf(LQ) !== -1) {
 					console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
 				}

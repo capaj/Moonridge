@@ -29,6 +29,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             this._LQs = [];
             self.deferred = $q.defer();
 //            this.methods = rpc;
+
+            /**
+             *
+             * @param {Object} query NOTE: do not use + sign in select expressions
+             * @returns {Promise|*}
+             */
             this.liveQuery = function (query) {
 
 				var promise = self.rpc.liveQuery.apply(this, arguments);

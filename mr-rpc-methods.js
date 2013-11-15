@@ -18,6 +18,27 @@ var expose = function (model, schema, opts) {
 		callback(true);
 	};
 
+    /**
+     * similar purpose as accesControlQueryModifier but works not on query, but objects, usable whenever we are sending
+     * new doc to client without querying
+     * @param {Object} doc just JS object, not a real mongoose doc
+     * @param {String} op operation, 'R' or 'W'
+     * @param {Number} userPL privilige level of the current user
+     * @returns {*}
+     */
+    function deleteUnpermittedProps(doc, op, userPL) {
+        var pathPs = schema.pathPermissions;
+        var doc = _.clone(doc);
+
+        for (var prop in pathPs) {
+            var perm = pathPs[prop];
+            if (perm[op] && perm[op] > userPL) {
+                delete doc[prop];
+            }
+        }
+        return doc;
+    }
+
 	model.onAll(function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
 			var LQ = liveQueries[LQString];
@@ -30,6 +51,8 @@ var expose = function (model, schema, opts) {
 				}
 				while(i--) {
 					var listener = LQ.listeners[i];
+                    var uP = listener.socket.user.privilige_level;
+                    doc = deleteUnpermittedProps(doc, 'R', uP);
                     listener.method(doc, evName, listener.clIndex, isInResult);
 				}
 			};
@@ -133,7 +156,7 @@ var expose = function (model, schema, opts) {
 	 *
 	 * @param {Document} user
 	 * @param {String} op operation to check
-	 * @returns {bool}
+	 * @returns {bool} true when user has permission, false when not
 	 */
 	opts.checkPermission = function (user, op) {
 		if (this.permissions && this.permissions[op]) {
@@ -144,6 +167,43 @@ var expose = function (model, schema, opts) {
 		return true;
 	};
 
+    /**
+     *  This function should always modify the query so that no one sees properties that they are not allowed to see
+     * @param {Object} clQuery object parsed from stringified argument
+     * @param {Schema} schema mongoose schema
+     * @param {Number} userPL user privilege level
+     * @param {String} op
+     * @returns {Object}
+     */
+    function accesControlQueryModifier(clQuery, schema, userPL, op) { // gives us
+        var pathPs = schema.pathPermissions;
+
+        var select = clQuery.select || {};
+        if (_.isString(select)) {
+            //in this case, we need to parse the string and return the object notation
+            var props = select.split(' ');
+            var i = props.length;
+            while(i--){
+                var clProp = props[i];
+                if (clProp[0] === '-') {
+                    clProp = clProp.substr(1);
+                    select[clProp] = 0;
+                } else {
+                    select[clProp] = 1;
+                }
+            }
+        }
+        for (var prop in pathPs) {
+            var perm = pathPs[prop];
+            if (perm[op] && perm[op] > userPL) {
+                select[prop] = 0;
+            }
+        }
+
+        clQuery.select = select; //after modifying the query, we just
+        return clQuery;
+    }
+
 	var channel = {
 		/**
 		 *
@@ -151,7 +211,8 @@ var expose = function (model, schema, opts) {
 		 * @returns {Promise}
 		 */
 		find: function (clientQuery) {
-			clientQuery.lean = true; // this should make query always lean
+            accesControlQueryModifier(clientQuery,schema, this.user.privilige_level, 'R');
+            clientQuery.lean = true; // this should make query always lean
 			var mQuery = queryBuilder(model, clientQuery);
             return mQuery.exec();
         },
@@ -177,6 +238,7 @@ var expose = function (model, schema, opts) {
 			if (!opts.checkPermission('R')) {
 				return new Error('You lack a privilege to read this document');
 			}
+            accesControlQueryModifier(clientQuery,schema, this.user.privilige_level, 'R');
 			clientQuery.lean = true; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
 			if (!mQuery.exec) {
@@ -255,7 +317,7 @@ var expose = function (model, schema, opts) {
 				return def.promise;
 			}
         },
-		//TODO have a method to stop liveQuery
+		//TODO have a method to stop and resume liveQuery
 		//subscribe
 		sub: subscribe,
 		subAll: subscribeAll,
@@ -268,6 +330,7 @@ var expose = function (model, schema, opts) {
 				if (!opts.checkPermission(this.user, 'C')) {
 					return new Error('You lack a privilege to create this document');
 				}
+                deleteUnpermittedProps(newDoc, 'W', this.user.privilige_level);
 				return model.create(newDoc);
 
 			},
@@ -294,14 +357,16 @@ var expose = function (model, schema, opts) {
 				if (!opts.checkPermission(this.user, 'U')) {
 					return new Error('You lack a privilege to update this document');
 				}
-
+                var uPL = this.user.privilige_level;
 				var def = when.defer();
 
 				var id = toUpdate._id;
 				delete toUpdate._id;
 				model.findById(id, function (err, doc) {
 					if (doc) {
-						_.extend(doc, toUpdate);
+                        deleteUnpermittedProps(toUpdate, 'W', uPL);
+
+                        _.extend(doc, toUpdate);
 						doc.save(function (err) {
 							if (err) {
 								def.reject(err);

@@ -20,6 +20,18 @@ var EventBus = require('./schema-events');
 module.exports = function MRModel(name, schema, opts) {
     var mgSchema = new this.Schema(schema);
 
+    var paths = mgSchema.paths;
+    var pathPermissions = {};
+    for (var prop in paths) {
+        if (paths[prop].options) {
+            var perm = paths[prop].options.permissions;
+            if (perm) {
+                pathPermissions[prop] = perm;
+            }
+        }
+    }
+    mgSchema.pathPermissions = pathPermissions; // prepared object for handling access controll
+
     var schemaEvS = new EventBus();
     // Create subscribers hashtable, holds reference to all registered event handlers
     var fireEvent = schemaEvS.fire;

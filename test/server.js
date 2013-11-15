@@ -46,15 +46,15 @@ mongoose.connect(locals.connString, function (err) {
         name: String,
         health: Number,
         born: Date,
-        death: Date
+        death: { type: Date, permissions:{R: 4, W: 20}}
     });
 
-    var battleM = MR('battle', {
-        name: String,
-        started: Date,
-        ended: Date,
-        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
-    });
+//    var battleM = MR('battle', {
+//        name: String,
+//        started: Date,
+//        ended: Date,
+//        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
+//    });
 
     Fighter.model.create({
         name: 'Rob Stark', health: 150, born: new Date()

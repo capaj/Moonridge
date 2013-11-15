@@ -25,7 +25,7 @@
             $scope.LQ = LQ;
         });
     }).run(function ($MR) {
-        $MR.backends = {local: 'http://localhost:8080'};
+        $MR.backends = {local: {url: 'http://localhost:8080', handshake: 'capaj'}};
     });
 </script>
 </body>

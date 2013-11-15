@@ -25,8 +25,7 @@ app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose
     res.sendfile('./client/moonridge-angular-client-rpcbundle.js');
 });
 
-var MR = MRinit(mongoose, server, app).model;
-
+var MR = MRinit(mongoose, server, app);
 
 app.get('*', function (req, res) {
     res.sendfile('./test/index.html');
@@ -40,14 +39,35 @@ mongoose.connect(locals.connString, function (err) {
     } else {
         console.log("DB connected succesfully");
     }
+});
+
+var user = MR.userModel({name: String, age: Number},{
+	authFn: function (handshake, CB) {
+		var socket = this;
+		user.model.find({name:handshake}).then(function (user) {
+			socket.user = user;
+			CB(true);
+		}, function (err) {
+			console.log("auth error " + err);
+			CB(false);
+		})
+	}
+});
+
+//just run once to have a user
+//user.model.create({
+//	name: 'capaj'
+//}).then(function (obj) {
+//		console.log("capaj created");
+//	});
 
 
-    var Fighter = MR('fighter', {
-        name: String,
-        health: Number,
-        born: Date,
-        death: { type: Date, permissions:{R: 4, W: 20}}
-    });
+var Fighter = MR.model('fighter', {
+	name: String,
+	health: Number,
+	born: Date,
+	death: { type: Date, permissions:{R: 4, W: 20}}
+});
 
 //    var battleM = MR('battle', {
 //        name: String,
@@ -56,31 +76,31 @@ mongoose.connect(locals.connString, function (err) {
 //        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
 //    });
 
-    Fighter.model.create({
-        name: 'Rob Stark', health: 150, born: new Date()
-    }).then(function () {
+Fighter.model.create({
+	name: 'Rob Stark', health: 150, born: new Date()
+}).then(function () {
 
-            console.log("created");
+		console.log("created");
 
-            Fighter.model.find({}, function (err, docs) {
-                if (docs) {
-                    setTimeout(function () {
+		Fighter.model.find({}, function (err, docs) {
+			if (docs) {
+				setTimeout(function () {
 
-                        var doc = docs[0];
-                        if (doc) {
-                            doc.remove(function (err) {
-                                if (err) {
+					var doc = docs[0];
+					if (doc) {
+						doc.remove(function (err) {
+							if (err) {
 
-                                }
-                                console.log("deleted");
-                            });
-                        }
+							}
+							console.log("deleted");
+						});
+					}
 
-                    }, 8000);
-                }
-            });
-        }
-    );
+				}, 8000);
+			}
+		});
+	}
+);
 //    var c = 0;
 //
 //    setInterval(function () {
@@ -93,7 +113,3 @@ mongoose.connect(locals.connString, function (err) {
 //            });
 //        c++;
 //    }, 3000);
-
-
-
-});

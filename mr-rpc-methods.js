@@ -159,6 +159,9 @@ var expose = function (model, schema, opts) {
 	 * @returns {bool} true when user has permission, false when not
 	 */
 	opts.checkPermission = function (user, op) {
+		if (!user) {
+			return false;
+		}
 		if (this.permissions && this.permissions[op]) {
 			if (user.privilige_level < this.permissions[op]) {
 				return false;
@@ -235,7 +238,7 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery) {
-			if (!opts.checkPermission('R')) {
+			if (!opts.checkPermission(this.user, 'R')) {
 				return new Error('You lack a privilege to read this document');
 			}
             accesControlQueryModifier(clientQuery,schema, this.user.privilige_level, 'R');
@@ -385,7 +388,9 @@ var expose = function (model, schema, opts) {
 		rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
 			socket.cRpcChnl = clFns;	// client RPC channel
 		});
-
+		if (!authFn) {	//if no auth function, setting a default which is a user with PL 0
+			socket.user = {privilige_level: 0};
+		}
         socket.registeredLQs = [];
         socket.on('disconnect', function() {
             //clearing out liveQueries listeners

@@ -1,7 +1,6 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
-var model = require('./mr-model');
-var lastChangeDate = new Date();
+var MRModel = require('./mr-model');
 
 var defIOSetter = function (io) {
 	io.set('log level', 1);
@@ -37,31 +36,48 @@ module.exports = function (mongoose, server, app, opts) {
 
     rpc.createServer(io, app);
 
-    rpc.expose('Moonridge', {
-        getModels: function (cachedDate) {
-            if (lastChangeDate > cachedDate) {     // if server was restarted since the cached copy was stored
-                var models = mongoose.models;
-                return models;
-            } else {
-                return false;
-            }
-        }
-    });
+//    rpc.expose('Moonridge', {
+//        getModels: function () {
+//			return mongoose.models;
+//        }
+//    });
 
+	var authFn;
 	/**
 	 *
 	 * @returns {MRModel}
 	 */
-    function regNewModel() {
-        lastChangeDate = new Date();
-        return model.apply(mongoose, arguments);
+    function regNewModel(name, schema, opts) {
+		if (authFn) {
+			if (!opts) {
+				opts = {};
+			}
+			if (opts.authFn) {
+				throw new Error('When global auth method is defined, individual model auth methods must not be defined.');
+			}
+			opts.authFn = authFn;
+		}
+
+        return MRModel.apply(mongoose, arguments);
     }
 
+
+	/**
+	 *
+	 * @param schemaExtend
+	 * @param {Object} opts
+	 * @param {Function} opts.authFn will be set as default authFn for any model which user script might create, MANDATORY parameter
+	 * @returns {*}
+	 */
 	function registerUserModel(schemaExtend, opts) {
+		if (authFn) {
+			throw new Error('There can only be one user model');
+		}
 		var userSchema = require('./user-model-base');
 		_.extend(userSchema, schemaExtend);
-		return model.call(mongoose, 'user', schemaExtend)
+		authFn = opts.authFn;
+		return MRModel.call(mongoose, 'user', schemaExtend, opts)
 	}
 
-    return {model: regNewModel, userModel: registerUserModel};
+	return {model: regNewModel, userModel: registerUserModel};
 };

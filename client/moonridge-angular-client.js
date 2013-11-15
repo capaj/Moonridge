@@ -100,7 +100,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             }
         }
 
-		self.getModel = function (name) {
+		self.getModel = function (name, handshake) {
             var model = models[name];
             if (model) {
                 return model.deferred.promise
@@ -123,7 +123,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
                         }
                     }
                 }),
-                server: $rpc.loadChannel('MR-' + name)
+                server: $rpc.loadChannel('MR-' + name, handshake)
             };
 
 
@@ -147,10 +147,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var url = attr.mrUrl || $MR.backends[attr.mrBackend];
+                    var url = attr.mrUrl || $MR.backends[attr.mrBackend].url;
+                    var handshake = $MR.backends[attr.mrBackend].handshake;
 
                     var MR = $MR(url);
-                    MR.getModel(attr.modelName).then(function (model) {
+                    MR.getModel(attr.modelName, handshake).then(function (model) {
                         scope.model = model;
                         var ctrl = $controller(ctrlName, {
                             $scope: scope

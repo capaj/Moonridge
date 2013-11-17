@@ -111,9 +111,9 @@ var io = require('socket.io').listen(server);
 io.configure(function (){
     io.set('authorization', function (handshake, CB) {
         var socket = this;
-        console.log("HANDSHAKE: ");
-        console.dir(handshake);
-        user.model.findOne({name:handshake.query.nick}).exec().then(function (user) {
+        var userName = handshake.query.nick;
+        console.log("user wants to authorize: " + userName );
+        user.model.findOne({name: userName}).exec().then(function (user) {
             socket.user = user;
             console.log("Authenticated user: " + user.name);
             CB(null, true);

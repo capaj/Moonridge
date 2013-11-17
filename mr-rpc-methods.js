@@ -47,11 +47,11 @@ var expose = function (model, schema, opts) {
 			var callListeners = function (isInResult) {
 				var i = LQ.listeners.length;
 				if (evName === 'remove') {
-					doc = doc._id;
+					doc = doc._id.toString();
 				}
 				while(i--) {
 					var listener = LQ.listeners[i];
-                    var uP = listener.socket.user.privilige_level;
+                    var uP = listener.socket.manager.user.privilige_level;
                     doc = deleteUnpermittedProps(doc, 'R', uP);
                     listener.method(doc, evName, listener.clIndex, isInResult);
 				}
@@ -333,7 +333,7 @@ var expose = function (model, schema, opts) {
 				if (!opts.checkPermission(this, 'C')) {
 					return new Error('You lack a privilege to create this document');
 				}
-                deleteUnpermittedProps(newDoc, 'W', this.user.privilige_level);
+                deleteUnpermittedProps(newDoc, 'W', this.manager.user.privilige_level);
 				return model.create(newDoc);
 
 			},
@@ -360,7 +360,7 @@ var expose = function (model, schema, opts) {
 				if (!opts.checkPermission(this, 'U')) {
 					return new Error('You lack a privilege to update this document');
 				}
-                var uPL = this.user.privilige_level;
+                var uPL = this.manager.user.privilige_level;
 				var def = when.defer();
 
 				var id = toUpdate._id;

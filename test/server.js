@@ -43,8 +43,8 @@ var user = MR.userModel({name: String, age: Number});
 
 //just run once to have a user
 user.model.create({
-	name: 'capaj'
-}).then(function (obj) {
+	name: 'capaj', privilige_level: 50
+}).then(function () {
 		console.log("capaj created");
 	});
 
@@ -111,16 +111,19 @@ Fighter.model.create({
 //            });
 //        c++;
 //    }, 3000);
-
-Moonridge.createServer(server, app, {
-    authFn: function (handshake, CB) {
-    var socket = this;
-    user.model.find({name:handshake}).then(function (user) {
-        socket.user = user;
-        CB(true);
-    }, function (err) {
-        console.log("auth error " + err);
-        CB(false);
-    })
-}
+var io = require('socket.io').listen(server);
+io.configure(function (){
+    io.set('authorization', function (handshake, CB) {
+        var socket = this;
+        user.model.find({name:handshake.query.nick}).then(function (user) {
+            socket.user = user;
+            CB(null, true);
+        }, function (err) {
+            console.log("auth error " + err);
+            CB(null, false);
+        })
+    });
 });
+
+
+Moonridge.createServer(io, app);

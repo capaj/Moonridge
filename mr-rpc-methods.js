@@ -386,24 +386,25 @@ var expose = function (model, schema, opts) {
 		});
 	}
     var authFn = opts && opts.authFn;
-    var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
-	chnlSockets.on('connection', function (socket) {
-		rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
-			socket.cRpcChnl = clFns;	// client RPC channel
-		});
-		if (!authFn) {	//if no auth function, setting a default which is a user with PL 0
-			socket.user = {privilige_level: 0};
-		}
-        socket.registeredLQs = [];
-        socket.on('disconnect', function() {
-            //clearing out liveQueries listeners
-            var index = socket.registeredLQs.length;
-            while(index--) {
-                var LQ = socket.registeredLQs[index];
-                LQ.removeListener(socket);
-            }
+    var exposeCallback = function () {
+        var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
+        chnlSockets.on('connection', function (socket) {
+            rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+                socket.cRpcChnl = clFns;	// client RPC channel
+            });
+            socket.registeredLQs = [];
+            socket.on('disconnect', function() {
+                //clearing out liveQueries listeners
+                var index = socket.registeredLQs.length;
+                while(index--) {
+                    var LQ = socket.registeredLQs[index];
+                    LQ.removeListener(socket);
+                }
+            });
         });
-	});
+    };
+    return exposeCallback;
+
 };
 
 module.exports = expose;

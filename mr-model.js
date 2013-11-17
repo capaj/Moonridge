@@ -77,8 +77,8 @@ module.exports = function MRModel(name, schema, opts) {
 
     var model = this.model(name, mgSchema);
 
-    exposeMethods(model, mgSchema, opts);
+    var exposeCallback = exposeMethods(model, mgSchema, opts);
 
-    return {model: model, schema: mgSchema};
+    return {model: model, schema: mgSchema, _exposeCallback: exposeCallback};
 
 };

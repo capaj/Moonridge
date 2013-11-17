@@ -1,19 +1,8 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
 var MRModel = require('./mr-model');
-
-var defIOSetter = function (io, authFn) {
-	io.set('log level', 1);
-	io.set('transports', [ 'websocket']);
-	//    io.set('heartbeats', false);  // we would like this, but it does not work like this
-
-    if (authFn) {
-        io.set('authorization', authFn);
-    }
-};
-
-var authFn;
-
+var userModel;
+var toCallOnCreate = [];
 var init = function (mongoose) {
 
 	/**
@@ -21,18 +10,11 @@ var init = function (mongoose) {
 	 * @returns {MRModel}
 	 */
     function regNewModel(name, schema, opts) {
-		if (authFn) {
-			if (!opts) {
-				opts = {};
-			}
-			if (opts.authFn) {
-				//TODO think about this
-                throw new Error('When global auth method is defined, individual model auth methods must not be defined.');
-			}
-			opts.authFn = authFn;
-		}
 
-        return MRModel.apply(mongoose, arguments);
+        var model = MRModel.apply(mongoose, arguments);
+        toCallOnCreate.push(model._exposeCallback);
+
+        return model;
     }
 
 
@@ -44,48 +26,41 @@ var init = function (mongoose) {
 	 * @returns {*}
 	 */
 	function registerUserModel(schemaExtend, opts) {
-		if (authFn) {
+		if (userModel) {
 			throw new Error('There can only be one user model');
 		}
 		var userSchema = require('./user-model-base');
 		_.extend(userSchema, schemaExtend);
-		authFn = opts.authFn;
-		return MRModel.call(mongoose, 'user', schemaExtend, opts)
+		userModel = MRModel.call(mongoose, 'user', schemaExtend, opts);
+		return userModel;
 	}
 
 	return {model: regNewModel, userModel: registerUserModel};
 };
 
 /**
- * @param server
+ * @param {Manager} io socket.io manager
  * @param app
- * @param {Object} opts
- * @param {Object} opts.auth
- * 		example: {global: function(handshake, CB){CB()}, methods: {method: }}
- * @param {Function} opts.ioSetter function for setting up socket io
+
  * @returns {SocketNamespace} master socket namespace
  */
-var createServer = function (server, app, opts) {
-    var io = require('socket.io').listen(server);
+var createServer = function (io, app) {
 
     app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
         res.sendfile('/node_modules/moonridge/client/moonridge-angular-client.js');
     });
 
     app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //exposed client file
-        res.sendfile('/node_modules/moonridge/client/moonridge-angular-client-rpcbundle.js');
+        res.sendfile('/node_modules/moonridge/built/moonridge-angular-client-rpcbundle.js');
     });
 
-    io.configure(function (){
-        if (_.isFunction(opts && opts.ioSetter)) {
-            opts.ioSetter(io)
-        } else {
-            defIOSetter(io, opts.authFn);
-        }
+    var socketNamespace = rpc.createServer(io, app);
+
+    toCallOnCreate.forEach(function (CB) {
+       CB();
     });
 
-
-    return rpc.createServer(io, app);
+    return socketNamespace;
 
 //    rpc.expose('Moonridge', {
 //        getModels: function () {

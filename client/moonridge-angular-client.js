@@ -1,13 +1,14 @@
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
-    var MRs = {}; //MR can be only one for each backend
+    var MRs = {}; //it is possible to have just one instance for each backend
 
-    function Moonridge(backendUrl) {
+    function Moonridge(backendUrl, name) {
         var self;
-        if (MRs[backendUrl]) {
-            return MRs[backendUrl];
+        var name = name || backendUrl;
+        if (MRs[name]) {
+            return MRs[name];
         } else {
             self = {};
-            MRs[backendUrl] = self;
+            MRs[name] = self;
         }
 
         var models = {};
@@ -139,6 +140,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
         return self;
     }
 
+    Moonridge.getBackend = function (name) {
+        if (MRs[name]) {
+            return MRs[name];
+        } else {
+            throw new Error('no such Moonridge backend');
+        }
+    };
+
     return Moonridge;
 }).directive('mrController', function ($controller, $q, $MR) {
     return {
@@ -147,11 +156,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var url = attr.mrUrl || $MR.backends[attr.mrBackend].url;
-                    var handshake = $MR.backends[attr.mrBackend].handshake;
+                    var backend = attr.mrBackend;
 
-                    var MR = $MR(url);
-                    MR.getModel(attr.modelName, handshake).then(function (model) {
+                    var MR = $MR.get(backend);
+                    MR.getModel(attr.modelName).then(function (model) {
                         scope.model = model;
                         var ctrl = $controller(ctrlName, {
                             $scope: scope

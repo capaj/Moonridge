@@ -6,7 +6,7 @@ module.exports = function (grunt) {
                     './node_modules/socket.io-rpc/socket.io-rpc-client-angular.js',
                     './client/moonridge-angular-client.js'
                 ],
-                dest: './client/moonridge-angular-client-rpcbundle.js'
+                dest: './built/moonridge-angular-client-rpcbundle.js'
             }
         }
     });

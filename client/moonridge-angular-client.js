@@ -1,7 +1,7 @@
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
     var MRs = {}; //it is possible to have just one instance for each backend
 
-    function Moonridge(backendUrl, name) {
+    function Moonridge(backendUrl, name, handshake) {
         var self;
         var name = name || backendUrl;
         if (MRs[name]) {
@@ -12,7 +12,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
         }
 
         var models = {};
-		$rpc.connect(backendUrl);
+//        $q.when(handshake).then(function (HSdata) {
+            $rpc.connect(backendUrl, handshake);
+//        });
 
         self.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
@@ -158,8 +160,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
                     var ctrlName = attr.mrController;
                     var backend = attr.mrBackend;
 
-                    var MR = $MR.get(backend);
-                    MR.getModel(attr.modelName).then(function (model) {
+                    var MR = $MR.getBackend(backend);
+                    MR.getModel(attr.mrModel).then(function (model) {
                         scope.model = model;
                         var ctrl = $controller(ctrlName, {
                             $scope: scope

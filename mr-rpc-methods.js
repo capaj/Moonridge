@@ -152,18 +152,17 @@ var expose = function (model, schema, opts) {
         return evIds;
     }
 
-	/**
-	 *
-	 * @param {Document} user
-	 * @param {String} op operation to check
-	 * @returns {bool} true when user has permission, false when not
-	 */
-	opts.checkPermission = function (user, op) {
-		if (!user) {
-			return false;
-		}
+    /**
+     *
+     * @param {String} op operation to check
+     * @returns {bool} true when user has permission, false when not
+     * @param socketContext
+     */
+	opts.checkPermission = function (socketContext, op) {
+		var PL = socketContext.manager.user.privilige_level;
+
 		if (this.permissions && this.permissions[op]) {
-			if (user.privilige_level < this.permissions[op]) {
+			if (PL < this.permissions[op]) {
 				return false;
 			}
 		}
@@ -214,7 +213,7 @@ var expose = function (model, schema, opts) {
 		 * @returns {Promise}
 		 */
 		find: function (clientQuery) {
-            accesControlQueryModifier(clientQuery,schema, this.user.privilige_level, 'R');
+            accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
             clientQuery.lean = true; // this should make query always lean
 			var mQuery = queryBuilder(model, clientQuery);
             return mQuery.exec();
@@ -238,10 +237,12 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery) {
-			if (!opts.checkPermission(this.user, 'R')) {
+			if (!opts.checkPermission(this, 'R')) {
 				return new Error('You lack a privilege to read this document');
 			}
-            accesControlQueryModifier(clientQuery,schema, this.user.privilige_level, 'R');
+            def = when.defer();
+
+            accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
 			clientQuery.lean = true; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
 			if (!mQuery.exec) {
@@ -254,27 +255,23 @@ var expose = function (model, schema, opts) {
             var def;
 
             var pushListeners = function () {
-            	var clFns = socket.cRpcChnl;
-				if (!clFns) {
-					throw new Error('client RPC channel must be loaded and available');
-				}
-				if (socket.registeredLQs.indexOf(LQ) !== -1) {
-					console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
-				}
-				var clIndex = socket.registeredLQs.push(LQ) - 1;
-				LQ.listeners.push({method: clFns.pubLQ, socket: socket, clIndex: clIndex});
-				var retVal = {docs: LQ.docs, index: clIndex};
-				if (def) {
-					def.resolve(retVal);
-				} else {
-					return retVal;
-				}
+            	socket.clientChannelPromise.then(function (clFns) {
+                    if (socket.registeredLQs.indexOf(LQ) !== -1) {
+                        console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
+                    }
+                    var clIndex = socket.registeredLQs.push(LQ) - 1;
+                    LQ.listeners.push({method: clFns.pubLQ, socket: socket, clIndex: clIndex});
+                    var retVal = {docs: LQ.docs, index: clIndex};
+                    def.resolve(retVal);
+
+                }, function (err) {
+                    def.reject(err);
+                });
 
             };
             if (LQ) {
-                return pushListeners();	// no need for a promise, if we have it in memory
-			} else {
-				def = when.defer();
+                pushListeners();	// no need for a promise, if we have it in memory
+            } else {
 
 				mQuery.exec().then(function (rDocs) {
                     if (!liveQueries[qKey]) {
@@ -320,8 +317,8 @@ var expose = function (model, schema, opts) {
                     pushListeners();
 
                 });
-				return def.promise;
 			}
+            return def.promise;
         },
 		//TODO have a method to stop and resume liveQuery
 		//subscribe
@@ -333,7 +330,7 @@ var expose = function (model, schema, opts) {
 	if (opts && opts.readOnly !== true) {
 		_.extend(channel, {
 			create: function (newDoc) {
-				if (!opts.checkPermission(this.user, 'C')) {
+				if (!opts.checkPermission(this, 'C')) {
 					return new Error('You lack a privilege to create this document');
 				}
                 deleteUnpermittedProps(newDoc, 'W', this.user.privilige_level);
@@ -341,7 +338,7 @@ var expose = function (model, schema, opts) {
 
 			},
 			remove: function (id) {
-				if (!opts.checkPermission(this.user, 'D')) {
+				if (!opts.checkPermission(this, 'D')) {
 					return new Error('You lack a privilege to delete this document');
 				}
 				var def = when.defer();
@@ -360,7 +357,7 @@ var expose = function (model, schema, opts) {
 				return def.promise;
 			},
 			update: function (toUpdate) {
-				if (!opts.checkPermission(this.user, 'U')) {
+				if (!opts.checkPermission(this, 'U')) {
 					return new Error('You lack a privilege to update this document');
 				}
                 var uPL = this.user.privilige_level;
@@ -389,8 +386,10 @@ var expose = function (model, schema, opts) {
     var exposeCallback = function () {
         var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
         chnlSockets.on('connection', function (socket) {
-            rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+
+            socket.clientChannelPromise = rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
                 socket.cRpcChnl = clFns;	// client RPC channel
+                return clFns;
             });
             socket.registeredLQs = [];
             socket.on('disconnect', function() {

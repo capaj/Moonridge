@@ -31,7 +31,7 @@ var init = function (mongoose) {
 		}
 		var userSchema = require('./user-model-base');
 		_.extend(userSchema, schemaExtend);
-		userModel = MRModel.call(mongoose, 'user', schemaExtend, opts);
+		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
 		return userModel;
 	}
 

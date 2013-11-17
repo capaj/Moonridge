@@ -3,7 +3,7 @@
 <head>
     <title></title>
 </head>
-<body mr-controller="testCtrl" mr-backend="local" model-name="fighter">
+<body mr-controller="testCtrl" mr-backend="local" mr-model="fighter">
 <label for="query"></label><input type="text" id="query" ng-model='te'>
 <div>
     <p ng-repeat="fighter in LQ.docs">
@@ -16,7 +16,8 @@
 <script src="/bower_components/jquery/jquery.min.js" type="text/javascript"></script>
 <script src="/bower_components/angular/angular.js" type="text/javascript"></script>
 <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
-<script type="text/javascript" src="/moonridge-angular-client-rpcbundle.js"></script>
+<script src="/rpc/rpc-client-angular.js"></script>
+<script type="text/javascript" src="/moonridge-angular-client.js"></script>
 <script type="text/javascript">
     angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
 
@@ -24,8 +25,8 @@
             console.log(LQ);
             $scope.LQ = LQ;
         });
-    }).run(function ($MR) {
-        $MR.backends = {local: {url: 'http://localhost:8080', handshake: { query: "nick=capaj" }}};
+    }).run(function ($MR, $q) {
+        $MR('http://localhost:8080', 'local', { query: "nick=capaj" });
     });
 </script>
 </body>

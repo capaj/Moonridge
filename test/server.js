@@ -21,11 +21,7 @@ app.get('/moonridge-angular-client.js', function (req, res) { //expose client fi
 	res.sendfile('./client/moonridge-angular-client.js');
 });
 app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
-    res.sendfile('./client/moonridge-angular-client-rpcbundle.js');
-});
-
-app.get('*', function (req, res) {
-    res.sendfile('./test/index.html');
+    res.sendfile('./built/moonridge-angular-client-rpcbundle.js');
 });
 
 mongoose.connect(locals.connString, function (err) {
@@ -41,12 +37,12 @@ var MR = Moonridge.init(mongoose);
 
 var user = MR.userModel({name: String, age: Number});
 
-//just run once to have a user
-user.model.create({
-	name: 'capaj', privilige_level: 50
-}).then(function () {
-		console.log("capaj created");
-	});
+////just run once to have a user
+//user.model.create({
+//	name: 'capaj', privilige_level: 50
+//}).then(function () {
+//		console.log("capaj created");
+//	});
 
 
 var Fighter = MR.model('fighter', {
@@ -115,8 +111,11 @@ var io = require('socket.io').listen(server);
 io.configure(function (){
     io.set('authorization', function (handshake, CB) {
         var socket = this;
-        user.model.find({name:handshake.query.nick}).then(function (user) {
+        console.log("HANDSHAKE: ");
+        console.dir(handshake);
+        user.model.findOne({name:handshake.query.nick}).exec().then(function (user) {
             socket.user = user;
+            console.log("Authenticated user: " + user.name);
             CB(null, true);
         }, function (err) {
             console.log("auth error " + err);
@@ -125,5 +124,8 @@ io.configure(function (){
     });
 });
 
-
 Moonridge.createServer(io, app);
+
+app.get('*', function (req, res) {
+    res.sendfile('./test/index.html');
+});

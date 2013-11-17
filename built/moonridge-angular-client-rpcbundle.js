@@ -171,7 +171,7 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
                             $q.when(retVal).then(function (retVal) {
 								if (retVal instanceof Error) {
 									// when synchronously returned Error
-									socket.emit('error', { Id: data.Id, reason: retVal });
+									socket.emit('error', { Id: data.Id, reason: retVal.toString() });
 								} else {
 									socket.emit('return', { Id: data.Id, value: retVal });
 								}
@@ -305,19 +305,20 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 });
 
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
-    var MRs = {}; //MR can be only one for each backend
+    var MRs = {}; //it is possible to have just one instance for each backend
 
-    function Moonridge(backendUrl) {
+    function Moonridge(backendUrl, name, handshake) {
         var self;
-        if (MRs[backendUrl]) {
-            return MRs[backendUrl];
+        var name = name || backendUrl;
+        if (MRs[name]) {
+            return MRs[name];
         } else {
             self = {};
-            MRs[backendUrl] = self;
+            MRs[name] = self;
         }
 
         var models = {};
-		$rpc.connect(backendUrl);
+		$rpc.connect(backendUrl, handshake);
 
         self.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
@@ -445,6 +446,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
         return self;
     }
 
+    Moonridge.getBackend = function (name) {
+        if (MRs[name]) {
+            return MRs[name];
+        } else {
+            throw new Error('no such Moonridge backend');
+        }
+    };
+
     return Moonridge;
 }).directive('mrController', function ($controller, $q, $MR) {
     return {
@@ -453,11 +462,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var url = attr.mrUrl || $MR.backends[attr.mrBackend].url;
-                    var handshake = $MR.backends[attr.mrBackend].handshake;
+                    var backend = attr.mrBackend;
 
-                    var MR = $MR(url);
-                    MR.getModel(attr.modelName, handshake).then(function (model) {
+                    var MR = $MR.getBackend(backend);
+                    MR.getModel(attr.mrModel).then(function (model) {
                         scope.model = model;
                         var ctrl = $controller(ctrlName, {
                             $scope: scope

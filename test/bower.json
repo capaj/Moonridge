@@ -1,21 +1,21 @@
 {
-    "name": "Moonridge test",
-    "version": "0.0.1",
-    "dependencies": {
-        "moment": "~2.1.0",
-        "angular": "~1.2.0",
-        "angular-bootstrap": "~0.6.0",
-        "angular-route": "~1.2.0",
-        "angular-loader": "~1.2.0",
-        "angular-moment": "latest",
-        "angular-translate": "~1.1.0",
-        "angularLocalStorage-nc": "~0.2.2",
-        "script.js": "latest",
-        "sly": "latest",
-        "jquery": "~2.0.3"
-    },
-    "env": "dev",
-    "resolutions": {
-        "angular": "~1.2.0-rc.3"
-    }
+  "name": "Moonridge test",
+  "version": "0.0.1",
+  "dependencies": {
+    "moment": "~2.1.0",
+    "angular": "~1.2.1",
+    "angular-bootstrap": "~0.6.0",
+    "angular-route": "~1.2.1",
+    "angular-loader": "~1.2.1",
+    "angular-moment": "latest",
+    "angular-translate": "~1.1.0",
+    "angularLocalStorage-nc": "~0.2.1",
+    "script.js": "latest",
+    "sly": "latest",
+    "jquery": "~2.0.3"
+  },
+  "env": "dev",
+  "resolutions": {
+    "angular": "1.2.1"
+  }
 }

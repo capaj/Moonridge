@@ -44,7 +44,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 				promise.then(function (LQ) {
 					self._LQs[LQ.index] = LQ;
 					LQ.query = query;
-                    LQ.getDocById = function (id) {
+
+					LQ.getDocById = function (id) {
 						var i = LQ.docs.length;
 						while (i--) {
 							if (LQ.docs[i]._id === id) {
@@ -57,6 +58,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 					LQ.on_create = function (doc) {
 						LQ.docs.push(doc);
 					};
+					LQ.on_push = LQ.on_create;
 					LQ.on_update = function (doc, isInResult) {
 						var i = LQ.docs.length;
 						while (i--) {
@@ -77,6 +79,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							return;
 						}
 						$log.error('Failed to find updated document.');
+					};
+					LQ.on_remove_first = function () {
+						LQ.docs.splice(0, 1);
 					};
 					LQ.on_remove = function (id) {
 						var i = LQ.docs.length;

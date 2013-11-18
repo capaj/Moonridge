@@ -37,9 +37,24 @@ module.exports = function MRModel(name, schema, opts) {
     var fireEvent = schemaEvS.fire;
 	var unsubscribe = schemaEvS.unsubscribe;
 
+	/**
+	 * is overriden for liveQueries
+	 * @param next
+	 * @param doc
+	 */
+	var callNext = function (next, doc) {
+		next();
+	};
+
+	mgSchema.onPrecreate = callNext;
+	mgSchema.onPreupdate = callNext;
     mgSchema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
-        next();
+		if (this.isNew) {
+			mgSchema.onPrecreate(next, this);
+		} else {
+			mgSchema.onPreupdate(next, this)
+		}
     });
 
     // Hook `save` post method called after creation/update
@@ -52,13 +67,28 @@ module.exports = function MRModel(name, schema, opts) {
         return true;
     });
 
-    mgSchema.post('remove', function postRemove(doc) {
-        fireEvent.call(this, 'remove');
-        console.log('%s has been removed', doc._id);
+	mgSchema.onPreremove = callNext();
+    mgSchema.pre('remove', function preRemove(next) {
+        mgSchema.onPreremove(next, this);
     });
 
-    // static method for subscribing to events
+	mgSchema.post('remove', function postRemove(doc) {
+        fireEvent.call(this, 'remove');
+//        console.log('%s has been removed', doc._id);
+    });
+
+	/**
+	 * static method for subscribing to events
+	 * @param {String|Array<String>} event
+	 * @param {Function} callback
+	 * @returns {*}
+	 */
 	var on = function on(event, callback) {
+		if (Array.isArray(event)) {
+			event.forEach(function (ev) {
+				on(ev, callback);
+			});
+		}
 		if (typeof callback == 'function') {
 			return schemaEvS.subscribe(event, callback);
 		} else {

@@ -38,67 +38,117 @@ var expose = function (model, schema, opts) {
         }
         return doc;
     }
+	/**
+	 * DO NOT OVERRIDE, moonridge won't work if you do
+	 * @param next
+	 * @param doc
+	 */
+	schema.onPrecreate = function (next, doc) {
+		Object.keys(liveQueries).forEach(function (LQString) {
+			var LQ = liveQueries[LQString];
+			LQ.docs.push(doc);
+			// liveQuery
+			// if LQ.docs.length > limit
+			//TODO call query with limit 1 and skip LQ.query.skip + LQ.query.limit + 1 to get an item, which should be remove from
 
-	model.onAll(function (doc, evName) {   // will be called by schema's event firing
+			LQ.callListeners('create', true);
+			next();
+		});
+
+	};
+
+	/**
+	 * DO NOT OVERRIDE, moonridge won't work if you do
+	 * @param next
+	 * @param doc
+	 */
+	schema.onPreremove = function (next, doc) {
+		Object.keys(liveQueries).forEach(function (LQString) {
+			var LQ = liveQueries[LQString];
+			var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
+			var begin = LQ.query.options.skip;		// cursor area begin
+
+			function fillTheLastDocumentToMatchTheLimit() {
+				if (LQ.query.options.limit === LQ.docs.length + 1) {
+					var endSkip = begin + LQ.query.options.limit;
+					LQ.createMatchQuery().limit(1).skip(endSkip).exec().then(function (arr) {
+
+						if (arr.length === 1) {
+							LQ.docs.push(arr[0]);	//push a document so that live query still matches the limit after removing first doc
+							var doc = arr[0];
+							var i = LQ.listeners.length;
+
+							while(i--) {
+								var listener = LQ.listeners[i];
+								var uP = listener.socket.manager.user.privilige_level;
+								doc = deleteUnpermittedProps(doc, 'R', uP);
+								listener.method(doc, 'push', listener.clIndex, true);
+							}
+
+						}
+						next();
+
+					});
+				}
+			}
+
+			if (LQ.docs[cQindex]) {
+				LQ.callListeners('remove', false);
+				LQ.docs.splice(cQindex, 1);
+				fillTheLastDocumentToMatchTheLimit();
+			} else {
+				//most complicated case, we have to check the if the doc is before the cursor area
+				if (LQ.query.options.skip == 0) {
+					//there is nothing before cursor area, which means the removed item is after it
+					//in this case we don't have to do anything
+
+				} else {
+
+					var isBeforeLQArea = LQ.createMatchQuery().limit(begin).skip(0).select('_id');
+					isBeforeLQArea.exec().then(function (arr) {
+						if (arr.length === 1) {	//removed doc found before the beginning of cursor area
+							LQ.docs.splice(0, 1);   // remove first
+							fillTheLastDocumentToMatchTheLimit();
+							var i = LQ.listeners.length;
+
+							while(i--) {
+								var listener = LQ.listeners[i];
+								listener.method(doc, 'remove_first', listener.clIndex, true);
+							}
+						}
+						next();
+
+					})
+				}
+
+			}
+		});
+
+	};
+
+	model.on('update', function (doc, evName) {   // will be called by schema's event firing
 		Object.keys(liveQueries).forEach(function (LQString) {
 			var LQ = liveQueries[LQString];
 			var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
-			var callListeners = function (isInResult) {
-				var i = LQ.listeners.length;
-				if (evName === 'remove') {
-					doc = doc._id.toString();
-				}
-				while(i--) {
-					var listener = LQ.listeners[i];
-                    var uP = listener.socket.manager.user.privilige_level;
-                    doc = deleteUnpermittedProps(doc, 'R', uP);
-                    listener.method(doc, evName, listener.clIndex, isInResult);
-				}
-			};
-			if (evName === 'remove' && LQ.docs[cQindex]) {
-                if (LQ.query.options.limit === LQ.docs.length) {
-                    var skip = LQ.query.options.limit || 0;
-                    var lastItemQuery = _.clone(LQ.query);
-                    lastItemQuery.options.limit = 1;
-                    lastItemQuery.options.skip = LQ.query.options.limit + skip;
-                    lastItemQuery.exec().then(function (err, arr) {
-                        if (arr.length === 1) {
-                            LQ.docs.push(arr[0]);   // push the doc into live query array
-                            //TODO call client method
-                        }
-                    })
-                }
-				callListeners(false);
-				LQ.docs.splice(cQindex, 1);
-
-			} else {
-				model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
-					.exec(function(err, id) {
-						if (!err && id) {
-							if (evName === 'create') {
+			LQ.createMatchQuery().select('_id')
+				.exec(function(err, id) {
+					if (!err && id) {
+						if (evName === 'update') {
+							if (cQindex === -1) {
 								LQ.docs.push(doc);
-                                // liveQuery
-                                // if LQ.docs.length > limit
-                                //TODO call query with limit 1 and skip LQ.query.skip + LQ.query.limit + 1 to get an item, which should be remove from
-
-                                callListeners(true)
 							}
-							if (evName === 'update') {
-								if (cQindex === -1) {
-									LQ.docs.push(doc);
-								}
-								callListeners(true);
-							}
-						} else {
-							if (evName === 'update' && cQindex !== -1) {
-								LQ.docs.splice(cQindex, 1);
-								callListeners(false);
-							}
+							LQ.callListeners(evName, true);
+						}
+					} else {
+						if (evName === 'update' && cQindex !== -1) {
+							LQ.docs.splice(cQindex, 1);
+							LQ.callListeners(evName, false);
 						}
 					}
-				);
-			}
+				}
+			);
+
 		});
 
 	});
@@ -275,7 +325,7 @@ var expose = function (model, schema, opts) {
                         console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
                     }
                     var clIndex = socket.registeredLQs.push(LQ) - 1;
-                    LQ.listeners.push({method: clFns.pubLQ, socket: socket, clIndex: clIndex});
+                    LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
                     var retVal = {docs: LQ.docs, index: clIndex};
                     def.resolve(retVal);
 
@@ -307,6 +357,32 @@ var expose = function (model, schema, opts) {
                                 }
                                 return undefined;
                             },
+							/**
+							 * creates new query for just for determining whether
+							 * @param {Document}
+							 * @returns {Query}
+							 */
+							createMatchQuery: function (doc) {
+								return model.findOne(LQ.query).where('_id').equals(doc._id);
+							},
+							/**
+							 *
+							 * @param isInResult
+							 * @param {String|Document} secondaryDoc doc to remove/add to LQ collection, used for create/remove with skip and limit query params set
+							 * @param evName
+							 */
+							callListeners: function (isInResult, evName, secondaryDoc) {
+								var i = LQ.listeners.length;
+								if (evName === 'remove') {
+									doc = doc._id.toString();	//remove needs only _id
+								}
+								while(i--) {
+									var listener = LQ.listeners[i];
+									var uP = listener.socket.manager.user.privilige_level;
+									doc = deleteUnpermittedProps(doc, 'R', uP);
+									listener.method(doc, evName, listener.clIndex, isInResult);
+								}
+							},
                             removeListener: function (socket) {
                                 var li = LQ.listeners.length;
                                 while(li--) {

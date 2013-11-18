@@ -67,7 +67,7 @@ module.exports = function MRModel(name, schema, opts) {
         return true;
     });
 
-	mgSchema.onPreremove = callNext();
+	mgSchema.onPreremove = callNext;
     mgSchema.pre('remove', function preRemove(next) {
         mgSchema.onPreremove(next, this);
     });

@@ -57,7 +57,18 @@ var expose = function (model, schema, opts) {
 				}
 			};
 			if (evName === 'remove' && LQ.docs[cQindex]) {
-
+                if (LQ.query.options.limit === LQ.docs.length) {
+                    var skip = LQ.query.options.limit || 0;
+                    var lastItemQuery = _.clone(LQ.query);
+                    lastItemQuery.options.limit = 1;
+                    lastItemQuery.options.skip = LQ.query.options.limit + skip;
+                    lastItemQuery.exec().then(function (err, arr) {
+                        if (arr.length === 1) {
+                            LQ.docs.push(arr[0]);   // push the doc into live query array
+                            //TODO call client method
+                        }
+                    })
+                }
 				callListeners(false);
 				LQ.docs.splice(cQindex, 1);
 
@@ -67,7 +78,11 @@ var expose = function (model, schema, opts) {
 						if (!err && id) {
 							if (evName === 'create') {
 								LQ.docs.push(doc);
-								callListeners(true);
+                                // liveQuery
+                                // if LQ.docs.length > limit
+                                //TODO call query with limit 1 and skip LQ.query.skip + LQ.query.limit + 1 to get an item, which should be remove from
+
+                                callListeners(true)
 							}
 							if (evName === 'update') {
 								if (cQindex === -1) {

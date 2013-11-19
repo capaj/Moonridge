@@ -6,8 +6,8 @@ var qMethodsEnum = [	//query methods which modifies the collection are not inclu
 	'centerSphere',
 	'circle',
 	'comment',
-	'count',
-	'distinct',
+//	'count',		//must be done in server memory, TODO implement this
+//	'distinct',		//must be done in server memory, TODO implement this
 	'elemMatch',
 	'equals',
 	'exists',
@@ -20,7 +20,7 @@ var qMethodsEnum = [	//query methods which modifies the collection are not inclu
 	'in',
 	'intersects',
 	'lean',
-	'limit',
+	'limit', //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
 	'lt',
 	'lte',
 	'maxDistance',
@@ -38,7 +38,7 @@ var qMethodsEnum = [	//query methods which modifies the collection are not inclu
 	'regex',
 	'select',
 	'size',
-	'skip',
+	'skip',	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
 	'slice',
 	'sort',
 	'where',

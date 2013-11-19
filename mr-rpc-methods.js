@@ -313,19 +313,19 @@ var expose = function (model, schema, opts) {
                 doc = doc._id.toString();	//remove needs only _id
             }
             while(i--) {
-                var listener = self.listeners[i];
+                var listener = this.listeners[i];
                 var uP = listener.socket.manager.user.privilige_level;
                 doc = deleteUnpermittedProps(doc, 'R', uP);
                 listener.method(doc, evName, listener.clIndex, isInResult);
             }
         },
         removeListener: function (socket) {
-            var li = self.listeners.length;
+            var li = this.listeners.length;
             while(li--) {
-                if (self.listeners[li].socket === socket) {
-                    self.listeners.splice(li, 1);
-                    if (self.listeners.length === 0) {
-                        self.destroy();
+                if (this.listeners[li].socket === socket) {
+                    this.listeners.splice(li, 1);
+                    if (this.listeners.length === 0) {
+                        this.destroy();
                     }
                     break;	// listener should be registered only once, so no need to continue loop
                 }
@@ -367,6 +367,9 @@ var expose = function (model, schema, opts) {
 			if (!opts.checkPermission(this, 'R')) {
 				return new Error('You lack a privilege to read this document');
 			}
+            if (!clientQuery) {
+                clientQuery = {};
+            }
             def = when.defer();
 
             accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');

@@ -38,7 +38,7 @@ var expose = function (model, schema, opts) {
         }
         return doc;
     }
-
+	var insertIntoSorted = require('./utils/insertIntoSorted');
     model.onAll(function (doc, evName) {   // will be called by schema's event firing
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
@@ -75,16 +75,33 @@ var expose = function (model, schema, opts) {
                 model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
                     .exec(function(err, id) {
                         if (!err && id) {
-                            if (evName === 'create') {
-                                LQ.docs.push(doc);  //TODO solve sorting here
-                            }
-                            if (evName === 'update') {
-                                if (cQindex === -1) {
-                                    LQ.docs.push(doc);  //TODO solve sorting here
-                                }
-                            }
-                            LQ.callListeners(doc, evName, true);
+							if (LQ.clientQuery.sort) {
+								var sortBy = LQ.clientQuery.sort.split(' ');
+								var index;
+								if (evName === 'create') {
+									index = insertIntoSorted(doc, LQ.docs, sortBy);
+								}
+								if (evName === 'update') {
+									if (cQindex === -1) {
+										index = insertIntoSorted(doc, LQ.docs, sortBy);
+									}
+								}
+								if (index) {
+									LQ.callListeners(doc, evName, index);
+								}
 
+							} else {
+								if (evName === 'create') {
+									LQ.docs.push(doc);
+								}
+								if (evName === 'update') {
+									if (cQindex === -1) {
+										LQ.docs.push(doc);
+									}
+								}
+								LQ.callListeners(doc, evName, true);
+
+							}
                         } else {
                             if (evName === 'update' && cQindex !== -1) {
                                 LQ.docs.splice(cQindex, 1);
@@ -216,20 +233,20 @@ var expose = function (model, schema, opts) {
         return clQuery;
     }
 
-    /**
-     *
-     * @param qKey
-     * @param mQuery
-     * @param queryOptions
-     * @returns {Object}
-     * @constructor
-     */
-    function LiveQuery(qKey, mQuery, queryOptions) {
-        var self = this;
+	/**
+	 * @param qKey
+	 * @param mQuery
+	 * @param queryOptions
+	 * @param {Object} clientQuery
+	 * @returns {Object}
+	 * @constructor
+	 */
+    function LiveQuery(qKey, mQuery, queryOptions, clientQuery) {
         this.docs = [];
         this.listeners = [];
         this.query = mQuery;
         this.qKey = qKey;
+        this.clientQuery = clientQuery;
         this.options = queryOptions;
         return this;
     }
@@ -278,7 +295,7 @@ var expose = function (model, schema, opts) {
         },
         /**
          * creates new query for just for determining whether
-         * @param {Document}
+         * @param {Document} doc
          * @returns {Query}
          */
         createMatchQuery: function (doc) {
@@ -288,7 +305,7 @@ var expose = function (model, schema, opts) {
          *
          * @param doc
          * @param {String} evName
-         * @param isInResult
+         * @param {Boolean|Number} isInResult when number, indicates an index where the doc should be inserted
          */
         callListeners: function (doc, evName, isInResult) {
             var i = this.listeners.length;
@@ -380,7 +397,7 @@ var expose = function (model, schema, opts) {
                     if (socket.registeredLQs.indexOf(LQ) !== -1) {
                         console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
                     }
-                    var clIndex = socket.registeredLQs.push(LQ) - 1;
+                    var clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
                     LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
 
                     var docs = LQ.getDocsPaginated();
@@ -402,7 +419,7 @@ var expose = function (model, schema, opts) {
 
 				mQuery.exec().then(function (rDocs) {
                     if (!liveQueries[qKey]) {
-                        LQ = new LiveQuery(qKey, mQuery, queryOptions);
+                        LQ = new LiveQuery(qKey, mQuery, queryOptions, clientQuery);
                         liveQueries[qKey] = LQ;
                     }
 

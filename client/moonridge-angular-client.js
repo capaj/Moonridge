@@ -55,8 +55,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 						return null;
 					};
 
-					LQ.on_create = function (doc) {
-						LQ.docs.push(doc);
+					LQ.on_create = function (doc, index) {
+						if (angular.isNumber(index)) {
+							LQ.docs.splice(index, 0, doc);
+						} else {
+							LQ.docs.push(doc);
+						}
 					};
 					LQ.on_push = LQ.on_create;
 					LQ.on_update = function (doc, isInResult) {
@@ -74,8 +78,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							}
 						}
 						if (isInResult) {
-							LQ.docs.push(doc); // pushing into docs if it was not found by loop
-							//we don't care about sorting-LQ.docs is a set, sorting is done on client side
+							if (angular.isNumber(isInResult)) {	//LQ with sorting
+								LQ.docs.splice(isInResult, 0, doc);
+							} else {
+								LQ.docs.push(doc); // pushing into docs if it was not found by loop
+							}
 							return;
 						}
 						$log.error('Failed to find updated document.');

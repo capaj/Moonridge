@@ -80,9 +80,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 						}
 						$log.error('Failed to find updated document.');
 					};
-					LQ.on_remove_first = function () {
-						LQ.docs.splice(0, 1);
-					};
 					LQ.on_remove = function (id) {
 						var i = LQ.docs.length;
 						while (i--) {

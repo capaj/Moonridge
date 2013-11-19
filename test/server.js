@@ -52,6 +52,10 @@ var Fighter = MR.model('fighter', {
 	death: { type: Date, permissions:{R: 4, W: 20}}
 });
 
+Fighter.model.find().sort('health').maxScan(2).find().exec().then(function (doc) {
+    console.dir(doc);
+});
+
 //    var battleM = MR('battle', {
 //        name: String,
 //        started: Date,
@@ -59,31 +63,31 @@ var Fighter = MR.model('fighter', {
 //        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
 //    });
 
-Fighter.model.create({
-	name: 'Rob Stark', health: 150, born: new Date()
-}).then(function () {
-
-		console.log("created");
-
-		Fighter.model.find({}, function (err, docs) {
-			if (docs) {
-				setTimeout(function () {
-
-					var doc = docs[0];
-					if (doc) {
-						doc.remove(function (err) {
-							if (err) {
-
-							}
-							console.log("deleted");
-						});
-					}
-
-				}, 8000);
-			}
-		});
-	}
-);
+//Fighter.model.create({
+//	name: 'Rob Stark', health: 150, born: new Date()
+//}).then(function () {
+//
+//		console.log("created");
+//
+//		Fighter.model.find({}, function (err, docs) {
+//			if (docs) {
+//				setTimeout(function () {
+//
+//					var doc = docs[0];
+//					if (doc) {
+//						doc.remove(function (err) {
+//							if (err) {
+//
+//							}
+//							console.log("deleted");
+//						});
+//					}
+//
+//				}, 8000);
+//			}
+//		});
+//	}
+//);
 //    var c = 0;
 //
 //    setInterval(function () {

@@ -38,120 +38,65 @@ var expose = function (model, schema, opts) {
         }
         return doc;
     }
-	/**
-	 * DO NOT OVERRIDE, moonridge won't work if you do
-	 * @param next
-	 * @param doc
-	 */
-	schema.onPrecreate = function (next, doc) {
-		Object.keys(liveQueries).forEach(function (LQString) {
-			var LQ = liveQueries[LQString];
-			LQ.docs.push(doc);
-			// liveQuery
-			// if LQ.docs.length > limit
-			//TODO call query with limit 1 and skip LQ.query.skip + LQ.query.limit + 1 to get an item, which should be remove from
 
-			LQ.callListeners('create', true);
-			next();
-		});
+    model.onAll(function (doc, evName) {   // will be called by schema's event firing
+        Object.keys(liveQueries).forEach(function (LQString) {
+            var LQ = liveQueries[LQString];
+            var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
-	};
+            if (evName === 'remove' && LQ.docs[cQindex]) {
+                LQ.callListeners(doc, evName, false);
 
-	/**
-	 * DO NOT OVERRIDE, moonridge won't work if you do
-	 * @param next
-	 * @param doc
-	 */
-	schema.onPreremove = function (next, doc) {
-		Object.keys(liveQueries).forEach(function (LQString) {
-			var LQ = liveQueries[LQString];
-			var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
-			var begin = LQ.query.options.skip;		// cursor area begin
+                LQ.docs.splice(cQindex, 1);
+                if (LQ.options) {
+                    var cPaginatedQindex = LQ.getIndexByIdInPaginated(doc._id); //index of current doc in the query
+                    if (cPaginatedQindex) {
+                        LQ.docsPaginated.splice(cPaginatedQindex, 1);
 
-			function fillTheLastDocumentToMatchTheLimit() {
-				if (LQ.query.options.limit === LQ.docs.length + 1) {
-					var endSkip = begin + LQ.query.options.limit;
-					LQ.createMatchQuery().limit(1).skip(endSkip).exec().then(function (arr) {
+                    } else {
+                        var limit;
+                        var fillDocIndex;
+                        if (LQ.options.limit) {
+                            limit = LQ.options.limit;
+                            fillDocIndex = LQ.options.skip + limit;
+                            if (cQindex <= fillDocIndex) {
+                                var toFillIn = LQ.docs[fillDocIndex - 1];   //TODO check if this index is correct
+                                if (toFillIn) {
+                                    LQ.docsPaginated.push(toFillIn);
+                                    LQ.callListeners(toFillIn, 'push');
+                                }
+                            }
+                        }
 
-						if (arr.length === 1) {
-							LQ.docs.push(arr[0]);	//push a document so that live query still matches the limit after removing first doc
-							var doc = arr[0];
-							var i = LQ.listeners.length;
+                    }
+                }
 
-							while(i--) {
-								var listener = LQ.listeners[i];
-								var uP = listener.socket.manager.user.privilige_level;
-								doc = deleteUnpermittedProps(doc, 'R', uP);
-								listener.method(doc, 'push', listener.clIndex, true);
-							}
+            } else {
+                model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
+                    .exec(function(err, id) {
+                        if (!err && id) {
+                            if (evName === 'create') {
+                                LQ.docs.push(doc);  //TODO solve sorting here
+                            }
+                            if (evName === 'update') {
+                                if (cQindex === -1) {
+                                    LQ.docs.push(doc);  //TODO solve sorting here
+                                }
+                            }
+                            LQ.callListeners(doc, evName, true);
 
-						}
-						next();
+                        } else {
+                            if (evName === 'update' && cQindex !== -1) {
+                                LQ.docs.splice(cQindex, 1);
+                                LQ.callListeners(doc, evName, false);
+                            }
+                        }
+                    }
+                );
+            }
+        });
 
-					});
-				}
-			}
-
-			if (LQ.docs[cQindex]) {
-				LQ.callListeners('remove', false);
-				LQ.docs.splice(cQindex, 1);
-				fillTheLastDocumentToMatchTheLimit();
-			} else {
-				//most complicated case, we have to check the if the doc is before the cursor area
-				if (LQ.query.options.skip == 0) {
-					//there is nothing before cursor area, which means the removed item is after it
-					//in this case we don't have to do anything
-
-				} else {
-
-					var isBeforeLQArea = LQ.createMatchQuery().limit(begin).skip(0).select('_id');
-					isBeforeLQArea.exec().then(function (arr) {
-						if (arr.length === 1) {	//removed doc found before the beginning of cursor area
-							LQ.docs.splice(0, 1);   // remove first
-							fillTheLastDocumentToMatchTheLimit();
-							var i = LQ.listeners.length;
-
-							while(i--) {
-								var listener = LQ.listeners[i];
-								listener.method(doc, 'remove_first', listener.clIndex, true);
-							}
-						}
-						next();
-
-					})
-				}
-
-			}
-		});
-
-	};
-
-	model.on('update', function (doc, evName) {   // will be called by schema's event firing
-		Object.keys(liveQueries).forEach(function (LQString) {
-			var LQ = liveQueries[LQString];
-			var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
-
-			LQ.createMatchQuery().select('_id')
-				.exec(function(err, id) {
-					if (!err && id) {
-						if (evName === 'update') {
-							if (cQindex === -1) {
-								LQ.docs.push(doc);
-							}
-							LQ.callListeners(evName, true);
-						}
-					} else {
-						if (evName === 'update' && cQindex !== -1) {
-							LQ.docs.splice(cQindex, 1);
-							LQ.callListeners(evName, false);
-						}
-					}
-				}
-			);
-
-		});
-
-	});
+    });
 
 	var notifySubscriber = function (clientPubMethod) {
 		return function (doc, evName) {   // will be called by schema's event firing
@@ -271,6 +216,106 @@ var expose = function (model, schema, opts) {
         return clQuery;
     }
 
+    /**
+     *
+     * @param qKey
+     * @param mQuery
+     * @param queryOptions
+     * @returns {Object}
+     * @constructor
+     */
+    function LiveQuery(qKey, mQuery, queryOptions) {
+        var self = this;
+        this.docs = [];
+        this.listeners = [];
+        this.query = mQuery;
+        this.qKey = qKey;
+        this.options = queryOptions;
+        return this;
+    }
+
+    LiveQuery.prototype =  {
+        destroy: function () {
+            delete liveQueries[this.qKey];
+        },
+        getIndexById: function (id) {
+            id = id.id;
+            var i = this.docs.length;
+            while(i--)
+            {
+                var doc = this.docs[i];
+                if (doc._id.id === id) {
+                    return i;
+                }
+            }
+            return undefined;
+        },
+        getIndexByIdInPaginated: function (id) {
+            id = id.id;
+            var i = this.docsPaginated.length;
+            while(i--)
+            {
+                var doc = this.docsPaginated[i];
+                if (doc._id.id === id) {
+                    return i;
+                }
+            }
+            return undefined;
+        },
+        getDocsPaginated: function () {
+            var docsPaginated;
+            if (this.options.skip) {
+                docsPaginated = this.docs.splice(this.options.skip);
+            }
+            if (this.options.limit) {
+                if (docsPaginated) {
+                    docsPaginated = docsPaginated.splice(0, this.options.limit);
+                } else {
+                    docsPaginated = this.docs.splice(0, this.options.limit);
+                }
+            }
+            return docsPaginated || this.docs;
+        },
+        /**
+         * creates new query for just for determining whether
+         * @param {Document}
+         * @returns {Query}
+         */
+        createMatchQuery: function (doc) {
+            return model.findOne(self.query).where('_id').equals(doc._id);
+        },
+        /**
+         *
+         * @param doc
+         * @param {String} evName
+         * @param isInResult
+         */
+        callListeners: function (doc, evName, isInResult) {
+            var i = this.listeners.length;
+            if (evName === 'remove') {
+                doc = doc._id.toString();	//remove needs only _id
+            }
+            while(i--) {
+                var listener = self.listeners[i];
+                var uP = listener.socket.manager.user.privilige_level;
+                doc = deleteUnpermittedProps(doc, 'R', uP);
+                listener.method(doc, evName, listener.clIndex, isInResult);
+            }
+        },
+        removeListener: function (socket) {
+            var li = self.listeners.length;
+            while(li--) {
+                if (self.listeners[li].socket === socket) {
+                    self.listeners.splice(li, 1);
+                    if (self.listeners.length === 0) {
+                        self.destroy();
+                    }
+                    break;	// listener should be registered only once, so no need to continue loop
+                }
+            }
+        }
+    };
+
 	var channel = {
 		/**
 		 *
@@ -307,8 +352,19 @@ var expose = function (model, schema, opts) {
 			}
             def = when.defer();
 
-            accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
+            accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
 			clientQuery.lean = true; // this should make query always lean
+
+            var queryOptions = {};
+            if (clientQuery.skip) {
+                queryOptions.skip = clientQuery.skip;
+                delete clientQuery.skip;
+            }
+            if (clientQuery.limit) {
+                queryOptions.limit = clientQuery.limit;
+                delete clientQuery.skip;
+            }
+
             var mQuery = queryBuilder(model, clientQuery);
 			if (!mQuery.exec) {
 				return new Error('query builder has returned invalid query');
@@ -326,7 +382,13 @@ var expose = function (model, schema, opts) {
                     }
                     var clIndex = socket.registeredLQs.push(LQ) - 1;
                     LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
-                    var retVal = {docs: LQ.docs, index: clIndex};
+
+                    var docs = LQ.getDocsPaginated();
+                    if (this.options) {
+                        LQ.docsPaginated = docs;
+                    }
+                    var retVal = {docs: docs, index: clIndex};
+
                     def.resolve(retVal);
 
                 }, function (err) {
@@ -340,62 +402,7 @@ var expose = function (model, schema, opts) {
 
 				mQuery.exec().then(function (rDocs) {
                     if (!liveQueries[qKey]) {
-                        LQ = {
-                            docs: [], listeners: [], query: mQuery,
-                            destroy: function () {
-                                delete liveQueries[qKey];
-                            },
-                            getIndexById: function (id) {
-                                id = id.id;
-                                var i = LQ.docs.length;
-                                while(i--)
-                                {
-                                    var doc = LQ.docs[i];
-                                    if (doc._id.id === id) {
-                                        return i;
-                                    }
-                                }
-                                return undefined;
-                            },
-							/**
-							 * creates new query for just for determining whether
-							 * @param {Document}
-							 * @returns {Query}
-							 */
-							createMatchQuery: function (doc) {
-								return model.findOne(LQ.query).where('_id').equals(doc._id);
-							},
-							/**
-							 *
-							 * @param isInResult
-							 * @param {String|Document} secondaryDoc doc to remove/add to LQ collection, used for create/remove with skip and limit query params set
-							 * @param evName
-							 */
-							callListeners: function (isInResult, evName, secondaryDoc) {
-								var i = LQ.listeners.length;
-								if (evName === 'remove') {
-									doc = doc._id.toString();	//remove needs only _id
-								}
-								while(i--) {
-									var listener = LQ.listeners[i];
-									var uP = listener.socket.manager.user.privilige_level;
-									doc = deleteUnpermittedProps(doc, 'R', uP);
-									listener.method(doc, evName, listener.clIndex, isInResult);
-								}
-							},
-                            removeListener: function (socket) {
-                                var li = LQ.listeners.length;
-                                while(li--) {
-                                    if (LQ.listeners[li].socket === socket) {
-                                        LQ.listeners.splice(li, 1);
-                                        if (LQ.listeners.length === 0) {
-                                            LQ.destroy();
-                                        }
-                                        break;	// listener should be registered only once, so no need to continue loop
-                                    }
-                                }
-                            }
-                        };
+                        LQ = new LiveQuery(qKey, mQuery, queryOptions);
                         liveQueries[qKey] = LQ;
                     }
 

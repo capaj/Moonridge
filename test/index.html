@@ -21,12 +21,17 @@
 <script type="text/javascript">
     angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
 
-        $scope.model.liveQuery({limit: 4, skip: 0}).then(function (LQ) {
+        $scope.model.liveQuery({limit: 8, skip: 0, sort: 'name'}).then(function (LQ) {
             console.log(LQ);
             $scope.LQ = LQ;
         });
-    }).run(function ($MR, $q) {
-        $MR('http://localhost:8080', 'local', { query: "nick=capaj" });
+    }).run(function ($MR, $q, $timeout) {
+        var dfd = $q.defer();
+        $MR('local', dfd.promise);
+        $timeout(function () {
+            //just an example, in real application you would use here some auth token instead of nick
+            dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=capaj" } } );
+        }, 900)
     });
 </script>
 </body>

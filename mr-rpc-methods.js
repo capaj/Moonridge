@@ -207,7 +207,7 @@ var expose = function (model, schema, opts) {
     function accesControlQueryModifier(clQuery, schema, userPL, op) { // gives us
         var pathPs = schema.pathPermissions;
 
-        var select = clQuery.select || {};
+        var select = clQuery.select || {};  //overriding clQuery select field to adhere to permissions
         if (_.isString(select)) {
             //in this case, we need to parse the string and return the object notation
             var props = select.split(' ');

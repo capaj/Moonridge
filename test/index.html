@@ -4,7 +4,9 @@
     <title></title>
 </head>
 <body mr-controller="testCtrl" mr-backend="local" mr-model="fighter">
-    <label for="query"></label><input type="text" id="query" ng-model='te'>
+    <label for="query">Name</label><input type="text" id="query" ng-model='name'>
+    <label for="health">age</label><input type="number" id="health" ng-model='health'>
+    <button ng-click="create()">create</button>
     <button ng-click="changeQuery()">limit +1</button>
     <div>
         <p ng-repeat="fighter in LQ.docs">
@@ -22,14 +24,20 @@
     <script type="text/javascript">
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
             var liveQuery = $scope.MR.liveQuery;
-            $scope.LQ = liveQuery({limit: 1, skip: 0, sort: 'name'});
+            $scope.LQ = liveQuery({sort: 'name'});
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);
             });
 
             $scope.changeQuery = function () {
-                $scope.LQ.query.limit = $scope.LQ.query.limit + 1;
+                $scope.LQ.query.limit = 2;
             };
+
+            $scope.create = function () {
+                $scope.MR.rpc.create({name: $scope.name, health: $scope.health})
+
+            };
+
         }).run(function ($MR, $q, $timeout) {
             var dfd = $q.defer();
             $MR('local', dfd.promise);

@@ -219,7 +219,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
                     var backend = attr.mrBackend;
-
+                    //TODO add support for attr.mrModels
                     var MR = $MR.getBackend(backend);
                     MR.getModel(attr.mrModel).then(function (model) {
                         scope.MR = model;	//MR for Moonridge

@@ -49,7 +49,8 @@ var Fighter = MR.model('fighter', {
 	name: String,
 	health: Number,
 	born: Date,
-	death: { type: Date, permissions:{R: 4, W: 20}}
+	death: { type: Date, permissions:{R: 4, W: 20}},
+    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
 });
 
 Fighter.model.find().sort('health').maxScan(2).find().exec().then(function (doc) {

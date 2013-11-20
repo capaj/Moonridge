@@ -38,8 +38,11 @@ var expose = function (model, schema, opts) {
         }
         return doc;
     }
+
 	var insertIntoSorted = require('./utils/insertIntoSorted');
+
     model.onAll(function (doc, evName) {   // will be called by schema's event firing
+
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
             var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
@@ -182,12 +185,15 @@ var expose = function (model, schema, opts) {
     /**
      *
      * @param {String} op operation to check
-     * @returns {bool} true when user has permission, false when not
      * @param socketContext
+     * @param {Document} [doc]
+     * @returns {bool} true when user has permission, false when not
      */
-	opts.checkPermission = function (socketContext, op) {
+	opts.checkPermission = function (socketContext, op, doc) {
 		var PL = socketContext.manager.user.privilige_level;
-
+        if (doc && doc.owner && doc.owner === socketContext.manager.user._id) {
+            return true;    // owner does not need any permissions
+        }
 		if (this.permissions && this.permissions[op]) {
 			if (PL < this.permissions[op]) {
 				return false;
@@ -316,7 +322,7 @@ var expose = function (model, schema, opts) {
                 var listener = this.listeners[i];
                 var uP = listener.socket.manager.user.privilige_level;
                 doc = deleteUnpermittedProps(doc, 'R', uP);
-                listener.method(doc, evName, listener.clIndex, isInResult);
+                listener.rpcChannel.pubLQ(doc, evName, listener.clIndex, isInResult);
             }
         },
         removeListener: function (socket) {
@@ -452,32 +458,36 @@ var expose = function (model, schema, opts) {
 					return new Error('You lack a privilege to create this document');
 				}
                 deleteUnpermittedProps(newDoc, 'W', this.manager.user.privilige_level);
-				return model.create(newDoc);
+                if (schema.paths.owner) {
+                    //we should set the owner field if it is present
+                    newDoc.owner = this.manager.user._id;
+                }
+                return model.create(newDoc);
 
 			},
 			remove: function (id) {
-				if (!opts.checkPermission(this, 'D')) {
-					return new Error('You lack a privilege to delete this document');
-				}
+				
 				var def = when.defer();
 				model.findById(id, function (err, doc) {
 					if (doc) {
-						doc.remove(function (err) {
-							if (err) {
-								def.reject(err);
-							}
-							def.resolve();
-						});
+                        if (opts.checkPermission(this, 'D', doc)) {
+                            doc.remove(function (err) {
+                                if (err) {
+                                    def.reject(err);
+                                }
+                                def.resolve();
+                            });
+                        } else {
+                            def.reject(new Error('You lack a privilege to delete this document'));
+                        }						
 					} else {
-						def.reject(new Error('no document with _id: ' + id));
+						def.reject(new Error('no document to remove found with _id: ' + id));
 					}
 				});
 				return def.promise;
 			},
 			update: function (toUpdate) {
-				if (!opts.checkPermission(this, 'U')) {
-					return new Error('You lack a privilege to update this document');
-				}
+
                 var uPL = this.manager.user.privilige_level;
 				var def = when.defer();
 
@@ -485,16 +495,23 @@ var expose = function (model, schema, opts) {
 				delete toUpdate._id;
 				model.findById(id, function (err, doc) {
 					if (doc) {
-                        deleteUnpermittedProps(toUpdate, 'W', uPL);
+                        if (opts.checkPermission(this, 'U', doc)) {
+                            deleteUnpermittedProps(toUpdate, 'W', uPL);
 
-                        _.extend(doc, toUpdate);
-						doc.save(function (err) {
-							if (err) {
-								def.reject(err);
-							}
-							def.resolve();
-						});
-					}
+                            _.extend(doc, toUpdate);
+                            doc.save(function (err) {
+                                if (err) {
+                                    def.reject(err);
+                                }
+                                def.resolve();
+                            });
+                        } else {
+                            def.reject(new Error('You lack a privilege to update this document'));
+                        }
+
+					} else {
+                        def.reject(new Error('no document to update found with _id: ' + id));
+                    }
 				});
 				return def.promise;
 			}

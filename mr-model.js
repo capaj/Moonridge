@@ -24,7 +24,7 @@ module.exports = function MRModel(name, schema, opts) {
     var pathPermissions = {};
     for (var prop in paths) {
         if (paths[prop].options) {
-            var perm = paths[prop].options.permissions;
+            var perm = paths[prop].options.permissions; // looks like {R: 10, W: 20}
             if (perm) {
                 pathPermissions[prop] = perm;
             }

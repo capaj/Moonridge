@@ -61,6 +61,7 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
                         rpcMaster.emit('authenticate', {name: name, handshake: handshakeData});
                         channel.cached = cached;
                     } else {
+                        connectToServerChannel(channel, name);
                         registerRemoteFunctions(cached, false); // will register functions from cached manifest
                     }
                 } else {
@@ -102,9 +103,13 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 
     };
 
-    var connectToServerChannel = function (data) {
-        var channel = serverChannels[data.name];
-        var name = data.name;
+    /**
+     *
+     * @param {Object} channel
+     * @param {String} name
+     */
+    var connectToServerChannel = function (channel, name) {
+
         channel._socket = io.connect(baseURL + '/rpc-' + name)
             .on('return', function (data) {
                 deferreds[data.Id].resolve(data.value);
@@ -142,12 +147,15 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
                     $rootScope.$apply();
                 })
                 .on('authenticated', function (data) {
-                    var channel = serverChannels[data.name];
-                    connectToServerChannel(data);
+                    var name = data.name;
+                    var channel = serverChannels[name];
+                    connectToServerChannel(channel, name);
                     registerRemoteFunctions(channel.cached, false); // will register functions from cached manifest
                 })
                 .on('channelFns', function (data, storeInCache) {
-                    connectToServerChannel(data);
+                    var name = data.name;
+                    var channel = serverChannels[name];
+                    connectToServerChannel(channel, name);
                     registerRemoteFunctions(data, storeInCache);
                 })
                 .on('channelDoesNotExist', function (data) {
@@ -307,9 +315,18 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
     var MRs = {}; //it is possible to have just one instance for each backend
 
-    function Moonridge(backendUrl, name, handshake) {
+    /**
+     *
+     * @param {String} name identifying the backend instance
+     * @param {Object} params
+     * @param {String} params.url backend adress
+     * @param {Object} params.hs handshake for socket.io
+     * @returns {*}
+     * @constructor
+     */
+    function Moonridge(name, params) {
         var self;
-        var name = name || backendUrl;
+
         if (MRs[name]) {
             return MRs[name];
         } else {
@@ -318,7 +335,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
         }
 
         var models = {};
-		$rpc.connect(backendUrl, handshake);
+        var connectPromise = $q.when(params).then(function (rParams) {
+            $rpc.connect(rParams.url, rParams.hs);
+        });
 
         self.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
@@ -348,7 +367,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 				promise.then(function (LQ) {
 					self._LQs[LQ.index] = LQ;
 					LQ.query = query;
-                    LQ.getDocById = function (id) {
+
+					LQ.getDocById = function (id) {
 						var i = LQ.docs.length;
 						while (i--) {
 							if (LQ.docs[i]._id === id) {
@@ -358,9 +378,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 						return null;
 					};
 
-					LQ.on_create = function (doc) {
-						LQ.docs.push(doc);
+					LQ.on_create = function (doc, index) {
+						if (angular.isNumber(index)) {
+							LQ.docs.splice(index, 0, doc);
+						} else {
+							LQ.docs.push(doc);
+						}
 					};
+					LQ.on_push = LQ.on_create;
 					LQ.on_update = function (doc, isInResult) {
 						var i = LQ.docs.length;
 						while (i--) {
@@ -376,8 +401,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 							}
 						}
 						if (isInResult) {
-							LQ.docs.push(doc); // pushing into docs if it was not found by loop
-							//we don't care about sorting-LQ.docs is a set, sorting is done on client side
+							if (angular.isNumber(isInResult)) {	//LQ with sorting
+								LQ.docs.splice(isInResult, 0, doc);
+							} else {
+								LQ.docs.push(doc); // pushing into docs if it was not found by loop
+							}
 							return;
 						}
 						$log.error('Failed to find updated document.');
@@ -416,28 +444,31 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
                 models[name] = model;
             }
 
-            var promises = {
-                client: $rpc.expose('MR-' + name, {
-                    pub: function (doc, eventName) {
-                        //todo implement
-                    },
-                    pubLQ: function (doc, eventName, LQId, isInResult) {
-                        if (model._LQs[LQId]) {
-                            //updateLQ
-                            model._LQs[LQId]['on_' + eventName](doc, isInResult);
-                        } else {
-                            $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
+            connectPromise.then(function () {
+                var promises = {
+                    client: $rpc.expose('MR-' + name, {
+                        pub: function (doc, eventName) {
+                            //todo implement
+                        },
+                        pubLQ: function (doc, eventName, LQId, isInResult) {
+                            if (model._LQs[LQId]) {
+                                //updateLQ
+                                model._LQs[LQId]['on_' + eventName](doc, isInResult);
+                            } else {
+                                $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
+                            }
                         }
-                    }
-                }),
-                server: $rpc.loadChannel('MR-' + name, handshake)
-            };
+                    }),
+                    server: $rpc.loadChannel('MR-' + name, handshake)
+                };
 
 
-            $q.all(promises).then(function (chnlPair) {
-                model.rpc = chnlPair.server;
-                model.deferred.resolve(model);
+                $q.all(promises).then(function (chnlPair) {
+                    model.rpc = chnlPair.server;
+                    model.deferred.resolve(model);
+                });
             });
+
 
 			return model.deferred.promise;
 

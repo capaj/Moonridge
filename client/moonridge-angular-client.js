@@ -1,4 +1,4 @@
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log) {
+angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
     var MRs = {}; //it is possible to have just one instance for each backend
 
     /**
@@ -10,14 +10,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
      * @returns {*}
      * @constructor
      */
-    function Moonridge(name, params) {
-        var self;
+    var Moonridge = function (name, params) {
+        var MRInstance;
 
         if (MRs[name]) {
             return MRs[name];
         } else {
-            self = {};
-            MRs[name] = self;
+            MRInstance = {};
+            MRs[name] = MRInstance;
         }
 
         var models = {};
@@ -25,7 +25,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
             $rpc.connect(rParams.url, rParams.hs);
         });
 
-        self.getAllModels = function () {
+        MRInstance.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
                 mrChnl.getModels().then(function (models) {
 //                    TODO call getModel for all models
@@ -37,9 +37,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
          * @constructor
          */
         function Model() {
-            var self = this;
-            this._LQs = [];
-            self.deferred = $q.defer();
+            var model = this;
+            this._LQs = [];	// holds all
+            this.deferred = $q.defer();
 //            this.methods = rpc;
 
             /**
@@ -48,80 +48,119 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
              * @returns {Promise|*}
              */
             this.liveQuery = function (query) {
+				var LQ = {};
 
-				var promise = self.rpc.liveQuery.apply(this, arguments);
-				promise.then(function (LQ) {
-					self._LQs[LQ.index] = LQ;
-					LQ.query = query;
+				LQ.query = query || {};
 
-					LQ.getDocById = function (id) {
-						var i = LQ.docs.length;
-						while (i--) {
-							if (LQ.docs[i]._id === id) {
-								return LQ.docs[i];
-							}
+				var actionsOnResponse = function (first) {
+					LQ.promise = LQ.promise.then(function (res) {
+						if (first) {
+							LQ._waitingOnFirstResponse = false;
 						}
-						return null;
-					};
+						var index = res.index;
 
-					LQ.on_create = function (doc, index) {
-						if (angular.isNumber(index)) {
-							LQ.docs.splice(index, 0, doc);
-						} else {
-							LQ.docs.push(doc);
+						model._LQs[index] = LQ;
+						LQ.index = index;
+						LQ.docs = res.docs;
+
+						return LQ;	//
+					}, function (err) {
+						$log.error(err);
+					});
+				};
+
+				LQ._waitingOnFirstResponse = true;
+				LQ.promise = model.rpc.liveQuery(query);
+				actionsOnResponse(true);
+
+				$rootScope.$watch(function () {
+					return LQ.query;
+				}, function (nV, oV) {
+					if (angular.isUndefined(nV)) {
+						return;
+					}
+					if (!LQ._waitingOnFirstResponse) {
+						LQ.stop && LQ.stop();
+						LQ.promise = model.rpc.liveQuery(nV);
+					}
+
+					actionsOnResponse();
+
+				}, true);
+
+				LQ.getDocById = function (id) {
+					var i = LQ.docs.length;
+					while (i--) {
+						if (LQ.docs[i]._id === id) {
+							return LQ.docs[i];
 						}
-					};
-					LQ.on_push = LQ.on_create;
-					LQ.on_update = function (doc, isInResult) {
-						var i = LQ.docs.length;
-						while (i--) {
-							var updated;
-							if (LQ.docs[i]._id === doc._id) {
-								if (isInResult === false) {
-									docs.splice(i, 1);  //removing from docs
-									return;
-								}
-								updated = LQ.docs[i];
-								angular.extend(updated, doc);
+					}
+					return null;
+				};
+				//syncing logic
+				LQ.on_create = function (doc, index) {
+					if (angular.isNumber(index)) {
+						LQ.docs.splice(index, 0, doc);
+					} else {
+						LQ.docs.push(doc);
+					}
+				};
+				LQ.on_push = LQ.on_create;
+				LQ.on_update = function (doc, isInResult) {
+					var i = LQ.docs.length;
+					while (i--) {
+						var updated;
+						if (LQ.docs[i]._id === doc._id) {
+							if (isInResult === false) {
+								docs.splice(i, 1);  //removing from docs
 								return;
 							}
-						}
-						if (isInResult) {
-							if (angular.isNumber(isInResult)) {	//LQ with sorting
-								LQ.docs.splice(isInResult, 0, doc);
-							} else {
-								LQ.docs.push(doc); // pushing into docs if it was not found by loop
-							}
+							updated = LQ.docs[i];
+							angular.extend(updated, doc);
 							return;
 						}
-						$log.error('Failed to find updated document.');
-					};
-					LQ.on_remove = function (id) {
-						var i = LQ.docs.length;
-						while (i--) {
-							if (LQ.docs[i]._id === id) {
-								LQ.docs.splice(i, 1);
-                                return true;
-							}
+					}
+					if (isInResult) {
+						if (angular.isNumber(isInResult)) {	//LQ with sorting
+							LQ.docs.splice(isInResult, 0, doc);
+						} else {
+							LQ.docs.push(doc); // pushing into docs if it was not found by loop
 						}
-                        $log.error('Failed to find deleted document.');
+						return;
+					}
+					$log.error('Failed to find updated document.');
+				};
+				LQ.on_remove = function (id) {
+					var i = LQ.docs.length;
+					while (i--) {
+						if (LQ.docs[i]._id === id) {
+							LQ.docs.splice(i, 1);
+							return true;
+						}
+					}
+					$log.error('Failed to find deleted document.');
 
-                        return false;
-					};
-                    LQ.destroy = function () {
-                        self.rpc.unsubLQ(LQ.index);
-                        self.docs.length = 0;
-                        delete self._LQs[LQ.index];
-                    };
-					return LQ;
-				}, function (err) {
-					$log.error(err);
-				});
-				return promise;
+					return false;
+				};
+				//syncing logic ends
+				LQ.stop = function () {
+					if (angular.isNumber(LQ.index) && model._LQs[LQ.index] ) {
+
+						model.rpc.unsubLQ(LQ.index);
+						model.stopped = true;
+						delete model._LQs[LQ.index];
+
+					} else {
+						throw new Error('There must be a valid index property, when stop is called')
+					}
+				};
+
+				return LQ;
             }
         }
 
-		self.getModel = function (name, handshake) {
+		//
+		MRInstance.getModel = function (name, handshake) {
             var model = models[name];
             if (model) {
                 return model.deferred.promise
@@ -160,8 +199,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 
 		};
 
-        return self;
-    }
+        return MRInstance;
+    };
 
     Moonridge.getBackend = function (name) {
         if (MRs[name]) {
@@ -183,7 +222,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rpc, $q, $log)
 
                     var MR = $MR.getBackend(backend);
                     MR.getModel(attr.mrModel).then(function (model) {
-                        scope.model = model;
+                        scope.MR = model;	//MR for Moonridge
                         var ctrl = $controller(ctrlName, {
                             $scope: scope
                         });

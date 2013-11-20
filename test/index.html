@@ -4,35 +4,40 @@
     <title></title>
 </head>
 <body mr-controller="testCtrl" mr-backend="local" mr-model="fighter">
-<label for="query"></label><input type="text" id="query" ng-model='te'>
-<div>
-    <p ng-repeat="fighter in LQ.docs">
-        {{ fighter }}
-    </p>
-</div>
+    <label for="query"></label><input type="text" id="query" ng-model='te'>
+    <button ng-click="changeQuery()">limit +1</button>
+    <div>
+        <p ng-repeat="fighter in LQ.docs">
+            {{ fighter }}
+        </p>
+    </div>
 
-<script src="/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
-<script src="/bower_components/jquery/jquery.min.js" type="text/javascript"></script>
-<script src="/bower_components/angular/angular.js" type="text/javascript"></script>
-<script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
-<script src="/rpc/rpc-client-angular.js"></script>
-<script type="text/javascript" src="/moonridge-angular-client.js"></script>
-<script type="text/javascript">
-    angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
+    <script src="/bower_components/jquery/jquery.min.js" type="text/javascript"></script>
+    <script src="/bower_components/angular/angular.js" type="text/javascript"></script>
+    <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
+    <script src="/rpc/rpc-client-angular.js"></script>
+    <script type="text/javascript" src="/moonridge-angular-client.js"></script>
+    <script type="text/javascript">
+        angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
+            var liveQuery = $scope.MR.liveQuery;
+            $scope.LQ = liveQuery({limit: 1, skip: 0, sort: 'name'});
+            $scope.LQ.promise.then(function (LQ) {
+                console.log(LQ);
+            });
 
-        $scope.model.liveQuery({limit: 8, skip: 0, sort: 'name'}).then(function (LQ) {
-            console.log(LQ);
-            $scope.LQ = LQ;
+            $scope.changeQuery = function () {
+                $scope.LQ.query.limit = $scope.LQ.query.limit + 1;
+            };
+        }).run(function ($MR, $q, $timeout) {
+            var dfd = $q.defer();
+            $MR('local', dfd.promise);
+            $timeout(function () {
+                //just an example, in real application you would use here some auth token instead of nick
+                dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=capaj" } } );
+            }, 900)
         });
-    }).run(function ($MR, $q, $timeout) {
-        var dfd = $q.defer();
-        $MR('local', dfd.promise);
-        $timeout(function () {
-            //just an example, in real application you would use here some auth token instead of nick
-            dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=capaj" } } );
-        }, 900)
-    });
-</script>
+    </script>
 </body>
 </html>

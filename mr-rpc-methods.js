@@ -348,14 +348,14 @@ var expose = function (model, schema, opts) {
 		//unsubscribe
 		unsub: unsubscribe,
 		unsubAll: unsubscribeAll,
-        unsubLQ: function (index) {
-            var LQ = this.registeredLQs[index];
-            this.registeredLQs.splice(index, 1);
+        unsubLQ: function (index) {	//when client uses stop method on LQ, this method gets called
+			var LQ = this.registeredLQs[index];
             if (LQ) {
-                LQ.removeListener(this);
+				this.registeredLQs.splice(index, 1);
+				LQ.removeListener(this);
                 return true;
             } else {
-                return false;
+                return new Error('This index for LQ is not valid');
             }
         },
         /**

@@ -47,11 +47,11 @@ var init = function (mongoose) {
 var createServer = function (io, app) {
 
     app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
-        res.sendfile('/node_modules/moonridge/client/moonridge-angular-client.js');
+        res.sendfile('node_modules/moonridge/client/moonridge-angular-client.js');
     });
 
     app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //exposed client file
-        res.sendfile('/node_modules/moonridge/built/moonridge-angular-client-rpcbundle.js');
+        res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.js');
     });
 
     var socketNamespace = rpc.createServer(io, app);

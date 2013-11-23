@@ -1,6 +1,6 @@
 {
     "name": "moonridge",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "main": "main.js",
     "author": "Capaj <capajj@gmail.com>",
     "description": "Bring your Mongoose models straight into angular web app with live Query support, all thanks to the magic of socket.io",
@@ -19,7 +19,9 @@
         "socket.io-rpc": "latest",
         "when": "latest",
         "grunt-contrib-concat": "latest",
-        "grunt": "latest"
+        "grunt-contrib-uglify": "0.2.7",
+        "grunt-ng-annotate": "0.0.4",
+        "grunt": "0.4.1"
     },
     "license": "MIT"
 }

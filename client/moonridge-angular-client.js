@@ -1,14 +1,13 @@
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
-    var MRs = {}; //it is possible to have just one instance for each backend
+    var MRs = {}; //stores instances of Moonridge
 
     /**
-     *
+     * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
      * @param {Object} params
      * @param {String} params.url backend adress
      * @param {Object} params.hs handshake for socket.io
      * @returns {*}
-     * @constructor
      */
     var Moonridge = function (name, params) {
         var MRInstance;
@@ -201,6 +200,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
         return MRInstance;
     };
+    /**
+     * simple getter for MRs stored instances
+     * @param {String} name
+     * @returns {*}
+     */
 
     Moonridge.getBackend = function (name) {
         if (MRs[name]) {
@@ -211,7 +215,18 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     };
 
     return Moonridge;
-}).directive('mrController', function ($controller, $q, $MR) {
+})
+/**
+ * @ngdoc directive
+ * @name Moonridge.directive:mrController
+ * @restrict AC
+ *
+ * @description
+ * Will instantiate angular controller when Moonridge model resolves. This way it is possible to work with it
+ * without waiting on promises to resolve.
+ *
+  */
+.directive('mrController', function ($controller, $q, $MR) {
     return {
         scope: true,
         compile: function compile(tEl, tAttrs) {
@@ -219,17 +234,29 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
                     var backend = attr.mrBackend;
-                    //TODO add support for attr.mrModels
+
                     var MR = $MR.getBackend(backend);
-                    MR.getModel(attr.mrModel).then(function (model) {
+                    var instantiateAngularCtrl = function (model) {
                         scope.MR = model;	//MR for Moonridge
                         var ctrl = $controller(ctrlName, {
                             $scope: scope
                         });
                         iElement.children().data('$ngControllerController', ctrl);
-                    }, function (err) {
-						throw new Error("Cannot instantiate mr-controller - error: " + err);
-                    });
+                    };
+                    var onError = function (err) {
+                        throw new Error("Cannot instantiate mr-controller - error: " + err);
+                    };
+                    if (attr.mrModel) {
+                        MR.getModel(attr.mrModel).then(instantiateAngularCtrl, onError);
+                    }else if(attr.mrModels){
+                        var mNames = attr.mrModels.split(',');
+                        var promises = {};
+                        mNames.forEach(function (name) {
+                            promises[name] = MR.getModel(name);
+                        });
+                        $q.all(promises).then(instantiateAngularCtrl, onError);
+                    }
+
 
                 }
             };

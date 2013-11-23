@@ -32,7 +32,9 @@ var init = function (mongoose) {
 		var userSchema = require('./user-model-base');
 		_.extend(userSchema, schemaExtend);
 		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
-		return userModel;
+        toCallOnCreate.push(userModel._exposeCallback);
+
+        return userModel;
 	}
 
 	return {model: regNewModel, userModel: registerUserModel};
@@ -52,6 +54,10 @@ var createServer = function (io, app) {
 
     app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //exposed client file
         res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.js');
+    });
+
+    app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //exposed client file
+        res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.min.js');
     });
 
     var socketNamespace = rpc.createServer(io, app);

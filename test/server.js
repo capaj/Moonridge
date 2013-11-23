@@ -24,6 +24,10 @@ app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose
     res.sendfile('./built/moonridge-angular-client-rpcbundle.js');
 });
 
+app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //exposed client file
+    res.sendfile('./built/moonridge-angular-client-rpcbundle.min.js');
+});
+
 mongoose.connect(locals.connString, function (err) {
     // if we failed to connect, abort
     if (err) {

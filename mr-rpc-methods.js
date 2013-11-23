@@ -6,7 +6,7 @@ var queryBuilder = require('./query-builder');
 
 /**
  *
- * @param {Model} model
+ * @param {Model} model Moonridge model
  * @param {Schema} schema mongoose schema
  * @param {Object} opts
  */
@@ -41,8 +41,8 @@ var expose = function (model, schema, opts) {
 
 	var insertIntoSorted = require('./utils/insertIntoSorted');
 
-    model.onAll(function (doc, evName) {   // will be called by schema's event firing
-
+    model.onAll(function (mDoc, evName) {   // will be called by schema's event firing
+        var doc = mDoc._doc;
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
             var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query

@@ -21,7 +21,7 @@ function EventBus() {
     this.fire = function (name) {
         var evObj = self.subscribers[name];
         for (var i in evObj) {
-            evObj[i](this._doc, name);  //stripping away mongoose doc properties, we don't need them for anything
+            evObj[i](this, name);  //stripping away mongoose doc properties, we don't need them for anything
         }
     };
     /**

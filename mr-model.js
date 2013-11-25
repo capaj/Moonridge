@@ -33,6 +33,7 @@ module.exports = function MRModel(name, schema, opts) {
     mgSchema.pathPermissions = pathPermissions; // prepared object for handling access controll
 
     var schemaEvS = new EventBus();
+    mgSchema.eventBus = schemaEvS;
     // Create subscribers hashtable, holds reference to all registered event handlers
     var fireEvent = schemaEvS.fire;
 	var unsubscribe = schemaEvS.unsubscribe;
@@ -97,10 +98,10 @@ module.exports = function MRModel(name, schema, opts) {
 	};
 
 	mgSchema.static('on', on);
-    mgSchema.static('onAll', function (callback) {
-		for (var ev in schemaEvS.subscribers) {
-			on(ev, callback);
-		}
+    mgSchema.static('onCUD', function (callback) {
+        ['create', 'update', 'remove'].forEach(function (ev) {
+            on(ev, callback);
+        });
 	});
     mgSchema.static('off', unsubscribe);
     // Create model from schema

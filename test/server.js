@@ -56,6 +56,11 @@ var Fighter = MR.model('fighter', {
 	death: { type: Date, permissions:{R: 4, W: 20}},
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
 });
+Fighter.model.on('preupdate', function (doc, evName, previous) {
+   console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic
+   console.dir(doc);
+   console.dir(previous);
+});
 
 Fighter.model.find().sort('health').maxScan(2).find().exec().then(function (doc) {
     console.dir(doc);

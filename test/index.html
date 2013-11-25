@@ -10,7 +10,7 @@
     <button ng-click="changeQuery()">limit +1</button>
     <div>
         <p ng-repeat="fighter in LQ.docs">
-            {{ fighter }}
+            {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
         </p>
     </div>
 
@@ -19,14 +19,13 @@
     <script src="/bower_components/jquery/jquery.min.js" type="text/javascript"></script>
     <script src="/bower_components/angular/angular.js" type="text/javascript"></script>
     <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
-    <!--<script src="/rpc/rpc-client-angular.js"></script>-->
-    <!--<script type="text/javascript" src="/moonridge-angular-client.min.js"></script>-->
-    <script type="text/javascript" src="/moonridge-angular-client-rpcbundle.min.js"></script>
+    <script src="/rpc/rpc-client-angular.js"></script>
+    <script type="text/javascript" src="/moonridge-angular-client.js"></script>
 
     <script type="text/javascript">
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
             var liveQuery = $scope.MR.fighter.liveQuery;
-            $scope.LQ = liveQuery({sort: 'name'});
+            $scope.LQ = liveQuery({sort: 'health'});
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);
             });
@@ -35,8 +34,22 @@
                 $scope.LQ.query.limit = 2;
             };
 
+            $scope.hit = function (fighter) {
+                fighter.health -= 1;
+                $scope.MR.fighter.update(fighter);
+            };
+
+            $scope.heal = function (fighter) {
+                fighter.health += 1;
+                $scope.MR.fighter.update(fighter);
+            };
+
+            $scope.remove = function (fighter) {
+                $scope.MR.fighter.remove(fighter);
+            };
+
             $scope.create = function () {
-                $scope.MR.fighter.rpc.create({name: $scope.name, health: $scope.health})
+                $scope.MR.fighter.create({name: $scope.name, health: $scope.health});
 
             };
 

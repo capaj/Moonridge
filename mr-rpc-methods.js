@@ -39,19 +39,19 @@ var expose = function (model, schema, opts) {
         return doc;
     }
 
-	var insertIntoSorted = require('./utils/insertIntoSorted');
+	var getIndexInSorted = require('./utils/insertIntoSorted');
 
-    model.onAll(function (mDoc, evName) {   // will be called by schema's event firing
-        var doc = mDoc._doc;
+    model.onCUD(function (mDoc, evName) {   // will be called by schema's event firing
+        var doc = mDoc.toObject();
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
             var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
             if (evName === 'remove' && LQ.docs[cQindex]) {
-                LQ.callListeners(doc, evName, false);
+                LQ.callClientListeners(doc, evName, false);
 
                 LQ.docs.splice(cQindex, 1);
-                if (LQ.options) {
+                if (LQ.docsPaginated) {
                     var cPaginatedQindex = LQ.getIndexByIdInPaginated(doc._id); //index of current doc in the query
                     if (cPaginatedQindex) {
                         LQ.docsPaginated.splice(cPaginatedQindex, 1);
@@ -66,7 +66,7 @@ var expose = function (model, schema, opts) {
                                 var toFillIn = LQ.docs[fillDocIndex - 1];   //TODO check if this index is correct
                                 if (toFillIn) {
                                     LQ.docsPaginated.push(toFillIn);
-                                    LQ.callListeners(toFillIn, 'push');
+                                    LQ.callClientListeners(toFillIn, 'push');
                                 }
                             }
                         }
@@ -82,15 +82,33 @@ var expose = function (model, schema, opts) {
 								var sortBy = LQ.clientQuery.sort.split(' ');
 								var index;
 								if (evName === 'create') {
-									index = insertIntoSorted(doc, LQ.docs, sortBy);
-								}
+									index = getIndexInSorted(doc, LQ.docs, sortBy);
+                                    LQ.docs.splice(index, 0, doc);
+//                                    LQ.docs.splice(LQ.docs.length - 1, 1); //TODO solve limit issues that might arise when
+                                }
 								if (evName === 'update') {
-									if (cQindex === -1) {
-										index = insertIntoSorted(doc, LQ.docs, sortBy);
-									}
-								}
-								if (index) {
-									LQ.callListeners(doc, evName, index);
+                                    index = getIndexInSorted(doc, LQ.docs, sortBy);
+
+                                    if (cQindex === -1) {
+                                        LQ.docs.splice(index, 0, doc);    //insert the document
+									} else {
+                                        if (cQindex !== index) {
+                                            if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
+                                                LQ.docs.splice(cQindex, 1);
+                                                LQ.docs.splice(index - 1, 0, doc);
+                                            } else {
+                                                LQ.docs.splice(cQindex, 1);
+                                                LQ.docs.splice(index, 0, doc);
+                                            }
+
+                                        } else {
+                                            LQ.docs[index] = doc;
+                                        }
+                                    }
+
+                                }
+								if (_.isNumber(index)) {
+									LQ.callClientListeners(doc, evName, index);
 								}
 
 							} else {
@@ -102,13 +120,13 @@ var expose = function (model, schema, opts) {
 										LQ.docs.push(doc);
 									}
 								}
-								LQ.callListeners(doc, evName, true);
+								LQ.callClientListeners(doc, evName, true);
 
 							}
                         } else {
                             if (evName === 'update' && cQindex !== -1) {
                                 LQ.docs.splice(cQindex, 1);
-                                LQ.callListeners(doc, evName, false);
+                                LQ.callClientListeners(doc, evName, false);
                             }
                         }
                     }
@@ -313,7 +331,7 @@ var expose = function (model, schema, opts) {
          * @param {String} evName
          * @param {Boolean|Number} isInResult when number, indicates an index where the doc should be inserted
          */
-        callListeners: function (doc, evName, isInResult) {
+        callClientListeners: function (doc, evName, isInResult) {
             var i = this.listeners.length;
             if (evName === 'remove') {
                 doc = doc._id.toString();	//remove needs only _id
@@ -468,9 +486,10 @@ var expose = function (model, schema, opts) {
 			remove: function (id) {
 				
 				var def = when.defer();
+                var socket = this;
 				model.findById(id, function (err, doc) {
 					if (doc) {
-                        if (opts.checkPermission(this, 'D', doc)) {
+                        if (opts.checkPermission(socket, 'D', doc)) {
                             doc.remove(function (err) {
                                 if (err) {
                                     def.reject(err);
@@ -490,15 +509,19 @@ var expose = function (model, schema, opts) {
 
                 var uPL = this.manager.user.privilige_level;
 				var def = when.defer();
-
+                var socket = this;
 				var id = toUpdate._id;
 				delete toUpdate._id;
+				delete toUpdate.__v;
 				model.findById(id, function (err, doc) {
 					if (doc) {
-                        if (opts.checkPermission(this, 'U', doc)) {
+                        if (opts.checkPermission(socket, 'U', doc)) {
                             deleteUnpermittedProps(toUpdate, 'W', uPL);
-
+                            var previousVersion = doc.toObject();
                             _.extend(doc, toUpdate);
+                            doc.__v += 1;
+                            schema.eventBus.fire.call(doc, 'preupdate', previousVersion);
+
                             doc.save(function (err) {
                                 if (err) {
                                     def.reject(err);

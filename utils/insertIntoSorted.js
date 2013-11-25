@@ -37,7 +37,7 @@ module.exports = function insert(element, array, sortBy) {
 			}
 
 		}
-
+        return true;
 
 	};
 
@@ -45,7 +45,8 @@ module.exports = function insert(element, array, sortBy) {
 		start = start || 0;
 		end = end || array.length;
 		var pivot = parseInt(start + (end - start) / 2);
-		if(end - start <= 1 || array[pivot] == element) return pivot;
+        console.log("pivot: " + pivot + ' start: ' + start + ' end: ' + end);
+		if(end - start <= 1 || array[pivot]._id.id === element._id.id) return pivot;
 
 		if(isLowerSorted(array[pivot], element)) {
 			return locationOf(element, array, pivot, end);
@@ -54,7 +55,6 @@ module.exports = function insert(element, array, sortBy) {
 		}
 	};
 
-	var index = locationOf(element, array) + 1;
-	array.splice(index, 0, element);
+	var index = locationOf(element, array);
 	return index;
 };

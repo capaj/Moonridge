@@ -427,12 +427,25 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 							if (isInResult === false) {
 								docs.splice(i, 1);  //removing from docs
 								return;
-							}
-							updated = LQ.docs[i];
-							angular.extend(updated, doc);
+							} else {
+                                // if a number, then doc should be moved
+                                if (angular.isNumber(isInResult)) {	//LQ with sorting
+                                    if (isInResult !== i) {
+                                        LQ.docs.splice(i, 1);
+                                        LQ.docs.splice(isInResult, 0, doc);
+                                    } else {
+                                        updated = LQ.docs[i];
+                                        angular.extend(updated, doc);
+                                    }
+
+                                }
+
+                            }
+
 							return;
 						}
 					}
+                    //when not found
 					if (isInResult) {
 						if (angular.isNumber(isInResult)) {	//LQ with sorting
 							LQ.docs.splice(isInResult, 0, doc);

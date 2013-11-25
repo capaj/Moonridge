@@ -5,7 +5,7 @@ var IdGen = require('./simple-ids');
  * @enum {String}
  * @type {Array}
  */
-var eventNames = ['create', 'update', 'remove'];
+var eventNames = ['create', 'preupdate', 'update', 'remove'];
 
 function EventBus() {
     var self = this;
@@ -16,12 +16,13 @@ function EventBus() {
 
     /**
      * @param {eventNames} name
+     * @param previousVersion is used with 'preupdate' event, this is the input we got for update, so it can be diffed
      * @this {Mongoose.Document}
      */
-    this.fire = function (name) {
+    this.fire = function (name, previousVersion) {
         var evObj = self.subscribers[name];
         for (var i in evObj) {
-            evObj[i](this, name);  //stripping away mongoose doc properties, we don't need them for anything
+            evObj[i](this, name, previousVersion);  //stripping away mongoose doc properties, we don't need them for anything
         }
     };
     /**

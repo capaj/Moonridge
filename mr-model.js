@@ -1,5 +1,6 @@
 var exposeMethods = require('./mr-rpc-methods');
 var EventBus = require('./schema-events');
+var _ = require('lodash');
 
 /**
  * @param {String} name
@@ -7,6 +8,7 @@ var EventBus = require('./schema-events');
  * @param {Object} opts
  * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
  * @param {Object} opts.permissions should look something like:
+ * @param {Object} opts.statics will extend the mongoose schema.statics so that you can call this function on your model
  * 		example: {
 			C: 1,
 			R: 0,
@@ -19,6 +21,9 @@ var EventBus = require('./schema-events');
  */
 module.exports = function MRModel(name, schema, opts) {
     var mgSchema = new this.Schema(schema);
+	if (opts && opts.statics) {
+		_.extend(mgSchema.statics, opts.statics);
+	}
 
     var paths = mgSchema.paths;
     var pathPermissions = {};

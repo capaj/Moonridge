@@ -6,7 +6,9 @@ var toCallOnCreate = [];
 var init = function (mongoose) {
 
 	/**
-	 *
+	 * @param {String} name
+	 * @param {Object} schema
+	 * @param {Object} opts
 	 * @returns {MRModel}
 	 */
     function regNewModel(name, schema, opts) {

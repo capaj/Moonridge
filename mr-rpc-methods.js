@@ -39,7 +39,7 @@ var expose = function (model, schema, opts) {
         return doc;
     }
 
-	var getIndexInSorted = require('./utils/insertIntoSorted');
+	var getIndexInSorted = require('./utils/indexInSortedArray');
 
     model.onCUD(function (mDoc, evName) {   // will be called by schema's event firing
         var doc = mDoc.toObject();
@@ -77,14 +77,20 @@ var expose = function (model, schema, opts) {
             } else {
                 model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
                     .exec(function(err, id) {
-                        if (!err && id) {
+						if (err) {
+							console.error(err);
+						}
+						if (id) {
 							if (LQ.clientQuery.sort) {
 								var sortBy = LQ.clientQuery.sort.split(' ');
 								var index;
 								if (evName === 'create') {
 									index = getIndexInSorted(doc, LQ.docs, sortBy);
                                     LQ.docs.splice(index, 0, doc);
-//                                    LQ.docs.splice(LQ.docs.length - 1, 1); //TODO solve limit issues that might arise when
+									if (LQ.docs.length > LQ.options.limit) {
+										LQ.docs.splice(LQ.docs.length - 1, 1);
+
+									}
                                 }
 								if (evName === 'update') {
                                     index = getIndexInSorted(doc, LQ.docs, sortBy);

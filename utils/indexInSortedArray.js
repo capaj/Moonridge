@@ -5,7 +5,13 @@
  * @param {Array<String>} sortBy keys
  * @returns {Number} index of the item in the sorted array
  */
-module.exports = function insert(element, array, sortBy) {
+module.exports = function getIndexForElement(element, array, sortBy) {
+	/**
+	 *
+	 * @param first	element of an array
+	 * @param second element of an array
+	 * @returns {boolean} true when first should precede second
+	 */
 	var isLowerSorted = function isLowerSorted(first, second) {
 		var i = 0;
 		var prop = sortBy[0];
@@ -42,11 +48,12 @@ module.exports = function insert(element, array, sortBy) {
 	};
 
 	var locationOf = function locationOf(element, array, start, end) {
+
 		start = start || 0;
 		end = end || array.length;
 		var pivot = parseInt(start + (end - start) / 2);
         console.log("pivot: " + pivot + ' start: ' + start + ' end: ' + end);
-		if(end - start <= 1 || array[pivot]._id.id === element._id.id) return pivot;
+		if(end - start <= 1) return pivot;
 
 		if(isLowerSorted(array[pivot], element)) {
 			return locationOf(element, array, pivot, end);
@@ -56,5 +63,13 @@ module.exports = function insert(element, array, sortBy) {
 	};
 
 	var index = locationOf(element, array);
-	return index;
+	if (index === 0) {
+		if(isLowerSorted(element, array[0])) {
+			return 0;
+		} else {
+			return index + 1;
+		}
+	} else {
+		return index + 1;
+	}
 };

@@ -420,6 +420,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 				LQ.on_push = LQ.on_create;
 				LQ.on_update = function (doc, isInResult) {
+					console.log("index sent: " + isInResult);
 					var i = LQ.docs.length;
 					while (i--) {
 						var updated;
@@ -431,8 +432,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                                 // if a number, then doc should be moved
                                 if (angular.isNumber(isInResult)) {	//LQ with sorting
                                     if (isInResult !== i) {
-                                        LQ.docs.splice(i, 1);
-                                        LQ.docs.splice(isInResult, 0, doc);
+										if (i < isInResult) {
+											LQ.docs.splice(i, 1);
+											LQ.docs.splice(isInResult - 1, 0, doc);
+										} else {
+											LQ.docs.splice(i, 1);
+											LQ.docs.splice(isInResult, 0, doc);
+										}
+
                                     } else {
                                         updated = LQ.docs[i];
                                         angular.extend(updated, doc);
@@ -520,6 +527,18 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 });
             });
 
+            model.update = function (toUpdate) {
+                delete toUpdate.__v;
+                return model.rpc.update(toUpdate);
+            };
+
+            model.create = function (toCreate) {
+                return model.rpc.create(toCreate);
+            };
+
+            model.remove = function (toRemove) {
+                return model.rpc.remove(toRemove._id);
+            };
 
 			return model.deferred.promise;
 

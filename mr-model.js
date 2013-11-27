@@ -66,9 +66,6 @@ module.exports = function MRModel(name, schema, opts) {
 	var unsubscribe = schemaEvS.unsubscribe;
 
 
-
-	mgSchema.onPrecreate = opts.onPrecreate || callNext;
-	mgSchema.onPreupdate = opts.onPreupdate || callNext;
     mgSchema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
 		if (this.isNew) {
@@ -88,7 +85,6 @@ module.exports = function MRModel(name, schema, opts) {
         return true;
     });
 
-	mgSchema.onPreremove = opts.onPreremove || callNext;
     mgSchema.pre('remove', function preRemove(next) {
         mgSchema.pres.onPreremove(next, this);
     });

@@ -214,7 +214,8 @@ var expose = function (model, schema, opts) {
      * @returns {bool} true when user has permission, false when not
      */
 	opts.checkPermission = function (socketContext, op, doc) {
-		var PL = socketContext.manager.user.privilige_level;
+		//privilige level
+        var PL = socketContext.manager.user.privilige_level;
         if (doc && doc.owner && doc.owner === socketContext.manager.user._id) {
             return true;    // owner does not need any permissions
         }

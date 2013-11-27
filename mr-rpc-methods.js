@@ -427,11 +427,12 @@ var expose = function (model, schema, opts) {
 
             var pushListeners = function () {
             	socket.clientChannelPromise.then(function (clFns) {
-                    if (socket.registeredLQs.indexOf(LQ) !== -1) {
-                        console.warn('live query ' + qKey + ' already registered' );	//already listening for that query
+                    var clIndex = socket.registeredLQs.indexOf(LQ);
+                    if (clIndex === -1) {
+                        	//already listening for that query
+                        clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
+                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
                     }
-                    var clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
-                    LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
 
                     var docs = LQ.getDocsPaginated();
                     if (this.options) {

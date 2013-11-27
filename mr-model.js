@@ -21,9 +21,13 @@ var _ = require('lodash');
  */
 module.exports = function MRModel(name, schema, opts) {
     var mgSchema = new this.Schema(schema);
-	if (opts && opts.statics) {
-		_.extend(mgSchema.statics, opts.statics);
-	}
+    if (opts) {
+        if (opts.statics) {
+            _.extend(mgSchema.statics, opts.statics);
+        }
+    } else {
+        opts = {};
+    }
 
     var paths = mgSchema.paths;
     var pathPermissions = {};
@@ -52,8 +56,8 @@ module.exports = function MRModel(name, schema, opts) {
 		next();
 	};
 
-	mgSchema.onPrecreate = callNext;
-	mgSchema.onPreupdate = callNext;
+	mgSchema.onPrecreate = opts.onPrecreate || callNext;
+	mgSchema.onPreupdate = opts.onPreupdate || callNext;
     mgSchema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
 		if (this.isNew) {
@@ -73,7 +77,7 @@ module.exports = function MRModel(name, schema, opts) {
         return true;
     });
 
-	mgSchema.onPreremove = callNext;
+	mgSchema.onPreremove = opts.onPreremove || callNext;
     mgSchema.pre('remove', function preRemove(next) {
         mgSchema.onPreremove(next, this);
     });

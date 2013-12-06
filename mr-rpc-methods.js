@@ -82,7 +82,7 @@ var expose = function (model, schema, opts) {
 						}
 						if (id) {
 							if (LQ.clientQuery.sort) {
-								var sortBy = LQ.clientQuery.sort.split(' ');
+								var sortBy = LQ.clientQuery.sort.split(' ');	//check for string is performed on query initialization
 								var index;
 								if (evName === 'create') {
 									index = getIndexInSorted(doc, LQ.docs, sortBy);
@@ -364,6 +364,12 @@ var expose = function (model, schema, opts) {
         }
     };
 
+	function validateClientQuery(clientQuery) {	//errors are forwarded to client
+		if (clientQuery.sort && !_.isString(clientQuery.sort)) {
+			throw new Error('only string notation for sort method is supported for liveQueries');
+		}
+	}
+
 	var channel = {
 		/**
 		 *
@@ -395,6 +401,11 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery) {
+			try{
+				validateClientQuery(clientQuery);
+			}catch(e){
+				return e;
+			}
 			if (!opts.checkPermission(this, 'R')) {
 				return new Error('You lack a privilege to read this document');
 			}
@@ -413,7 +424,7 @@ var expose = function (model, schema, opts) {
             }
             if (clientQuery.limit) {
                 queryOptions.limit = clientQuery.limit;
-                delete clientQuery.skip;
+                delete clientQuery.limit;
             }
 
             var mQuery = queryBuilder(model, clientQuery);
@@ -502,6 +513,7 @@ var expose = function (model, schema, opts) {
                                 if (err) {
                                     def.reject(err);
                                 }
+                                def.resolve();
                                 def.resolve();
                             });
                         } else {

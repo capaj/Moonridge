@@ -52,26 +52,26 @@ var expose = function (model, schema, opts) {
 
                 LQ.docs.splice(cQindex, 1);
                 if (LQ.docsPaginated) {
-                    var cPaginatedQindex = LQ.getIndexByIdInPaginated(doc._id); //index of current doc in the query
-                    if (cPaginatedQindex) {
-                        LQ.docsPaginated.splice(cPaginatedQindex, 1);
 
-                    } else {
-                        var limit;
-                        var fillDocIndex;
-                        if (LQ.options.limit) {
-                            limit = LQ.options.limit;
-                            fillDocIndex = LQ.options.skip + limit;
-                            if (cQindex <= fillDocIndex) {
-                                var toFillIn = LQ.docs[fillDocIndex - 1];   //TODO check if this index is correct
-                                if (toFillIn) {
-                                    LQ.docsPaginated.push(toFillIn);
-                                    LQ.callClientListeners(toFillIn, 'push');
-                                }
-                            }
-                        }
 
-                    }
+					var limit = LQ.options.limit || 0;
+					var skip = LQ.options.skip || 0;
+					var paginatedEnd = skip + limit;
+					if (cQindex <= paginatedEnd) {
+						var cPaginatedQindex = LQ.getIndexByIdInPaginated(doc._id); //index of current doc in the paginated query result
+						if (cPaginatedQindex) {
+							LQ.docsPaginated.splice(cPaginatedQindex, 1);
+						} else {
+							// removed document is before paginated area, so whole view shifts by one
+							LQ.docsPaginated.splice(0, 1);
+						}
+						var toFillIn = LQ.docs[paginatedEnd - 1];   //TODO check if this index is correct
+						if (toFillIn) {
+							LQ.docsPaginated.push(toFillIn);
+							LQ.callClientListeners(toFillIn, 'push');
+						}
+					}
+
                 }
 
             } else {
@@ -310,19 +310,24 @@ var expose = function (model, schema, opts) {
             }
             return undefined;
         },
-        getDocsPaginated: function () {
-            var docsPaginated;
+		/**
+		 *
+		 * @returns {boolean} true when paginated array is shorter than the whole array
+		 */
+		calculatePaginatedDocs: function () {
+			var paginatedArray = _.clone(this.docs);
             if (this.options.skip) {
-                docsPaginated = this.docs.splice(this.options.skip);
+                paginatedArray = paginatedArray.splice(this.options.skip);
             }
             if (this.options.limit) {
-                if (docsPaginated) {
-                    docsPaginated = docsPaginated.splice(0, this.options.limit);
-                } else {
-                    docsPaginated = this.docs.splice(0, this.options.limit);
-                }
+				 paginatedArray = paginatedArray.splice(0, this.options.limit);
             }
-            return docsPaginated || this.docs;
+			if (paginatedArray.length < this.docs.length) {
+				this.docsPaginated = paginatedArray;
+				return true;
+			} else {
+				return false;
+			}
         },
         /**
          * creates new query for just for determining whether
@@ -446,11 +451,13 @@ var expose = function (model, schema, opts) {
                         LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
                     }
 
-                    var docs = LQ.getDocsPaginated();
-                    if (this.options) {
-                        LQ.docsPaginated = docs;
-                    }
-                    var retVal = {docs: docs, index: clIndex};
+                    var docsToPush;
+                    if (LQ.options && LQ.calculatePaginatedDocs()) {
+                        docsToPush = LQ.docsPaginated;
+                    } else {
+						docsToPush = LQ.docs;
+					}
+                    var retVal = {docs: docsToPush, index: clIndex};
 
                     def.resolve(retVal);
 

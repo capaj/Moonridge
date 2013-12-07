@@ -1,6 +1,53 @@
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
     var MRs = {}; //stores instances of Moonridge
 
+	var qMethodsEnum = [	//query methods which modifies the collection are not included, those have to be called via RPC methods
+		'all',
+		'and',
+		'box',
+		'center',
+		'centerSphere',
+		'circle',
+		'comment',
+//	'count',		//must be done in server memory, TODO implement this
+//	'distinct',		//must be done in server memory, TODO implement this
+		'elemMatch',
+		'equals',
+		'exists',
+		'find',
+		'findOne',
+		'geometry',
+		'gt',
+		'gte',
+		'hint',
+		'in',
+		'intersects',
+		'lean',
+		'limit', //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+		'lt',
+		'lte',
+		'maxDistance',
+		'maxScan',
+		'mod',
+		'ne',
+		'near',
+		'nearSphere',
+		'nin',
+		'nor',
+		'or',
+		'polygon',
+		'populate',
+		'read',
+		'regex',
+		'select',
+		'size',
+		'skip',	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+		'slice',
+		'sort',
+		'where',
+		'within'
+	];
+
     /**
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance

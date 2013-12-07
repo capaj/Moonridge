@@ -8,6 +8,8 @@
     <label for="health">age</label><input type="number" id="health" ng-model='health'>
     <button ng-click="create()">create</button>
     <button ng-click="changeQuery()">limit +1</button>
+    <br/>
+    Total documents: <span ng-bind="cLQ.count"></span>
     <div>
         <p ng-repeat="fighter in LQ.docs">
             {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
@@ -26,6 +28,7 @@
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
             var liveQuery = $scope.MR.fighter.liveQuery;
             $scope.LQ = liveQuery({sort: 'health'});
+            $scope.cLQ = liveQuery({count: true});
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);
             });

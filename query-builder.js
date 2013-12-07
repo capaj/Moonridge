@@ -6,7 +6,7 @@ var qMethodsEnum = [	//query methods which modifies the collection are not inclu
 	'centerSphere',
 	'circle',
 	'comment',
-//	'count',		//must be done in server memory, TODO implement this
+//	'count',		//this is query option done in server memory, so you can use it on client
 //	'distinct',		//must be done in server memory, TODO implement this
 	'elemMatch',
 	'equals',

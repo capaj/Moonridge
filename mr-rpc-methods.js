@@ -48,11 +48,11 @@ var expose = function (model, schema, opts) {
             var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
             if (evName === 'remove' && LQ.docs[cQindex]) {
-                LQ.callClientListeners(doc, evName, false);
 
                 LQ.docs.splice(cQindex, 1);
-                if (LQ.docsPaginated) {
+				LQ.callClientListeners(doc, evName, false);
 
+				if (LQ.docsPaginated) {
 
 					var limit = LQ.options.limit || 0;
 					var skip = LQ.options.skip || 0;
@@ -345,9 +345,14 @@ var expose = function (model, schema, opts) {
          */
         callClientListeners: function (doc, evName, isInResult) {
             var i = this.listeners.length;
-            if (evName === 'remove') {
-                doc = doc._id.toString();	//remove needs only _id
-            }
+			if (this.options.count) {
+				doc = null;	// we don't need to send a doc when query is a count query
+			} else {
+				if (evName === 'remove') {
+					doc = doc._id.toString();	//remove needs only _id
+				}
+			}
+
             while(i--) {
                 var listener = this.listeners[i];
                 var uP = listener.socket.manager.user.privilige_level;
@@ -374,6 +379,7 @@ var expose = function (model, schema, opts) {
 			throw new Error('only string notation for sort method is supported for liveQueries');
 		}
 	}
+
 
 	var channel = {
 		/**
@@ -423,14 +429,15 @@ var expose = function (model, schema, opts) {
 			clientQuery.lean = true; // this should make query always lean
 
             var queryOptions = {};
-            if (clientQuery.skip) {
-                queryOptions.skip = clientQuery.skip;
-                delete clientQuery.skip;
-            }
-            if (clientQuery.limit) {
-                queryOptions.limit = clientQuery.limit;
-                delete clientQuery.limit;
-            }
+			var moveParamToQueryOptions = function (param) {
+				if (clientQuery.hasOwnProperty(param)) {
+					queryOptions[param] = clientQuery[param];
+					delete clientQuery[param];
+				}
+			};
+			moveParamToQueryOptions('skip');
+			moveParamToQueryOptions('limit');
+			moveParamToQueryOptions('count');
 
             var mQuery = queryBuilder(model, clientQuery);
 			if (!mQuery.exec) {
@@ -451,13 +458,18 @@ var expose = function (model, schema, opts) {
                         LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
                     }
 
-                    var docsToPush;
-                    if (LQ.options && LQ.calculatePaginatedDocs()) {
-                        docsToPush = LQ.docsPaginated;
-                    } else {
-						docsToPush = LQ.docs;
+					var retVal;
+					if (LQ.options.hasOwnProperty('count')) {
+						retVal = {count: LQ.docs.length, index: clIndex};
+					} else {
+						var docsToPush;
+						if (LQ.options && LQ.calculatePaginatedDocs()) {
+							docsToPush = LQ.docsPaginated;
+						} else {
+							docsToPush = LQ.docs;
+						}
+						retVal = {docs: docsToPush, index: clIndex};
 					}
-                    var retVal = {docs: docsToPush, index: clIndex};
 
                     def.resolve(retVal);
 

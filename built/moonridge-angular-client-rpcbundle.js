@@ -184,7 +184,10 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 									socket.emit('return', { Id: data.Id, value: retVal });
 								}
                             }, function (error) {
-                                socket.emit('error', { Id: data.Id, reason: error });
+								if (error instanceof Error) {
+									error = error.toString();
+								}
+								socket.emit('error', { Id: data.Id, reason: error });
                             });
 
                         } else {
@@ -315,6 +318,53 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
     var MRs = {}; //stores instances of Moonridge
 
+	var qMethodsEnum = [	//query methods which modifies the collection are not included, those have to be called via RPC methods
+		'all',
+		'and',
+		'box',
+		'center',
+		'centerSphere',
+		'circle',
+		'comment',
+//	'count',		//must be done in server memory, TODO implement this
+//	'distinct',		//must be done in server memory, TODO implement this
+		'elemMatch',
+		'equals',
+		'exists',
+		'find',
+		'findOne',
+		'geometry',
+		'gt',
+		'gte',
+		'hint',
+		'in',
+		'intersects',
+		'lean',
+		'limit', //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+		'lt',
+		'lte',
+		'maxDistance',
+		'maxScan',
+		'mod',
+		'ne',
+		'near',
+		'nearSphere',
+		'nin',
+		'nor',
+		'or',
+		'polygon',
+		'populate',
+		'read',
+		'regex',
+		'select',
+		'size',
+		'skip',	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+		'slice',
+		'sort',
+		'where',
+		'within'
+	];
+
     /**
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
@@ -374,7 +424,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 						model._LQs[index] = LQ;
 						LQ.index = index;
-						LQ.docs = res.docs;
+						if (LQ.query.count) {
+							LQ.count = res.count;
+						} else {
+							LQ.docs = res.docs;
+						}
 
 						return LQ;	//
 					}, function (err) {
@@ -384,7 +438,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 				LQ._waitingOnFirstResponse = true;
 				LQ.promise = model.rpc.liveQuery(query);
-				actionsOnResponse(true);
+
 
 				$rootScope.$watch(function () {
 					return LQ.query;
@@ -412,6 +466,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 				//syncing logic
 				LQ.on_create = function (doc, index) {
+					if (LQ.query.count) {
+						LQ.count += 1; // when this is a count query, just increment and call it a day
+						return;
+ 					}
 					if (angular.isNumber(index)) {
 						LQ.docs.splice(index, 0, doc);
 					} else {
@@ -420,7 +478,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 				LQ.on_push = LQ.on_create;
 				LQ.on_update = function (doc, isInResult) {
-					console.log("index sent: " + isInResult);
+//					console.log("index sent: " + isInResult);
+					if (LQ.query.count) {	// when this is a count query
+						if (angular.isNumber(isInResult)) {
+							LQ.count += 1;
+						} else {
+							LQ.count -= 1;
+						}
+						return;// just increment/decrement and call it a day
+					}
 					var i = LQ.docs.length;
 					while (i--) {
 						var updated;
@@ -464,6 +530,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					$log.error('Failed to find updated document.');
 				};
 				LQ.on_remove = function (id) {
+					if (LQ.query.count) {
+						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
+						return;
+					}
 					var i = LQ.docs.length;
 					while (i--) {
 						if (LQ.docs[i]._id === id) {

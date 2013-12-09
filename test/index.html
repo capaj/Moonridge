@@ -28,15 +28,16 @@
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
             var MR = $scope.MR;
             var liveQuery = MR.fighter.liveQuery;
-
-            $scope.LQ = liveQuery().sort('health').exec();
+            var limit = 2;
+            $scope.LQ = liveQuery().sort('health').limit(limit).exec();
             $scope.cLQ = liveQuery().count().exec();
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);
             });
 
             $scope.changeQuery = function () {
-                $scope.LQ.query.limit = 2;
+                limit += 1;
+                $scope.LQ.modifyQuery().limit(limit);
             };
 
             $scope.hit = function (fighter) {

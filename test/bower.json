@@ -11,7 +11,6 @@
     "angular-translate": "~1.1.0",
     "angularLocalStorage-nc": "~0.2.1",
     "script.js": "latest",
-    "sly": "latest",
     "jquery": "~2.0.3"
   },
   "env": "dev",

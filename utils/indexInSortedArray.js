@@ -52,7 +52,7 @@ module.exports = function getIndexForElement(element, array, sortBy) {
 		start = start || 0;
 		end = end || array.length;
 		var pivot = parseInt(start + (end - start) / 2);
-        console.log("pivot: " + pivot + ' start: ' + start + ' end: ' + end);
+//        console.log("pivot: " + pivot + ' start: ' + start + ' end: ' + end);
 		if(end - start <= 1) return pivot;
 
 		if(isLowerSorted(array[pivot], element)) {

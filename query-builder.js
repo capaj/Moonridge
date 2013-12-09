@@ -50,7 +50,7 @@ var singleArrayArgument = [	//methods which require an array as a single argumen
 ];
 
 module.exports = function (model, qJSON) {
-	var query = model.find();
+	var query = model.find().lean();
 
 	for(var method in qJSON){
 		if (qMethodsEnum.indexOf(method) !== -1) {

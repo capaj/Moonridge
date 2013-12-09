@@ -52,30 +52,24 @@ var expose = function (model, schema, opts) {
                 LQ.docs.splice(cQindex, 1);
 				LQ.callClientListeners(doc, evName, false);
 
-				if (LQ.docsPaginated) {
+				if (LQ.clientQuery.limit) {
+                    model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip || 0) + LQ.clientQuery.limit - 1).limit(1)
+                    .exec(function(err, docArr) {
+                        if (docArr.length === 1) {
+                            var toFillIn = docArr[0];   //TODO check if this index is correct
+                            if (toFillIn) {
+                                LQ.docs.push(toFillIn);
+                                LQ.callClientListeners(toFillIn, 'push');
+                            }
+                        }
 
-					var limit = LQ.options.limit || 0;
-					var skip = LQ.options.skip || 0;
-					var paginatedEnd = skip + limit;
-					if (cQindex <= paginatedEnd) {
-						var cPaginatedQindex = LQ.getIndexByIdInPaginated(doc._id); //index of current doc in the paginated query result
-						if (cPaginatedQindex) {
-							LQ.docsPaginated.splice(cPaginatedQindex, 1);
-						} else {
-							// removed document is before paginated area, so whole view shifts by one
-							LQ.docsPaginated.splice(0, 1);
-						}
-						var toFillIn = LQ.docs[paginatedEnd - 1];   //TODO check if this index is correct
-						if (toFillIn) {
-							LQ.docsPaginated.push(toFillIn);
-							LQ.callClientListeners(toFillIn, 'push');
-						}
-					}
+                    });
 
                 }
 
+
             } else {
-                model.findOne(LQ.query).where('_id').equals(doc._id).select('_id')
+                model.findOne(LQ.mQuery).where('_id').equals(doc._id).select('_id')
                     .exec(function(err, id) {
 						if (err) {
 							console.error(err);
@@ -87,7 +81,7 @@ var expose = function (model, schema, opts) {
 								if (evName === 'create') {
 									index = getIndexInSorted(doc, LQ.docs, sortBy);
                                     LQ.docs.splice(index, 0, doc);
-									if (LQ.docs.length > LQ.options.limit) {
+									if (LQ.docs.length > LQ.clientQuery.limit) {
 										LQ.docs.splice(LQ.docs.length - 1, 1);
 
 									}
@@ -265,8 +259,8 @@ var expose = function (model, schema, opts) {
     }
 
 	/**
-	 * @param qKey
-	 * @param mQuery
+	 * @param {String} qKey
+	 * @param {Mongoose.Query} mQuery
 	 * @param {Object} clientQuery
 	 * @returns {Object}
 	 * @constructor
@@ -274,9 +268,9 @@ var expose = function (model, schema, opts) {
     function LiveQuery(qKey, mQuery, clientQuery) {
         this.docs = [];
         this.listeners = [];
-        this.query = mQuery;
+        this.mQuery = mQuery;   //mongoose query
         this.qKey = qKey;
-        this.clientQuery = clientQuery;
+        this.clientQuery = clientQuery; //serializable client query object
         return this;
     }
 
@@ -296,45 +290,6 @@ var expose = function (model, schema, opts) {
             }
             return undefined;
         },
-        getIndexByIdInPaginated: function (id) {
-            id = id.id;
-            var i = this.docsPaginated.length;
-            while(i--)
-            {
-                var doc = this.docsPaginated[i];
-                if (doc._id.id === id) {
-                    return i;
-                }
-            }
-            return undefined;
-        },
-		/**
-		 *
-		 * @returns {boolean} true when paginated array is shorter than the whole array
-		 */
-		calculatePaginatedDocs: function (LQOpts) {
-			var paginatedArray = _.clone(this.docs);
-            if (LQOpts.skip) { // 0 can be ignored
-                paginatedArray = paginatedArray.splice(LQOpts.skip);
-            }
-            if (LQOpts.limit) {
-				 paginatedArray = paginatedArray.splice(0, LQOpts.limit);
-            }
-			if (paginatedArray.length < this.docs.length) {
-				this.docsPaginated = paginatedArray;
-				return true;
-			} else {
-				return false;
-			}
-        },
-        /**
-         * creates new query for just for determining whether
-         * @param {Document} doc
-         * @returns {Query}
-         */
-        createMatchQuery: function (doc) {
-            return model.findOne(self.query).where('_id').equals(doc._id);
-        },
         /**
          *
          * @param doc
@@ -346,7 +301,7 @@ var expose = function (model, schema, opts) {
             while(i--) {
                 var listener = this.listeners[i];
 				var toSend = null;
-				if (listener.LQOpts.count) {
+				if (listener.qOpts.count) {
 					// we don't need to send a doc when query is a count query
 				} else {
 					if (evName === 'remove') {
@@ -376,6 +331,7 @@ var expose = function (model, schema, opts) {
     };
 
 	function validateClientQuery(clientQuery) {	//errors are forwarded to client
+        //TODO check query for user priviliges
 		if (clientQuery.sort && !_.isString(clientQuery.sort)) {
 			throw new Error('only string notation for sort method is supported for liveQueries');
 		}
@@ -425,22 +381,25 @@ var expose = function (model, schema, opts) {
                 clientQuery = {};
             }
             def = when.defer();
-
-            accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
-			clientQuery.lean = true; // this should make query always lean
+            if (!clientQuery.count) {
+                accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
+            }
 
             var queryOptions = {};
-			var moveParamToQueryOptions = function (param) {
-				if (clientQuery.hasOwnProperty(param)) {
-					queryOptions[param] = clientQuery[param];
-					delete clientQuery[param];
-				}
-			};
-			moveParamToQueryOptions('skip');
-			moveParamToQueryOptions('limit');
-			moveParamToQueryOptions('count');
+            var moveParamToQueryOptions = function (param) {
+                if (clientQuery.hasOwnProperty(param)) {
+                    queryOptions[param] = clientQuery[param];
+                    delete clientQuery[param];
+                }
+            };
+            moveParamToQueryOptions('count');
 
-            var mQuery = queryBuilder(model, clientQuery);
+            try{
+                var mQuery = queryBuilder(model, clientQuery);
+            }catch(e){
+                return e;   //building of the query failed
+            }
+
 			if (!mQuery.exec) {
 				return new Error('query builder has returned invalid query');
 			}
@@ -456,28 +415,15 @@ var expose = function (model, schema, opts) {
                     if (clIndex === -1) {
                         	//already listening for that query
                         clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
-                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, LQOpts: LQOpts});
-                    } else {
-						var regOpts = socket.registeredLQs[clIndex].LQOpts;
-						if (!_.isEqual(regOpts, LQOpts)) {
-							clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
-							LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, LQOpts: LQOpts});
-						}
+                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts});
+                    }
 
-					}
-
-					LQ.firstExecPromise.then(function (dbQResp) {
+					LQ.firstExecPromise.then(function (docs) {
 						var retVal;
 						if (LQOpts.hasOwnProperty('count')) {
-							retVal = {count: LQ.docs.length, index: clIndex};
+							retVal = {count: docs.length, index: clIndex};
 						} else {
-							var docsToPush;
-							if (LQOpts && LQ.calculatePaginatedDocs(LQOpts)) {
-								docsToPush = LQ.docsPaginated;
-							} else {
-								docsToPush = LQ.docs;
-							}
-							retVal = {docs: docsToPush, index: clIndex};
+							retVal = {docs: docs, index: clIndex};
 						}
 
 						def.resolve(retVal);
@@ -505,7 +451,7 @@ var expose = function (model, schema, opts) {
 
                     pushListeners(queryOptions);
 
-
+                    return rDocs;
 
                 });
 			}

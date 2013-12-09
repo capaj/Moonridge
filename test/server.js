@@ -41,7 +41,7 @@ var MR = Moonridge.init(mongoose);
 
 var user = MR.userModel({name: String, age: Number});
 
-////just run once to have a user
+//just run once to have a user
 //user.model.create({
 //	name: 'capaj', privilige_level: 50
 //}).then(function () {

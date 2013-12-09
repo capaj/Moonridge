@@ -22,7 +22,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 		'hint',
 		'in',
 		'intersects',
-		'lean',
+//		'lean', //always enabled
 		'limit', //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
 		'lt',
 		'lte',
@@ -211,7 +211,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 						var actionsOnResponse = function (first) {
 							LQ.promise = LQ.promise.then(function (res) {
-								if (first) {
+								if (LQ._waitingOnFirstResponse === true) {
 									LQ._waitingOnFirstResponse = false;
 								}
 								var index = res.index;
@@ -245,7 +245,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 								LQ.promise = model.rpc.liveQuery(nV);
 							}
 
-							actionsOnResponse();
+                            actionsOnResponse();
 
 						}, true);
 

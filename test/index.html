@@ -26,9 +26,11 @@
 
     <script type="text/javascript">
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
-            var liveQuery = $scope.MR.fighter.liveQuery;
-            $scope.LQ = liveQuery({sort: 'health'});
-            $scope.cLQ = liveQuery({count: true});
+            var MR = $scope.MR;
+            var liveQuery = MR.fighter.liveQuery;
+
+            $scope.LQ = liveQuery().sort('health').exec();
+            $scope.cLQ = liveQuery().count().exec();
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);
             });
@@ -39,20 +41,20 @@
 
             $scope.hit = function (fighter) {
                 fighter.health -= 1;
-                $scope.MR.fighter.update(fighter);
+                MR.fighter.update(fighter);
             };
 
             $scope.heal = function (fighter) {
                 fighter.health += 1;
-                $scope.MR.fighter.update(fighter);
+                MR.fighter.update(fighter);
             };
 
             $scope.remove = function (fighter) {
-                $scope.MR.fighter.remove(fighter);
+               MR.fighter.remove(fighter);
             };
 
             $scope.create = function () {
-                $scope.MR.fighter.create({name: $scope.name, health: $scope.health});
+                MR.fighter.create({name: $scope.name, health: $scope.health});
 
             };
 

@@ -1,6 +1,6 @@
 {
   "name": "Moonridge test",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "dependencies": {
     "moment": "~2.1.0",
     "angular": "~1.2.4",

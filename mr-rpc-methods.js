@@ -267,18 +267,16 @@ var expose = function (model, schema, opts) {
 	/**
 	 * @param qKey
 	 * @param mQuery
-	 * @param queryOptions
 	 * @param {Object} clientQuery
 	 * @returns {Object}
 	 * @constructor
 	 */
-    function LiveQuery(qKey, mQuery, queryOptions, clientQuery) {
+    function LiveQuery(qKey, mQuery, clientQuery) {
         this.docs = [];
         this.listeners = [];
         this.query = mQuery;
         this.qKey = qKey;
         this.clientQuery = clientQuery;
-        this.options = queryOptions;
         return this;
     }
 
@@ -314,13 +312,13 @@ var expose = function (model, schema, opts) {
 		 *
 		 * @returns {boolean} true when paginated array is shorter than the whole array
 		 */
-		calculatePaginatedDocs: function () {
+		calculatePaginatedDocs: function (LQOpts) {
 			var paginatedArray = _.clone(this.docs);
-            if (this.options.skip) {
-                paginatedArray = paginatedArray.splice(this.options.skip);
+            if (LQOpts.skip) { // 0 can be ignored
+                paginatedArray = paginatedArray.splice(LQOpts.skip);
             }
-            if (this.options.limit) {
-				 paginatedArray = paginatedArray.splice(0, this.options.limit);
+            if (LQOpts.limit) {
+				 paginatedArray = paginatedArray.splice(0, LQOpts.limit);
             }
 			if (paginatedArray.length < this.docs.length) {
 				this.docsPaginated = paginatedArray;
@@ -345,19 +343,22 @@ var expose = function (model, schema, opts) {
          */
         callClientListeners: function (doc, evName, isInResult) {
             var i = this.listeners.length;
-			if (this.options.count) {
-				doc = null;	// we don't need to send a doc when query is a count query
-			} else {
-				if (evName === 'remove') {
-					doc = doc._id.toString();	//remove needs only _id
-				}
-			}
-
             while(i--) {
                 var listener = this.listeners[i];
+				var toSend = null;
+				if (listener.LQOpts.count) {
+					// we don't need to send a doc when query is a count query
+				} else {
+					if (evName === 'remove') {
+						toSend = doc._id.toString();	//remove needs only _id
+					} else {
+						toSend = doc;
+					}
+				}
+
                 var uP = listener.socket.manager.user.privilige_level;
-                doc = deleteUnpermittedProps(doc, 'R', uP);
-                listener.rpcChannel.pubLQ(doc, evName, listener.clIndex, isInResult);
+                toSend = deleteUnpermittedProps(toSend, 'R', uP);
+                listener.rpcChannel.pubLQ(toSend, evName, listener.clIndex, isInResult);
             }
         },
         removeListener: function (socket) {
@@ -449,29 +450,39 @@ var expose = function (model, schema, opts) {
 			var LQ = liveQueries[qKey];
             var def;
 
-            var pushListeners = function () {
+            var pushListeners = function (LQOpts) {
             	socket.clientChannelPromise.then(function (clFns) {
-                    var clIndex = socket.registeredLQs.indexOf(LQ);
+					var clIndex = socket.registeredLQs.indexOf(LQ);
                     if (clIndex === -1) {
                         	//already listening for that query
                         clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
-                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex});
-                    }
-
-					var retVal;
-					if (LQ.options.hasOwnProperty('count')) {
-						retVal = {count: LQ.docs.length, index: clIndex};
-					} else {
-						var docsToPush;
-						if (LQ.options && LQ.calculatePaginatedDocs()) {
-							docsToPush = LQ.docsPaginated;
-						} else {
-							docsToPush = LQ.docs;
+                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, LQOpts: LQOpts});
+                    } else {
+						var regOpts = socket.registeredLQs[clIndex].LQOpts;
+						if (!_.isEqual(regOpts, LQOpts)) {
+							clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
+							LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, LQOpts: LQOpts});
 						}
-						retVal = {docs: docsToPush, index: clIndex};
+
 					}
 
-                    def.resolve(retVal);
+					LQ.firstExecPromise.then(function (dbQResp) {
+						var retVal;
+						if (LQOpts.hasOwnProperty('count')) {
+							retVal = {count: LQ.docs.length, index: clIndex};
+						} else {
+							var docsToPush;
+							if (LQOpts && LQ.calculatePaginatedDocs(LQOpts)) {
+								docsToPush = LQ.docsPaginated;
+							} else {
+								docsToPush = LQ.docs;
+							}
+							retVal = {docs: docsToPush, index: clIndex};
+						}
+
+						def.resolve(retVal);
+					});
+
 
                 }, function (err) {
                     def.reject(err);
@@ -479,14 +490,12 @@ var expose = function (model, schema, opts) {
 
             };
             if (LQ) {
-                pushListeners();	// no need for a promise, if we have it in memory
+                pushListeners(queryOptions);
             } else {
+				LQ = new LiveQuery(qKey, mQuery, clientQuery);
+				liveQueries[qKey] = LQ;
 
-				mQuery.exec().then(function (rDocs) {
-                    if (!liveQueries[qKey]) {
-                        LQ = new LiveQuery(qKey, mQuery, queryOptions, clientQuery);
-                        liveQueries[qKey] = LQ;
-                    }
+				LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
 
                     var i = rDocs.length;
                     while(i--)
@@ -494,7 +503,9 @@ var expose = function (model, schema, opts) {
                         liveQueries[qKey].docs[i] = rDocs[i];
                     }
 
-                    pushListeners();
+                    pushListeners(queryOptions);
+
+
 
                 });
 			}
@@ -594,7 +605,7 @@ var expose = function (model, schema, opts) {
                 var index = socket.registeredLQs.length;
                 while(index--) {
                     var LQ = socket.registeredLQs[index];
-                    LQ.removeListener(socket);
+                    LQ && LQ.removeListener(socket);
                 }
             });
         });

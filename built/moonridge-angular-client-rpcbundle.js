@@ -401,7 +401,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
          */
         function Model() {
             var model = this;
-            this._LQs = [];	// holds all
+            this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1
             this.deferred = $q.defer();
 //            this.methods = rpc;
 
@@ -435,15 +435,29 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					} else {
 						LQ.docs.push(doc);
 					}
+					if (LQ._query.limit < LQ.docs.length) {
+						LQ.docs.splice(LQ.docs.length - 1, 1);
+					}
 				};
 				LQ.on_push = LQ.on_create;
+				/**
+				 *
+				 * @param {Object} doc
+				 * @param {bool|Number} isInResult for count it indicates whether to increment, decrement or leave as is,
+			 * 								for normal queries can be a numerical index also
+				 */
 				LQ.on_update = function (doc, isInResult) {
 //					console.log("index sent: " + isInResult);
 					if (LQ._query.count) {	// when this is a count query
 						if (angular.isNumber(isInResult)) {
 							LQ.count += 1;
 						} else {
-							LQ.count -= 1;
+							if (isInResult === false) {
+								LQ.count -= 1;
+							}
+							if (isInResult === true) {
+								LQ.count += 1;
+							}
 						}
 						return;// just increment/decrement and call it a day
 					}
@@ -489,6 +503,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					}
 					$log.error('Failed to find updated document.');
 				};
+				/**
+				 *
+				 * @param {String} id
+				 * @returns {boolean} true when it removes an element
+				 */
 				LQ.on_remove = function (id) {
 					if (LQ._query.count) {
 						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
@@ -505,13 +524,16 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 					return false;
 				};
-				//syncing logic ends
+				//notify the server we don't wan't any more updates
 				LQ.stop = function () {
 					if (angular.isNumber(LQ.index) && model._LQs[LQ.index] ) {
 
-						model.rpc.unsubLQ(LQ.index);
-						model.stopped = true;
-						delete model._LQs[LQ.index];
+						model.rpc.unsubLQ(LQ.index).then(function (succes) {
+							if (succes) {
+								LQ.unsubscribed = true;
+								delete model._LQs[LQ.index];
+							}
+						});
 
 					} else {
 						throw new Error('There must be a valid index property, when stop is called')
@@ -525,6 +547,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				var QueryChainable = function () {
 					var self = this;
 					this.exec = function () {
+						if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
+							throw new Error('count and sort must NOT be used on the same query');
+						}
 
 						var actionsOnResponse = function (first) {
 							LQ.promise = LQ.promise.then(function (res) {

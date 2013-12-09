@@ -3,7 +3,7 @@ var _ = require('lodash');
 var when = require('when');
 var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
-
+var maxLQsPerClient = 100;
 /**
  *
  * @param {Model} model Moonridge model
@@ -114,13 +114,18 @@ var expose = function (model, schema, opts) {
 							} else {
 								if (evName === 'create') {
 									LQ.docs.push(doc);
+									LQ.callClientListeners(doc, evName, null);
 								}
 								if (evName === 'update') {
 									if (cQindex === -1) {
 										LQ.docs.push(doc);
+										LQ.callClientListeners(doc, evName, true);
+
+									} else {
+										LQ.callClientListeners(doc, evName, null);
+
 									}
 								}
-								LQ.callClientListeners(doc, evName, true);
 
 							}
                         } else {
@@ -316,7 +321,11 @@ var expose = function (model, schema, opts) {
                 listener.rpcChannel.pubLQ(toSend, evName, listener.clIndex, isInResult);
             }
         },
-        removeListener: function (socket) {
+		/**
+		 * removes a socket listener from liveQuery
+		 * @param socket
+		 */
+		removeListener: function (socket) {
             var li = this.listeners.length;
             while(li--) {
                 if (this.listeners[li].socket === socket) {
@@ -356,11 +365,11 @@ var expose = function (model, schema, opts) {
         unsubLQ: function (index) {	//when client uses stop method on LQ, this method gets called
 			var LQ = this.registeredLQs[index];
             if (LQ) {
-				this.registeredLQs.splice(index, 1);
+				delete this.registeredLQs[index];
 				LQ.removeListener(this);
                 return true;
             } else {
-                return new Error('This index for LQ is not valid');
+                return new Error('Index param in LQ unsubscribe is not valid!');
             }
         },
         /**
@@ -411,12 +420,19 @@ var expose = function (model, schema, opts) {
 
             var pushListeners = function (LQOpts) {
             	socket.clientChannelPromise.then(function (clFns) {
-					var clIndex = socket.registeredLQs.indexOf(LQ);
-                    if (clIndex === -1) {
-                        	//already listening for that query
-                        clIndex = socket.registeredLQs.push(LQ) - 1;	// index of current LQ
-                        LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts});
-                    }
+					var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
+					var lastIndex = activeClientQueryIndexes[activeClientQueryIndexes.length-1];
+                    if (!lastIndex) {
+						lastIndex = 0;
+                    } else {
+						if (activeClientQueryIndexes.length > maxLQsPerClient) {
+							def.reject(new Error('Limit for queries per client reached. Try stopping some queries.'));
+							return;
+						}
+					}
+					var clIndex = Number(lastIndex) + 1;
+					socket.registeredLQs[clIndex] = LQ;
+					LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts});
 
 					LQ.firstExecPromise.then(function (docs) {
 						var retVal;
@@ -548,11 +564,10 @@ var expose = function (model, schema, opts) {
             socket.registeredLQs = [];
             socket.on('disconnect', function() {
                 //clearing out liveQueries listeners
-                var index = socket.registeredLQs.length;
-                while(index--) {
-                    var LQ = socket.registeredLQs[index];
-                    LQ && LQ.removeListener(socket);
-                }
+				for (var LQId in socket.registeredLQs) {
+					var LQ = socket.registeredLQs[LQId];
+					LQ.removeListener(socket);
+				}
             });
         });
     };

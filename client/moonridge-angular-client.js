@@ -282,7 +282,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 							if (arguments.length === 1) {
 								LQ._query[method] = arguments[0];
 							} else {
-								LQ._query[method] = arguments;
+								LQ._query[method] = Array.prototype.slice.call(arguments);
 							}
 							return self;
 						}

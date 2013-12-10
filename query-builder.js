@@ -1,3 +1,4 @@
+var _ = require('lodash');
 var qMethodsEnum = [	//query methods which modifies the collection are not included, those have to be called via RPC methods
 	'all',
 	'and',
@@ -58,7 +59,14 @@ module.exports = function (model, qJSON) {
 			if (Array.isArray(arg) && singleArrayArgument.indexOf(method) === -1) {	// if it is one of SAA, then we won't call it with apply
 				query = query[method].apply(query, arg);
 			} else {
-				query = query[method](arg); // applies one query method at a time, thx to mongoose's chainable query api
+				if (_.isObject(arg) && arg.mrMultiCall) {
+					delete arg.mrMultiCall;
+					for (var callIndex in arg) {
+						query = query[method].apply(query, arg[callIndex]);
+					}
+				} else {
+					query = query[method](arg); // applies one query method at a time, thx to mongoose's chainable query api
+				}
 			}
 		} else {
 			return new Error('Method "' + method + '" is not a valid query method.')

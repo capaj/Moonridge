@@ -596,13 +596,37 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 					qMethodsEnum.forEach(function (method) {
 						self[method] = function () {
+							var qr = LQ._query;
 							if (arguments.length === 1) {
-								LQ._query[method] = arguments[0];
+								if (qr.hasOwnProperty(method)) {
+
+								} else {
+									qr[method] = arguments[0];
+								}
+
 							} else {
-								LQ._query[method] = Array.prototype.slice.call(arguments);
+								if (qr.hasOwnProperty(method)) {
+									if (qr[method].mrMultiCall) {
+										var props = Object.keys(qr);
+										var flagIndex = props.indexOf('multiCall');
+										props.splice(flagIndex, 1);
+										var ind = props.length;
+										qr[method][ind] = Array.prototype.slice.call(arguments);
+									} else {
+										qr[method] = {
+											multiCall: true,
+											0: qr[method],
+											1: Array.prototype.slice.call(arguments)
+										}
+									}
+
+								} else {
+									qr[method] = Array.prototype.slice.call(arguments);
+
+								}
 							}
 							return self;
-						}
+						};
 					});
 
 				};

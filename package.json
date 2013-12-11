@@ -12,6 +12,10 @@
         "realtime",
         "mongoose"
     ],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/capaj/Moonridge.git"
+	},
     "dependencies": {
         "lodash": "~2.3",
         "mongoose": "~3.8",
@@ -21,7 +25,7 @@
         "grunt-contrib-concat": "latest",
         "grunt-contrib-uglify": "0.2.7",
         "grunt-ng-annotate": "0.0.4",
-        "grunt": "0.4.1"
+        "grunt": "0.4.2"
     },
     "license": "MIT"
 }

@@ -11,8 +11,13 @@
     <br/>
     Total documents: <span ng-bind="cLQ.count"></span>
     <div>
+        <h1>Find query</h1>
         <p ng-repeat="fighter in LQ.docs">
             {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
+        </p>
+        <h1>Find One query</h1>
+        <p>
+            {{ oneLQ.doc }} <button ng-click="hit(oneLQ.doc)">Hit</button> <button ng-click="heal(oneLQ.doc)">Heal</button> <button ng-click="remove(oneLQ.doc)">Del</button>
         </p>
     </div>
 
@@ -30,6 +35,7 @@
             var liveQuery = MR.fighter.liveQuery;
             var limit = 2;
             $scope.LQ = liveQuery().sort('health').limit(limit).exec();
+            $scope.oneLQ = liveQuery().findOne().exec();
             $scope.cLQ = liveQuery().count().exec();
             $scope.LQ.promise.then(function (LQ) {
                 console.log(LQ);

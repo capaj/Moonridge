@@ -579,7 +579,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 									LQ.count = res.count;
 								} else {
                                     if (LQ._query.findOne) {
-                                        debugger;
                                         LQ.doc = res.doc;
                                     } else {
                                         LQ.docs = res.docs;

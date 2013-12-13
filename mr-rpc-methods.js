@@ -434,12 +434,16 @@ var expose = function (model, schema, opts) {
 					socket.registeredLQs[clIndex] = LQ;
 					LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts});
 
-					LQ.firstExecPromise.then(function (docs) {
+					LQ.firstExecPromise.then(function (queryResult) {
 						var retVal;
 						if (LQOpts.hasOwnProperty('count')) {
-							retVal = {count: docs.length, index: clIndex};
+							retVal = {count: queryResult.length, index: clIndex};
 						} else {
-							retVal = {docs: docs, index: clIndex};
+                            if (Array.isArray(queryResult)) {
+                                retVal = {docs: queryResult, index: clIndex};
+                            } else {
+                                retVal = {doc: queryResult, index: clIndex};
+                            }
 						}
 
 						def.resolve(retVal);
@@ -458,11 +462,14 @@ var expose = function (model, schema, opts) {
 				liveQueries[qKey] = LQ;
 
 				LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
-
-                    var i = rDocs.length;
-                    while(i--)
-                    {
-                        liveQueries[qKey].docs[i] = rDocs[i];
+                    if (Array.isArray(rDocs)) {
+                        var i = rDocs.length;
+                        while(i--)
+                        {
+                            liveQueries[qKey].docs[i] = rDocs[i];
+                        }
+                    } else {
+                        liveQueries[qKey].docs = [rDocs];
                     }
 
                     pushListeners(queryOptions);

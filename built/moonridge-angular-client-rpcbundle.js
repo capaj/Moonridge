@@ -430,6 +430,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						LQ.count += 1; // when this is a count query, just increment and call it a day
 						return;
  					}
+                    if (LQ._query.findOne) {
+                        LQ.doc = doc;
+                        return;
+                    }
 					if (angular.isNumber(index)) {
 						LQ.docs.splice(index, 0, doc);
 					} else {
@@ -461,24 +465,29 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						}
 						return;// just increment/decrement and call it a day
 					}
-					var i = LQ.docs.length;
-					while (i--) {
-						var updated;
-						if (LQ.docs[i]._id === doc._id) {
-							if (isInResult === false) {
-								docs.splice(i, 1);  //removing from docs
-								return;
-							} else {
+                    if (LQ._query.findOne) {	// when this is a findOne query
+                        LQ.doc = doc;
+                        return;
+                    }
+
+                    var i = LQ.docs.length;
+                    while (i--) {
+                        var updated;
+                        if (LQ.docs[i]._id === doc._id) {
+                            if (isInResult === false) {
+                                docs.splice(i, 1);  //removing from docs
+                                return;
+                            } else {
                                 // if a number, then doc should be moved
                                 if (angular.isNumber(isInResult)) {	//LQ with sorting
                                     if (isInResult !== i) {
-										if (i < isInResult) {
-											LQ.docs.splice(i, 1);
-											LQ.docs.splice(isInResult - 1, 0, doc);
-										} else {
-											LQ.docs.splice(i, 1);
-											LQ.docs.splice(isInResult, 0, doc);
-										}
+                                        if (i < isInResult) {
+                                            LQ.docs.splice(i, 1);
+                                            LQ.docs.splice(isInResult - 1, 0, doc);
+                                        } else {
+                                            LQ.docs.splice(i, 1);
+                                            LQ.docs.splice(isInResult, 0, doc);
+                                        }
 
                                     } else {
                                         updated = LQ.docs[i];
@@ -489,19 +498,20 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                             }
 
-							return;
-						}
-					}
+                            return;
+                        }
+                    }
                     //when not found
-					if (isInResult) {
-						if (angular.isNumber(isInResult)) {	//LQ with sorting
-							LQ.docs.splice(isInResult, 0, doc);
-						} else {
-							LQ.docs.push(doc); // pushing into docs if it was not found by loop
-						}
-						return;
-					}
-					$log.error('Failed to find updated document.');
+                    if (isInResult) {
+                        if (angular.isNumber(isInResult)) {	//LQ with sorting
+                            LQ.docs.splice(isInResult, 0, doc);
+                        } else {
+                            LQ.docs.push(doc); // pushing into docs if it was not found by loop
+                        }
+                        return;
+                    }
+                    $log.error('Failed to find updated document.');
+
 				};
 				/**
 				 *
@@ -513,14 +523,19 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
 						return;
 					}
-					var i = LQ.docs.length;
-					while (i--) {
-						if (LQ.docs[i]._id === id) {
-							LQ.docs.splice(i, 1);
-							return true;
-						}
-					}
-					$log.error('Failed to find deleted document.');
+                    if (LQ._query.findOne) {	// when this is a findOne query
+                        LQ.doc = null;
+                        return
+                    }
+
+                    var i = LQ.docs.length;
+                    while (i--) {
+                        if (LQ.docs[i]._id === id) {
+                            LQ.docs.splice(i, 1);
+                            return true;
+                        }
+                    }
+                    $log.error('Failed to find deleted document.');
 
 					return false;
 				};
@@ -563,7 +578,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 								if (LQ._query.count) {
 									LQ.count = res.count;
 								} else {
-									LQ.docs = res.docs;
+                                    if (LQ._query.findOne) {
+                                        debugger;
+                                        LQ.doc = res.doc;
+                                    } else {
+                                        LQ.docs = res.docs;
+                                    }
 								}
 
 								return LQ;	//

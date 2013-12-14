@@ -215,9 +215,11 @@ var expose = function (model, schema, opts) {
 	opts.checkPermission = function (socketContext, op, doc) {
 		//privilige level
         var PL = socketContext.manager.user.privilige_level;
-        if (doc && doc.owner && doc.owner === socketContext.manager.user._id) {
-            return true;    // owner does not need any permissions
-        }
+		if (doc && doc.owner && socketContext.manager.user) {
+			if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
+				return true;    // owner does not need any permissions
+			}
+		}
 		if (this.permissions && this.permissions[op]) {
 			if (PL < this.permissions[op]) {
 				return false;
@@ -506,13 +508,15 @@ var expose = function (model, schema, opts) {
 				var def = when.defer();
                 var socket = this;
 				model.findById(id, function (err, doc) {
+					if (err) {
+						def.reject(new Error('Error occured on the findById query'));
+					}
 					if (doc) {
                         if (opts.checkPermission(socket, 'D', doc)) {
                             doc.remove(function (err) {
                                 if (err) {
                                     def.reject(err);
                                 }
-                                def.resolve();
                                 def.resolve();
                             });
                         } else {

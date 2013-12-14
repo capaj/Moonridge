@@ -56,13 +56,10 @@
                 MR.fighter.update(fighter);
             };
 
-            $scope.remove = function (fighter) {
-               MR.fighter.remove(fighter);
-            };
+            $scope.remove = MR.fighter.remove;
 
             $scope.create = function () {
                 MR.fighter.create({name: $scope.name, health: $scope.health});
-
             };
 
         }).run(function ($MR, $q, $timeout) {

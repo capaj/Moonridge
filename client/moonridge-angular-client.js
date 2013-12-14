@@ -158,7 +158,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         var updated;
                         if (LQ.docs[i]._id === doc._id) {
                             if (isInResult === false) {
-                                docs.splice(i, 1);  //removing from docs
+								LQ.docs.splice(i, 1);  //removing from docs
                                 return;
                             } else {
                                 // if a number, then doc should be moved
@@ -177,7 +177,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                                         angular.extend(updated, doc);
                                     }
 
-                                }
+                                } else {
+									updated = LQ.docs[i];
+									angular.extend(updated, doc);
+								}
 
                             }
 
@@ -434,6 +437,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     var MR = $MR.getBackend(backend);
                     var instantiateAngularCtrl = function (model) {
                         scope.MR = model;	//MR for Moonridge
+						scope.$on('$destroy', function() {
+							//TODO stop liveQueries
+						});
                         var ctrl = $controller(ctrlName, {
                             $scope: scope
                         });

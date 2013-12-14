@@ -119,10 +119,10 @@ var expose = function (model, schema, opts) {
 								if (evName === 'update') {
 									if (cQindex === -1) {
 										LQ.docs.push(doc);
-										LQ.callClientListeners(doc, evName, true);
+										LQ.callClientListeners(doc, evName, true);	//docu wasn't in the result, but after update is
 
 									} else {
-										LQ.callClientListeners(doc, evName, null);
+										LQ.callClientListeners(doc, evName, null);	//doc is still in the query result on the same index
 
 									}
 								}
@@ -131,7 +131,7 @@ var expose = function (model, schema, opts) {
                         } else {
                             if (evName === 'update' && cQindex !== -1) {
                                 LQ.docs.splice(cQindex, 1);
-                                LQ.callClientListeners(doc, evName, false);
+                                LQ.callClientListeners(doc, evName, false);		//doc was in the result, but after update is no longer
                             }
                         }
                     }
@@ -306,7 +306,7 @@ var expose = function (model, schema, opts) {
          *
          * @param doc
          * @param {String} evName
-         * @param {Boolean|Number} isInResult when number, indicates an index where the doc should be inserted
+         * @param {Boolean|Number|null} isInResult when number, indicates an index where the doc should be inserted
          */
         callClientListeners: function (doc, evName, isInResult) {
             var i = this.listeners.length;

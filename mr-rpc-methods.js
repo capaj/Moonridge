@@ -285,17 +285,22 @@ var expose = function (model, schema, opts) {
         destroy: function () {
             delete liveQueries[this.qKey];
         },
+		/**
+		 *
+		 * @param {Document.Id} id
+		 * @returns {Number}	-1 when not found
+		 */
         getIndexById: function (id) {
             id = id.id;
             var i = this.docs.length;
             while(i--)
             {
                 var doc = this.docs[i];
-                if (doc._id.id === id) {
+                if (doc && doc._id.id === id) {
                     return i;
                 }
             }
-            return undefined;
+            return i;
         },
         /**
          *
@@ -464,15 +469,15 @@ var expose = function (model, schema, opts) {
 				liveQueries[qKey] = LQ;
 
 				LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
-                    if (Array.isArray(rDocs)) {
-                        var i = rDocs.length;
-                        while(i--)
-                        {
-                            liveQueries[qKey].docs[i] = rDocs[i];
-                        }
-                    } else {
-                        liveQueries[qKey].docs = [rDocs];
-                    }
+					if (clientQuery.hasOwnProperty('findOne')) {
+						liveQueries[qKey].docs = [rDocs];
+					} else {
+						var i = rDocs.length;
+						while(i--)
+						{
+							liveQueries[qKey].docs[i] = rDocs[i];
+						}
+					}
 
                     pushListeners(queryOptions);
 

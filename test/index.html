@@ -35,6 +35,7 @@
             var liveQuery = MR.fighter.liveQuery;
             var limit = 2;
             $scope.LQ = liveQuery().sort('health').limit(limit).exec();
+//            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();
             $scope.oneLQ = liveQuery().findOne().exec();
             $scope.cLQ = liveQuery().count().exec();
             $scope.LQ.promise.then(function (LQ) {

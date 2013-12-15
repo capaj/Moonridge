@@ -401,7 +401,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
          */
         function Model() {
             var model = this;
-            this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1
+            this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
+            this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
 //            this.methods = rpc;
 
@@ -542,14 +543,21 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 					return false;
 				};
-				//notify the server we don't wan't any more updates
-				LQ.stop = function () {
+				//notify the server we don't want to receive any more updates
+                LQ.stop = function () {
 					if (angular.isNumber(LQ.index) && model._LQs[LQ.index] ) {
-
 						model.rpc.unsubLQ(LQ.index).then(function (succes) {
 							if (succes) {
 								LQ.unsubscribed = true;
+                                if (LQ._query.count) {
+                                    LQ.count = 0;
+                                } else {
+                                    LQ.doc = null;
+                                    LQ.docs = [];
+                                }
 								delete model._LQs[LQ.index];
+                                delete model._LQsByQuery[LQ._queryStringified];
+
 							}
 						});
 
@@ -557,9 +565,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						throw new Error('There must be a valid index property, when stop is called')
 					}
 				};
-
 				/**
-				 *
+				 *  is used for emulating mongoose query
 				 * @constructor
 				 */
 				var QueryChainable = function () {
@@ -568,7 +575,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
 							throw new Error('count and sort must NOT be used on the same query');
 						}
-
+                        LQ._queryStringified = JSON.stringify(LQ._query);
+                        if (model._LQsByQuery[LQ._queryStringified]) {
+                            return model._LQsByQuery[LQ._queryStringified];
+                        }
+                        //if previous check did not found an existing query
+                        model._LQsByQuery[queryStr] = LQ;
 						var actionsOnResponse = function (first) {
 							LQ.promise = LQ.promise.then(function (res) {
 								if (LQ._waitingOnFirstResponse === true) {
@@ -588,7 +600,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                                     }
 								}
 
-								return LQ;	//
+								return index;	// this index must be used for stopping the query from client side
 							}, function (err) {
 								$log.error(err);
 							});

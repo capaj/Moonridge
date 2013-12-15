@@ -3,7 +3,7 @@ var _ = require('lodash');
 var when = require('when');
 var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
-
+var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
 /**
  *
@@ -12,12 +12,12 @@ var maxLQsPerClient = 100;
  * @param {Object} opts
  */
 var expose = function (model, schema, opts) {
-	var liveQueries = {};
-	opts = opts || {};
-	var modelName = model.modelName;
-	var queryValidation = function (callback) {
-		callback(true);
-	};
+    var liveQueries = {};
+    opts = opts || {};
+    var modelName = model.modelName;
+    var queryValidation = function (callback) {
+        callback(true);
+    };
 
     /**
      * similar purpose as accesControlQueryModifier but works not on query, but objects, usable whenever we are sending
@@ -40,7 +40,7 @@ var expose = function (model, schema, opts) {
         return doc;
     }
 
-	var getIndexInSorted = require('./utils/indexInSortedArray');
+    var getIndexInSorted = require('./utils/indexInSortedArray');
 
     model.onCUD(function (mDoc, evName) {   // will be called by schema's event firing
         var doc = mDoc.toObject();
@@ -51,57 +51,54 @@ var expose = function (model, schema, opts) {
             if (evName === 'remove' && LQ.docs[cQindex]) {
 
                 LQ.docs.splice(cQindex, 1);
-				LQ.callClientListeners(doc, evName, false);
+                LQ.callClientListeners(doc, evName, false);
 
-				if (LQ.clientQuery.limit) {
+                if (LQ.clientQuery.limit) {
                     model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip || 0) + LQ.clientQuery.limit - 1).limit(1)
-                    .exec(function(err, docArr) {
-                        if (docArr.length === 1) {
-                            var toFillIn = docArr[0];   //TODO check if this index is correct
-                            if (toFillIn) {
-                                LQ.docs.push(toFillIn);
-                                LQ.callClientListeners(toFillIn, 'push');
+                        .exec(function(err, docArr) {
+                            if (docArr.length === 1) {
+                                var toFillIn = docArr[0];   //TODO check if this index is correct
+                                if (toFillIn) {
+                                    LQ.docs.push(toFillIn);
+                                    LQ.callClientListeners(toFillIn, 'push');
+                                }
                             }
-                        }
 
-                    });
+                        }
+                    );
 
                 }
-
 
             } else {
                 var checkQuery = model.findOne(LQ.mQuery);
-                if (!LQ.clientQuery.populate) {
-                    checkQuery.select('_id');
-                }
-                checkQuery.where('_id').equals(doc._id).exec(function(err, id) {
-						if (err) {
-							console.error(err);
-						}
-						if (id) {
+                checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, id) {
+                        if (err) {
+                            console.error(err);
+                        }
+                        if (id) {
                             var qDoc;
                             if (LQ.clientQuery.populate) {
-                                qDoc = id.toObject();   //if query has populate utilised, then we have to use the result from checkQuery as a doc
+                                qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
                             } else {
                                 qDoc = doc;
                             }
-							if (LQ.clientQuery.sort) {
-								var sortBy = LQ.clientQuery.sort.split(' ');	//check for string is performed on query initialization
-								var index;
-								if (evName === 'create') {
-									index = getIndexInSorted(qDoc, LQ.docs, sortBy);
+                            if (LQ.clientQuery.sort) {
+                                var sortBy = LQ.clientQuery.sort.split(' ');	//check for string is performed on query initialization
+                                var index;
+                                if (evName === 'create') {
+                                    index = getIndexInSorted(qDoc, LQ.docs, sortBy);
                                     LQ.docs.splice(index, 0, qDoc);
-									if (LQ.docs.length > LQ.clientQuery.limit) {
-										LQ.docs.splice(LQ.docs.length - 1, 1);
+                                    if (LQ.docs.length > LQ.clientQuery.limit) {
+                                        LQ.docs.splice(LQ.docs.length - 1, 1);
 
-									}
+                                    }
                                 }
-								if (evName === 'update') {
+                                if (evName === 'update') {
                                     index = getIndexInSorted(qDoc, LQ.docs, sortBy);
 
                                     if (cQindex === -1) {
                                         LQ.docs.splice(index, 0, qDoc);    //insert the document
-									} else {
+                                    } else {
                                         if (cQindex !== index) {
                                             if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
                                                 LQ.docs.splice(cQindex, 1);
@@ -117,27 +114,27 @@ var expose = function (model, schema, opts) {
                                     }
 
                                 }
-								if (_.isNumber(index)) {
-									LQ.callClientListeners(qDoc, evName, index);
-								}
+                                if (_.isNumber(index)) {
+                                    LQ.callClientListeners(qDoc, evName, index);
+                                }
 
-							} else {
-								if (evName === 'create') {
-									LQ.docs.push(qDoc);
-									LQ.callClientListeners(qDoc, evName, null);
-								}
-								if (evName === 'update') {
-									if (cQindex === -1) {
-										LQ.docs.push(qDoc);
-										LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
+                            } else {
+                                if (evName === 'create') {
+                                    LQ.docs.push(qDoc);
+                                    LQ.callClientListeners(qDoc, evName, null);
+                                }
+                                if (evName === 'update') {
+                                    if (cQindex === -1) {
+                                        LQ.docs.push(qDoc);
+                                        LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
 
-									} else {
-										LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
+                                    } else {
+                                        LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
 
-									}
-								}
+                                    }
+                                }
 
-							}
+                            }
                         } else {
                             if (evName === 'update' && cQindex !== -1) {
                                 LQ.docs.splice(cQindex, 1);
@@ -151,10 +148,10 @@ var expose = function (model, schema, opts) {
 
     });
 
-	var notifySubscriber = function (clientPubMethod) {
-		return function (doc, evName) {   // will be called by schema's event firing
-			clientPubMethod(doc, evName);
-		}
+    var notifySubscriber = function (clientPubMethod) {
+        return function (doc, evName) {   // will be called by schema's event firing
+            clientPubMethod(doc, evName);
+        }
 
     };
 
@@ -193,11 +190,11 @@ var expose = function (model, schema, opts) {
                 unsubscribe(existing[evName], evName);
             }
 
-			var clFns = socket.cRpcChnl;
+            var clFns = socket.cRpcChnl;
 
-			var evId = model.on(evName, notifySubscriber(clFns.pub, socket));
+            var evId = model.on(evName, notifySubscriber(clFns.pub, socket));
 
-			socket.mrEventIds[evName] = evId;
+            socket.mrEventIds[evName] = evId;
 
             return evId;
         } else {
@@ -222,21 +219,21 @@ var expose = function (model, schema, opts) {
      * @param {Document} [doc]
      * @returns {bool} true when user has permission, false when not
      */
-	opts.checkPermission = function (socketContext, op, doc) {
-		//privilige level
+    opts.checkPermission = function (socketContext, op, doc) {
+        //privilige level
         var PL = socketContext.manager.user.privilige_level;
-		if (doc && doc.owner && socketContext.manager.user) {
-			if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
-				return true;    // owner does not need any permissions
-			}
-		}
-		if (this.permissions && this.permissions[op]) {
-			if (PL < this.permissions[op]) {
-				return false;
-			}
-		}
-		return true;
-	};
+        if (doc && doc.owner && socketContext.manager.user) {
+            if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
+                return true;    // owner does not need any permissions
+            }
+        }
+        if (this.permissions && this.permissions[op]) {
+            if (PL < this.permissions[op]) {
+                return false;
+            }
+        }
+        return true;
+    };
 
     /**
      *  This function should always modify the query so that no one sees properties that they are not allowed to see
@@ -275,13 +272,13 @@ var expose = function (model, schema, opts) {
         return clQuery;
     }
 
-	/**
-	 * @param {String} qKey
-	 * @param {Mongoose.Query} mQuery
-	 * @param {Object} clientQuery
-	 * @returns {Object}
-	 * @constructor
-	 */
+    /**
+     * @param {String} qKey
+     * @param {Mongoose.Query} mQuery
+     * @param {Object} clientQuery
+     * @returns {Object}
+     * @constructor
+     */
     function LiveQuery(qKey, mQuery, clientQuery) {
         this.docs = [];
         this.listeners = {};
@@ -295,11 +292,11 @@ var expose = function (model, schema, opts) {
         destroy: function () {
             delete liveQueries[this.qKey];
         },
-		/**
-		 *
-		 * @param {Document.Id} id
-		 * @returns {Number}	-1 when not found
-		 */
+        /**
+         *
+         * @param {Document.Id} id
+         * @returns {Number}	-1 when not found
+         */
         getIndexById: function (id) {
             id = id.id;
             var i = this.docs.length;
@@ -314,11 +311,23 @@ var expose = function (model, schema, opts) {
         },
         /**
          *
-         * @param doc
+         * @param {Object|Mongoose.Document} doc
          * @param {String} evName
          * @param {Boolean|Number|null} isInResult when number, indicates an index where the doc should be inserted
          */
         callClientListeners: function (doc, evName, isInResult) {
+            var self = this;
+            if (this.clientQuery.populate && doc.populate) {
+                populateWithClientQuery(doc, this.clientQuery.populate, function (err, populated) {
+                    self._distributeChange(populated.toObject(), evName, isInResult);
+                });
+
+            } else {
+                self._distributeChange(doc, evName, isInResult);
+            }
+
+        },
+        _distributeChange: function (doc, evName, isInResult) {
             for (var socketId in this.listeners) {
                 var listener = this.listeners[socketId];
                 var toSend = null;
@@ -337,11 +346,11 @@ var expose = function (model, schema, opts) {
                 listener.rpcChannel.pubLQ(toSend, evName, listener.clIndex, isInResult);
             }
         },
-		/**
-		 * removes a socket listener from liveQuery
-		 * @param socket
-		 */
-		removeListener: function (socket) {
+        /**
+         * removes a socket listener from liveQuery
+         * @param socket
+         */
+        removeListener: function (socket) {
             if (this.listeners[socket.id]) {
                 delete this.listeners[socket.id];
                 if (Object.keys(this.listeners).length === 0) {
@@ -353,34 +362,34 @@ var expose = function (model, schema, opts) {
         }
     };
 
-	function validateClientQuery(clientQuery) {	//errors are forwarded to client
+    function validateClientQuery(clientQuery) {	//errors are forwarded to client
         //TODO check query for user priviliges
-		if (clientQuery && clientQuery.sort && !_.isString(clientQuery.sort)) {
-			throw new Error('only string notation for sort method is supported for liveQueries');
-		}
-	}
+        if (clientQuery && clientQuery.sort && !_.isString(clientQuery.sort)) {
+            throw new Error('only string notation for sort method is supported for liveQueries');
+        }
+    }
 
 
-	var channel = {
-		/**
-		 *
-		 * @param clientQuery
-		 * @returns {Promise}
-		 */
-		find: function (clientQuery) {
+    var channel = {
+        /**
+         *
+         * @param clientQuery
+         * @returns {Promise}
+         */
+        find: function (clientQuery) {
             accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
             clientQuery.lean = true; // this should make query always lean
-			var mQuery = queryBuilder(model, clientQuery);
+            var mQuery = queryBuilder(model, clientQuery);
             return mQuery.exec();
         },
-		//unsubscribe
-		unsub: unsubscribe,
-		unsubAll: unsubscribeAll,
+        //unsubscribe
+        unsub: unsubscribe,
+        unsubAll: unsubscribeAll,
         unsubLQ: function (index) {	//when client uses stop method on LQ, this method gets called
-			var LQ = this.registeredLQs[index];
+            var LQ = this.registeredLQs[index];
             if (LQ) {
-				delete this.registeredLQs[index];
-				LQ.removeListener(this);
+                delete this.registeredLQs[index];
+                LQ.removeListener(this);
                 return true;
             } else {
                 return new Error('Index param in LQ unsubscribe is not valid!');
@@ -392,14 +401,14 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery) {
-			try{
-				validateClientQuery(clientQuery);
-			}catch(e){
-				return e;
-			}
-			if (!opts.checkPermission(this, 'R')) {
-				return new Error('You lack a privilege to read this document');
-			}
+            try{
+                validateClientQuery(clientQuery);
+            }catch(e){
+                return e;
+            }
+            if (!opts.checkPermission(this, 'R')) {
+                return new Error('You lack a privilege to read this document');
+            }
             if (!clientQuery) {
                 clientQuery = {};
             }
@@ -423,46 +432,46 @@ var expose = function (model, schema, opts) {
                 return e;   //building of the query failed
             }
 
-			if (!mQuery.exec) {
-				return new Error('query builder has returned invalid query');
-			}
-			var socket = this;
+            if (!mQuery.exec) {
+                return new Error('query builder has returned invalid query');
+            }
+            var socket = this;
 
             var qKey = JSON.stringify(clientQuery);
-			var LQ = liveQueries[qKey];
+            var LQ = liveQueries[qKey];
             var def;
 
             var pushListeners = function (LQOpts) {
-            	socket.clientChannelPromise.then(function (clFns) {
-					var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
-					var lastIndex = activeClientQueryIndexes[activeClientQueryIndexes.length-1];
+                socket.clientChannelPromise.then(function (clFns) {
+                    var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
+                    var lastIndex = activeClientQueryIndexes[activeClientQueryIndexes.length-1];
                     if (!lastIndex) {
-						lastIndex = 0;
+                        lastIndex = 0;
                     } else {
-						if (activeClientQueryIndexes.length > maxLQsPerClient) {
-							def.reject(new Error('Limit for queries per client reached. Try stopping some queries.'));
-							return;
-						}
-					}
-					var clIndex = Number(lastIndex) + 1;
-					socket.registeredLQs[clIndex] = LQ;
+                        if (activeClientQueryIndexes.length > maxLQsPerClient) {
+                            def.reject(new Error('Limit for queries per client reached. Try stopping some queries.'));
+                            return;
+                        }
+                    }
+                    var clIndex = Number(lastIndex) + 1;
+                    socket.registeredLQs[clIndex] = LQ;
 
                     LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts};
 
-					LQ.firstExecPromise.then(function (queryResult) {
-						var retVal;
-						if (LQOpts.hasOwnProperty('count')) {
-							retVal = {count: queryResult.length, index: clIndex};
-						} else {
+                    LQ.firstExecPromise.then(function (queryResult) {
+                        var retVal;
+                        if (LQOpts.hasOwnProperty('count')) {
+                            retVal = {count: queryResult.length, index: clIndex};
+                        } else {
                             if (Array.isArray(queryResult)) {
                                 retVal = {docs: queryResult, index: clIndex};
                             } else {
                                 retVal = {doc: queryResult, index: clIndex};
                             }
-						}
+                        }
 
-						def.resolve(retVal);
-					});
+                        def.resolve(retVal);
+                    });
 
 
                 }, function (err) {
@@ -473,41 +482,41 @@ var expose = function (model, schema, opts) {
             if (LQ) {
                 pushListeners(queryOptions);
             } else {
-				LQ = new LiveQuery(qKey, mQuery, clientQuery);
-				liveQueries[qKey] = LQ;
+                LQ = new LiveQuery(qKey, mQuery, clientQuery);
+                liveQueries[qKey] = LQ;
 
-				LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
-					if (clientQuery.hasOwnProperty('findOne')) {
-						liveQueries[qKey].docs = [rDocs];
-					} else {
-						var i = rDocs.length;
-						while(i--)
-						{
-							liveQueries[qKey].docs[i] = rDocs[i];
-						}
-					}
+                LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
+                    if (clientQuery.hasOwnProperty('findOne')) {
+                        liveQueries[qKey].docs = [rDocs];
+                    } else {
+                        var i = rDocs.length;
+                        while(i--)
+                        {
+                            liveQueries[qKey].docs[i] = rDocs[i];
+                        }
+                    }
 
                     pushListeners(queryOptions);
 
                     return rDocs;
 
                 });
-			}
+            }
             return def.promise;
         },
-		//TODO have a method to stop and resume liveQuery
-		//subscribe
-		sub: subscribe,
-		subAll: subscribeAll,
-		populate: model.populate
-	};
+        //TODO have a method to stop and resume liveQuery
+        //subscribe
+        sub: subscribe,
+        subAll: subscribeAll,
+        populate: model.populate
+    };
 
-	if (opts && opts.readOnly !== true) {
-		_.extend(channel, {
-			create: function (newDoc) {
-				if (!opts.checkPermission(this, 'C')) {
-					return new Error('You lack a privilege to create this document');
-				}
+    if (opts && opts.readOnly !== true) {
+        _.extend(channel, {
+            create: function (newDoc) {
+                if (!opts.checkPermission(this, 'C')) {
+                    return new Error('You lack a privilege to create this document');
+                }
                 deleteUnpermittedProps(newDoc, 'W', this.manager.user.privilige_level);
                 if (schema.paths.owner) {
                     //we should set the owner field if it is present
@@ -515,16 +524,16 @@ var expose = function (model, schema, opts) {
                 }
                 return model.create(newDoc);
 
-			},
-			remove: function (id) {
-				
-				var def = when.defer();
+            },
+            remove: function (id) {
+
+                var def = when.defer();
                 var socket = this;
-				model.findById(id, function (err, doc) {
-					if (err) {
-						def.reject(new Error('Error occured on the findById query'));
-					}
-					if (doc) {
+                model.findById(id, function (err, doc) {
+                    if (err) {
+                        def.reject(new Error('Error occured on the findById query'));
+                    }
+                    if (doc) {
                         if (opts.checkPermission(socket, 'D', doc)) {
                             doc.remove(function (err) {
                                 if (err) {
@@ -534,23 +543,23 @@ var expose = function (model, schema, opts) {
                             });
                         } else {
                             def.reject(new Error('You lack a privilege to delete this document'));
-                        }						
-					} else {
-						def.reject(new Error('no document to remove found with _id: ' + id));
-					}
-				});
-				return def.promise;
-			},
-			update: function (toUpdate) {
+                        }
+                    } else {
+                        def.reject(new Error('no document to remove found with _id: ' + id));
+                    }
+                });
+                return def.promise;
+            },
+            update: function (toUpdate) {
 
                 var uPL = this.manager.user.privilige_level;
-				var def = when.defer();
+                var def = when.defer();
                 var socket = this;
-				var id = toUpdate._id;
-				delete toUpdate._id;
-				delete toUpdate.__v;
-				model.findById(id, function (err, doc) {
-					if (doc) {
+                var id = toUpdate._id;
+                delete toUpdate._id;
+                delete toUpdate.__v;
+                model.findById(id, function (err, doc) {
+                    if (doc) {
                         if (opts.checkPermission(socket, 'U', doc)) {
                             deleteUnpermittedProps(toUpdate, 'W', uPL);
                             var previousVersion = doc.toObject();
@@ -568,14 +577,14 @@ var expose = function (model, schema, opts) {
                             def.reject(new Error('You lack a privilege to update this document'));
                         }
 
-					} else {
+                    } else {
                         def.reject(new Error('no document to update found with _id: ' + id));
                     }
-				});
-				return def.promise;
-			}
-		});
-	}
+                });
+                return def.promise;
+            }
+        });
+    }
     var authFn = opts && opts.authFn;
     var exposeCallback = function () {
         var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
@@ -588,10 +597,10 @@ var expose = function (model, schema, opts) {
             socket.registeredLQs = [];
             socket.on('disconnect', function() {
                 //clearing out liveQueries listeners
-				for (var LQId in socket.registeredLQs) {
-					var LQ = socket.registeredLQs[LQId];
-					LQ.removeListener(socket);
-				}
+                for (var LQId in socket.registeredLQs) {
+                    var LQ = socket.registeredLQs[LQId];
+                    LQ.removeListener(socket);
+                }
             });
         });
     };

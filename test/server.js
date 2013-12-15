@@ -70,7 +70,7 @@ var battleM = MR.model('battle', {
 	name: String,
 	started: Date,
 	ended: Date,
-	fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
+	fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
 });
 
 //Fighter.model.create({

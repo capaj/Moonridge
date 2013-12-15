@@ -3,6 +3,7 @@ var _ = require('lodash');
 var when = require('when');
 var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
+
 var maxLQsPerClient = 100;
 /**
  *
@@ -69,60 +70,69 @@ var expose = function (model, schema, opts) {
 
 
             } else {
-                model.findOne(LQ.mQuery).where('_id').equals(doc._id).select('_id')
-                    .exec(function(err, id) {
+                var checkQuery = model.findOne(LQ.mQuery);
+                if (!LQ.clientQuery.populate) {
+                    checkQuery.select('_id');
+                }
+                checkQuery.where('_id').equals(doc._id).exec(function(err, id) {
 						if (err) {
 							console.error(err);
 						}
 						if (id) {
+                            var qDoc;
+                            if (LQ.clientQuery.populate) {
+                                qDoc = id.toObject();   //if query has populate utilised, then we have to use the result from checkQuery as a doc
+                            } else {
+                                qDoc = doc;
+                            }
 							if (LQ.clientQuery.sort) {
 								var sortBy = LQ.clientQuery.sort.split(' ');	//check for string is performed on query initialization
 								var index;
 								if (evName === 'create') {
-									index = getIndexInSorted(doc, LQ.docs, sortBy);
-                                    LQ.docs.splice(index, 0, doc);
+									index = getIndexInSorted(qDoc, LQ.docs, sortBy);
+                                    LQ.docs.splice(index, 0, qDoc);
 									if (LQ.docs.length > LQ.clientQuery.limit) {
 										LQ.docs.splice(LQ.docs.length - 1, 1);
 
 									}
                                 }
 								if (evName === 'update') {
-                                    index = getIndexInSorted(doc, LQ.docs, sortBy);
+                                    index = getIndexInSorted(qDoc, LQ.docs, sortBy);
 
                                     if (cQindex === -1) {
-                                        LQ.docs.splice(index, 0, doc);    //insert the document
+                                        LQ.docs.splice(index, 0, qDoc);    //insert the document
 									} else {
                                         if (cQindex !== index) {
                                             if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
                                                 LQ.docs.splice(cQindex, 1);
-                                                LQ.docs.splice(index - 1, 0, doc);
+                                                LQ.docs.splice(index - 1, 0, qDoc);
                                             } else {
                                                 LQ.docs.splice(cQindex, 1);
-                                                LQ.docs.splice(index, 0, doc);
+                                                LQ.docs.splice(index, 0, qDoc);
                                             }
 
                                         } else {
-                                            LQ.docs[index] = doc;
+                                            LQ.docs[index] = qDoc;
                                         }
                                     }
 
                                 }
 								if (_.isNumber(index)) {
-									LQ.callClientListeners(doc, evName, index);
+									LQ.callClientListeners(qDoc, evName, index);
 								}
 
 							} else {
 								if (evName === 'create') {
-									LQ.docs.push(doc);
-									LQ.callClientListeners(doc, evName, null);
+									LQ.docs.push(qDoc);
+									LQ.callClientListeners(qDoc, evName, null);
 								}
 								if (evName === 'update') {
 									if (cQindex === -1) {
-										LQ.docs.push(doc);
-										LQ.callClientListeners(doc, evName, true);	//docu wasn't in the result, but after update is
+										LQ.docs.push(qDoc);
+										LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
 
 									} else {
-										LQ.callClientListeners(doc, evName, null);	//doc is still in the query result on the same index
+										LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
 
 									}
 								}
@@ -274,7 +284,7 @@ var expose = function (model, schema, opts) {
 	 */
     function LiveQuery(qKey, mQuery, clientQuery) {
         this.docs = [];
-        this.listeners = [];
+        this.listeners = {};
         this.mQuery = mQuery;   //mongoose query
         this.qKey = qKey;
         this.clientQuery = clientQuery; //serializable client query object
@@ -309,19 +319,18 @@ var expose = function (model, schema, opts) {
          * @param {Boolean|Number|null} isInResult when number, indicates an index where the doc should be inserted
          */
         callClientListeners: function (doc, evName, isInResult) {
-            var i = this.listeners.length;
-            while(i--) {
-                var listener = this.listeners[i];
-				var toSend = null;
-				if (listener.qOpts.count) {
-					// we don't need to send a doc when query is a count query
-				} else {
-					if (evName === 'remove') {
-						toSend = doc._id.toString();	//remove needs only _id
-					} else {
-						toSend = doc;
-					}
-				}
+            for (var socketId in this.listeners) {
+                var listener = this.listeners[socketId];
+                var toSend = null;
+                if (listener.qOpts.count) {
+                    // we don't need to send a doc when query is a count query
+                } else {
+                    if (evName === 'remove') {
+                        toSend = doc._id.toString();	//remove needs only _id
+                    } else {
+                        toSend = doc;
+                    }
+                }
 
                 var uP = listener.socket.manager.user.privilige_level;
                 toSend = deleteUnpermittedProps(toSend, 'R', uP);
@@ -333,15 +342,13 @@ var expose = function (model, schema, opts) {
 		 * @param socket
 		 */
 		removeListener: function (socket) {
-            var li = this.listeners.length;
-            while(li--) {
-                if (this.listeners[li].socket === socket) {
-                    this.listeners.splice(li, 1);
-                    if (this.listeners.length === 0) {
-                        this.destroy();
-                    }
-                    break;	// listener should be registered only once, so no need to continue loop
+            if (this.listeners[socket.id]) {
+                delete this.listeners[socket.id];
+                if (Object.keys(this.listeners).length === 0) {
+                    this.destroy()
                 }
+            } else {
+                return new Error('no listener present on');
             }
         }
     };
@@ -408,7 +415,7 @@ var expose = function (model, schema, opts) {
                     delete clientQuery[param];
                 }
             };
-            moveParamToQueryOptions('count');
+            moveParamToQueryOptions('count');	//for serverside purposes count is useless
 
             try{
                 var mQuery = queryBuilder(model, clientQuery);
@@ -439,7 +446,8 @@ var expose = function (model, schema, opts) {
 					}
 					var clIndex = Number(lastIndex) + 1;
 					socket.registeredLQs[clIndex] = LQ;
-					LQ.listeners.push({rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts});
+
+                    LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts};
 
 					LQ.firstExecPromise.then(function (queryResult) {
 						var retVal;

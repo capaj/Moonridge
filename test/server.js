@@ -66,12 +66,12 @@ Fighter.model.find().sort('health').maxScan(2).find().exec().then(function (doc)
     console.dir(doc);
 });
 
-//    var battleM = MR('battle', {
-//        name: String,
-//        started: Date,
-//        ended: Date,
-//        fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
-//    });
+var battleM = MR.model('battle', {
+	name: String,
+	started: Date,
+	ended: Date,
+	fighters: [{ type: Schema.Types.ObjectId, ref: 'Fighter' }]
+});
 
 //Fighter.model.create({
 //	name: 'Rob Stark', health: 150, born: new Date()

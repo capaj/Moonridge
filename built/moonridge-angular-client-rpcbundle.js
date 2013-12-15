@@ -580,7 +580,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                             return model._LQsByQuery[LQ._queryStringified];
                         }
                         //if previous check did not found an existing query
-                        model._LQsByQuery[queryStr] = LQ;
+                        model._LQsByQuery[LQ._queryStringified] = LQ;
 						var actionsOnResponse = function (first) {
 							LQ.promise = LQ.promise.then(function (res) {
 								if (LQ._waitingOnFirstResponse === true) {
@@ -600,7 +600,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                                     }
 								}
 
-								return index;	// this index must be used for stopping the query from client side
+								return LQ;	//
 							}, function (err) {
 								$log.error(err);
 							});

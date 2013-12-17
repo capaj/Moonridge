@@ -384,8 +384,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         }
 
         var models = {};
-        var connectPromise = $q.when(params).then(function (rParams) {
-            $rpc.connect(rParams.url, rParams.hs);
+        MRInstance.connectPromise = $q.when(params).then(function (rParams) {
+            MRInstance.socket = $rpc.connect(rParams.url, rParams.hs);
+            return MRInstance.socket;
         });
 
         MRInstance.getAllModels = function () {
@@ -684,7 +685,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 models[name] = model;
             }
 
-            connectPromise.then(function () {
+            MRInstance.connectPromise.then(function () {
                 var promises = {
                     client: $rpc.expose('MR-' + name, {
                         pub: function (doc, eventName) {

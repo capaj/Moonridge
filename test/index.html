@@ -32,6 +32,10 @@
     <script type="text/javascript">
         angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
             var MR = $scope.MR;
+//            debugger;
+//            MR.socket.on('disconnect', function () {
+//                console.log("Ha disconnected!");
+//            });
             var liveQuery = MR.fighter.liveQuery;
             var limit = 2;
             $scope.LQ = liveQuery().sort('health').limit(limit).exec();
@@ -65,7 +69,13 @@
 
         }).run(function ($MR, $q, $timeout) {
             var dfd = $q.defer();
-            $MR('local', dfd.promise);
+            var MRB = $MR('local', dfd.promise);
+            MRB.connectPromise.then(function (socket) {
+                //you can hook up more events here
+                socket.on('disconnect', function () {
+                    console.log("Ha disconnected!");
+                });
+            });
             $timeout(function () {
                 //just an example, in real application you would use here some auth token instead of nick
                 dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=capaj" } } );

@@ -221,12 +221,15 @@ var expose = function (model, schema, opts) {
      */
     opts.checkPermission = function (socketContext, op, doc) {
         //privilige level
-        var PL = socketContext.manager.user.privilige_level;
-        if (doc && doc.owner && socketContext.manager.user) {
+        try{
+            var PL = socketContext.manager.user.privilige_level;
             if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
                 return true;    // owner does not need any permissions
             }
+        }catch(e){
+            PL = 0;
         }
+
         if (this.permissions && this.permissions[op]) {
             if (PL < this.permissions[op]) {
                 return false;

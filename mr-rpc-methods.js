@@ -214,20 +214,23 @@ var expose = function (model, schema, opts) {
 
     /**
      *
-     * @param {String} op operation to check
+     * @param {String} op operation to check, can be 'C','R', 'U', 'D'
      * @param socketContext
      * @param {Document} [doc]
      * @returns {bool} true when user has permission, false when not
      */
     opts.checkPermission = function (socketContext, op, doc) {
-        //privilige level
+        var PL; //privilige level
         try{
-            var PL = socketContext.manager.user.privilige_level;
+            PL = socketContext.manager.user.privilige_level;
+        }catch(e){
+            PL = 0;
+        }
+
+        if (doc && op !== 'C') {   //if not creation, with creation
             if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
                 return true;    // owner does not need any permissions
             }
-        }catch(e){
-            PL = 0;
         }
 
         if (this.permissions && this.permissions[op]) {

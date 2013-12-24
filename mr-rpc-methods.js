@@ -370,7 +370,7 @@ var expose = function (model, schema, opts) {
 
     function validateClientQuery(clientQuery) {	//errors are forwarded to client
         //TODO check query for user priviliges
-        if (clientQuery && clientQuery.sort && !_.isString(clientQuery.sort)) {
+        if (clientQuery && clientQuery.sort && !_.isString(clientQuery.sort[0])) {
             throw new Error('only string notation for sort method is supported for liveQueries');
         }
     }

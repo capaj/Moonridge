@@ -48,7 +48,7 @@
 
             $scope.changeQuery = function () {
                 limit += 1;
-                $scope.LQ.modifyQuery().limit(limit);
+                $scope.LQ = liveQuery().sort('health').limit(limit).exec();
             };
 
             $scope.hit = function (fighter) {

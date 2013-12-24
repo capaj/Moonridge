@@ -311,48 +311,33 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
 						return LQ;
 					};
+                    var APslice = Array.prototype.slice;
 
-					qMethodsEnum.forEach(function (method) {
+                    qMethodsEnum.forEach(function (method) {
 						self[method] = function () {
 							var qr = LQ._query;
-							if (arguments.length === 1) {
-								if (qr.hasOwnProperty(method)) {
 
-								} else {
-									qr[method] = arguments[0];
-								}
+                            if (qr.hasOwnProperty(method)) {
+                                if (typeof qr[method] === 'object') {
+                                    var ind = Object.keys(qr).length;
+                                    qr[method][ind] = APslice.call(arguments);
+                                } else {
+                                    qr[method] = {
+                                        0: qr[method],
+                                        1: APslice.call(arguments)
+                                    }
+                                }
 
-							} else {
-								if (qr.hasOwnProperty(method)) {
-									if (qr[method].mrMultiCall) {
-										var props = Object.keys(qr);
-										var flagIndex = props.indexOf('mrMultiCall');
-										props.splice(flagIndex, 1);
-										var ind = props.length;
-										qr[method][ind] = Array.prototype.slice.call(arguments);
-									} else {
-										qr[method] = {
-											mrMultiCall: true,
-											0: qr[method],
-											1: Array.prototype.slice.call(arguments)
-										}
-									}
+                            } else {
+                                qr[method] = APslice.call(arguments);
+                            }
 
-								} else {
-									qr[method] = Array.prototype.slice.call(arguments);
-
-								}
-							}
 							return self;
 						};
 					});
 
 				};
 				var queryChainable = new QueryChainable();
-
-				LQ.modifyQuery = function () {
-					return queryChainable;
-				};
 
 				return  queryChainable;
             }

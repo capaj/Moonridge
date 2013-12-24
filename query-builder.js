@@ -46,28 +46,28 @@ var qMethodsEnum = [	//query methods which modifies the collection are not inclu
 	'within'
 ];
 
-var singleArrayArgument = [	//methods which require an array as a single argument
-	'or', 'nor', 'and'
-];
-
-module.exports = function (model, qJSON) {
+/**
+ *
+ * @param {Mongoose.Model} model
+ * @param {Object} clientQuery received JSON deserialized
+ * @returns {Query|Error}
+ */
+module.exports = function (model, clientQuery) {
 	var query = model.find().lean();
 
-	for(var method in qJSON){
+	for(var method in clientQuery){
 		if (qMethodsEnum.indexOf(method) !== -1) {
-			var arg = qJSON[method];
-			if (Array.isArray(arg) && singleArrayArgument.indexOf(method) === -1) {	// if it is one of SAA, then we won't call it with apply
+			var arg = clientQuery[method];
+			if (Array.isArray(arg)) {	// if it is one of SAA, then we won't call it with apply
 				query = query[method].apply(query, arg);
-			} else {
-				if (_.isObject(arg) && arg.mrMultiCall) {
-					delete arg.mrMultiCall;
-					for (var callIndex in arg) {
-						query = query[method].apply(query, arg[callIndex]);
-					}
-				} else {
-					query = query[method](arg); // applies one query method at a time, thx to mongoose's chainable query api
-				}
-			}
+			} else if (_.isObject(arg)) {
+                for (var callIndex in arg) {
+                    query = query[method].apply(query, arg[callIndex]);
+                }
+            } else {
+                return new Error('Method arguments for "' + method + '" must be array or object, query builder cannot parse this')
+            }
+
 		} else {
 			return new Error('Method "' + method + '" is not a valid query method.')
 		}

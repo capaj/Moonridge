@@ -54,7 +54,7 @@ var expose = function (model, schema, opts) {
                 LQ.callClientListeners(doc, evName, false);
 
                 if (LQ.clientQuery.limit) {
-                    model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip || 0) + LQ.clientQuery.limit - 1).limit(1)
+                    model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip[0] || 0) + LQ.clientQuery.limit[0] - 1).limit(1)
                         .exec(function(err, docArr) {
                             if (docArr.length === 1) {
                                 var toFillIn = docArr[0];   //TODO check if this index is correct
@@ -83,12 +83,12 @@ var expose = function (model, schema, opts) {
                                 qDoc = doc;
                             }
                             if (LQ.clientQuery.sort) {
-                                var sortBy = LQ.clientQuery.sort.split(' ');	//check for string is performed on query initialization
+                                var sortBy = LQ.clientQuery.sort[0].split(' ');	//check for string is performed on query initialization
                                 var index;
                                 if (evName === 'create') {
                                     index = getIndexInSorted(qDoc, LQ.docs, sortBy);
                                     LQ.docs.splice(index, 0, qDoc);
-                                    if (LQ.docs.length > LQ.clientQuery.limit) {
+                                    if (LQ.docs.length > LQ.clientQuery.limit[0]) {
                                         LQ.docs.splice(LQ.docs.length - 1, 1);
 
                                     }
@@ -384,7 +384,7 @@ var expose = function (model, schema, opts) {
          */
         find: function (clientQuery) {
             accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
-            clientQuery.lean = true; // this should make query always lean
+            clientQuery.lean = []; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
             return mQuery.exec();
         },

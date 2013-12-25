@@ -64,7 +64,10 @@ module.exports = function getIndexForElement(element, array, sortBy) {
 
 	var index = locationOf(element, array);
 	if (index === 0) {
-		if(isLowerSorted(element, array[0])) {
+        if (array.length === 0) {
+            return 0;
+        }
+        if(isLowerSorted(element, array[0])) {
 			return 0;
 		} else {
 			return index + 1;

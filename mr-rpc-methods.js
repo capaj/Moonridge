@@ -1,6 +1,6 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
-var when = require('when');
+var Promise = require('bluebird');
 var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
@@ -15,9 +15,6 @@ var expose = function (model, schema, opts) {
     var liveQueries = {};
     opts = opts || {};
     var modelName = model.modelName;
-    var queryValidation = function (callback) {
-        callback(true);
-    };
 
     /**
      * similar purpose as accesControlQueryModifier but works not on query, but objects, usable whenever we are sending
@@ -227,9 +224,9 @@ var expose = function (model, schema, opts) {
             PL = 0;
         }
 
-        if (doc && op !== 'C') {   //if not creation, with creation
-            if (doc.owner.toString() === socketContext.manager.user._id.toString()) {
-                return true;    // owner does not need any permissions
+        if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
+            if (doc.owner.toString() === socketContext.manager.user.id || doc.id === socketContext.manager.user.id) {
+                return true;    // owner does not need any permissions, user modifying himself also has permissions
             }
         }
 
@@ -418,7 +415,7 @@ var expose = function (model, schema, opts) {
             if (!clientQuery) {
                 clientQuery = {};
             }
-            def = when.defer();
+            def = Promise.defer();
             if (!clientQuery.count) {
                 accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
             }
@@ -533,7 +530,7 @@ var expose = function (model, schema, opts) {
             },
             remove: function (id) {
 
-                var def = when.defer();
+                var def = Promise.defer();
                 var socket = this;
                 model.findById(id, function (err, doc) {
                     if (err) {
@@ -559,11 +556,13 @@ var expose = function (model, schema, opts) {
             update: function (toUpdate) {
 
                 var uPL = this.manager.user.privilige_level;
-                var def = when.defer();
+                var def = Promise.defer();
                 var socket = this;
                 var id = toUpdate._id;
                 delete toUpdate._id;
-                delete toUpdate.__v;
+                if (toUpdate.hasOwnProperty('__v')) {
+                    delete toUpdate.__v;
+                }
                 model.findById(id, function (err, doc) {
                     if (doc) {
                         if (opts.checkPermission(socket, 'U', doc)) {
@@ -592,7 +591,8 @@ var expose = function (model, schema, opts) {
         });
     }
     var authFn = opts && opts.authFn;
-    var exposeCallback = function () {
+
+    return function exposeCallback() {
         var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
         chnlSockets.on('connection', function (socket) {
 
@@ -610,7 +610,6 @@ var expose = function (model, schema, opts) {
             });
         });
     };
-    return exposeCallback;
 
 };
 

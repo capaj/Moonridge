@@ -29,7 +29,7 @@ module.exports = function MRModel(name, schema, opts) {
     var callNext = function (next, doc) {
         next();
     };
-
+    _.extend(schema, {owner: { type: this.Schema.Types.ObjectId, ref: 'user' }});   //user model should have owner field also
     var mgSchema = new this.Schema(schema);
 
     mgSchema.pres = {

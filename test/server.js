@@ -38,96 +38,17 @@ mongoose.connect(locals.connString, function (err) {
 });
 
 var MR = Moonridge.init(mongoose);
+var dbInit = require('./db-init');
+dbInit(MR);
 
-var user = MR.userModel({name: String, age: Number});
-
-//just run once to have a user
-//user.model.create({
-//	name: 'capaj', privilige_level: 50
-//}).then(function () {
-//		console.log("capaj created");
-//	});
-
-
-var Fighter = MR.model('fighter', {
-	name: String,
-	health: Number,
-	born: Date,
-	death: { type: Date, permissions:{R: 4, W: 20}},
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
-});
-Fighter.model.on('preupdate', function (doc, evName, previous) {
-   console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic
-   console.dir(doc);
-   console.dir(previous);
-});
-
-Fighter.model.find().sort('health').maxScan(2).find().exec().then(function (doc) {
-    console.dir(doc);
-});
-
-var battleM = MR.model('battle', {
-	name: String,
-	started: Date,
-	ended: Date,
-	fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
-});
-
-//Fighter.model.create({
-//	name: 'Rob Stark', health: 150, born: new Date()
-//}).then(function () {
-//
-//		console.log("created");
-//
-//		Fighter.model.find({}, function (err, docs) {
-//			if (docs) {
-//				setTimeout(function () {
-//
-//					var doc = docs[0];
-//					if (doc) {
-//						doc.remove(function (err) {
-//							if (err) {
-//
-//							}
-//							console.log("deleted");
-//						});
-//					}
-//
-//				}, 8000);
-//			}
-//		});
-//	}
-//);
-//    var c = 0;
-//
-//    setInterval(function () {
-//        Fighter.model.create({
-//            name: 'gold cloak ' + c
-//            , health: 30
-//            , born: new Date()
-//        }).then(function (doc) {
-//                console.log(doc.name + " saved");
-//            });
-//        c++;
-//    }, 3000);    var c = 0;
-//
-//    setInterval(function () {
-//        Fighter.model.create({
-//            name: 'gold cloak ' + c
-//            , health: 30
-//            , born: new Date()
-//        }).then(function (doc) {
-//                console.log(doc.name + " saved");
-//            });
-//        c++;
-//    }, 3000);
 var io = require('socket.io').listen(server);
 io.configure(function (){
     io.set('authorization', function (handshake, CB) {
         var socket = this;
         var userName = handshake.query.nick;
         console.log("user wants to authorize: " + userName );
-        user.model.findOne({name: userName}).exec().then(function (user) {
+        var user = mongoose.model('user');
+        user.findOne({name: userName}).exec().then(function (user) {
             socket.user = user;
             console.log("Authenticated user: " + user.name);
             CB(null, true);

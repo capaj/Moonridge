@@ -98,7 +98,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              */
             this.liveQuery = function (query) {
 				var LQ = {};
-
+                LQ.docs = [];
+                Object.defineProperty(LQ, 'doc', {
+                    enumerable: false,
+                    configurable: false,
+                    get: function () {
+                        return LQ.docs[0];
+                    }
+                });
+                LQ.count = 0;
 				LQ._query = query || {};	//serializable query object
 
 				LQ.getDocById = function (id) {
@@ -110,16 +118,18 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					}
 					return null;
 				};
+                LQ.recountIfNormalQuery = function () {
+                    if (!LQ._query.count) {
+                        LQ.count = LQ.docs.length;
+                    }
+                };
 				//syncing logic
 				LQ.on_create = function (doc, index) {
 					if (LQ._query.count) {
 						LQ.count += 1; // when this is a count query, just increment and call it a day
 						return;
  					}
-                    if (LQ._query.findOne) {
-                        LQ.doc = doc;
-                        return;
-                    }
+
 					if (angular.isNumber(index)) {
 						LQ.docs.splice(index, 0, doc);
 					} else {
@@ -128,8 +138,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					if (LQ._query.limit < LQ.docs.length) {
 						LQ.docs.splice(LQ.docs.length - 1, 1);
 					}
-				};
-				LQ.on_push = LQ.on_create;
+                    LQ.recountIfNormalQuery();
+                };
+				LQ.on_push = LQ.on_create;  //used when item is not new but rather just was updated and fell into query results
 				/**
 				 *
 				 * @param {Object} doc
@@ -151,10 +162,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						}
 						return;// just increment/decrement and call it a day
 					}
-                    if (LQ._query.findOne) {	// when this is a findOne query
-                        LQ.doc = doc;
-                        return;
-                    }
 
                     var i = LQ.docs.length;
                     while (i--) {
@@ -200,8 +207,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         return;
                     }
                     $log.error('Failed to find updated document.');
-
-				};
+                    LQ.recountIfNormalQuery();
+                };
 				/**
 				 *
 				 * @param {String} id
@@ -212,15 +219,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
 						return;
 					}
-                    if (LQ._query.findOne) {	// when this is a findOne query
-                        LQ.doc = null;
-                        return
-                    }
 
                     var i = LQ.docs.length;
                     while (i--) {
                         if (LQ.docs[i]._id === id) {
                             LQ.docs.splice(i, 1);
+                            LQ.count -= 1;
                             return true;
                         }
                     }
@@ -268,18 +272,21 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         model._LQsByQuery[LQ._queryStringified] = LQ;
 						var actionsOnResponse = function (first) {
 							LQ.promise = LQ.promise.then(function (res) {
-								if (LQ._waitingOnFirstResponse === true) {
+
+                                if (LQ._waitingOnFirstResponse === true) {
 									LQ._waitingOnFirstResponse = false;
 								}
 
-								if (LQ._query.count) {
+								if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
 									LQ.count = res.count;
 								} else {
-                                    if (LQ._query.findOne) {
-                                        LQ.doc = res.doc;
-                                    } else {
-                                        LQ.docs = res.docs;
+
+                                    var i = res.docs.length;
+                                    LQ.count = i;
+                                    while(i--) {
+                                        LQ.docs[i] = res.docs[i];
                                     }
+
 								}
 
 								return LQ;	//

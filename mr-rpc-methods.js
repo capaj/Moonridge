@@ -43,104 +43,112 @@ var expose = function (model, schema, opts) {
         var doc = mDoc.toObject();
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
-            var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
+            LQ.firstExecPromise.then(function () {
 
-            if (evName === 'remove' && LQ.docs[cQindex]) {
+                var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
-                LQ.docs.splice(cQindex, 1);
-                LQ.callClientListeners(doc, evName, false);
+                if (evName === 'remove' && LQ.docs[cQindex]) {
 
-                if (LQ.clientQuery.limit) {
-                    model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip[0] || 0) + LQ.clientQuery.limit[0] - 1).limit(1)
-                        .exec(function(err, docArr) {
-                            if (docArr.length === 1) {
-                                var toFillIn = docArr[0];   //TODO check if this index is correct
-                                if (toFillIn) {
-                                    LQ.docs.push(toFillIn);
-                                    LQ.callClientListeners(toFillIn, 'push');
-                                }
-                            }
+                    LQ.docs.splice(cQindex, 1);
+                    LQ.callClientListeners(doc, evName, false);
 
-                        }
-                    );
-
-                }
-
-            } else {
-                var checkQuery = model.findOne(LQ.mQuery);
-                checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, id) {
-                        if (err) {
-                            console.error(err);
-                        }
-                        if (id) {
-                            var qDoc;
-                            if (LQ.clientQuery.populate) {
-                                qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
-                            } else {
-                                qDoc = doc;
-                            }
-                            if (LQ.clientQuery.sort) {
-                                var sortBy = LQ.clientQuery.sort[0].split(' ');	//check for string is performed on query initialization
-                                var index;
-                                if (evName === 'create') {
-                                    index = getIndexInSorted(qDoc, LQ.docs, sortBy);
-                                    LQ.docs.splice(index, 0, qDoc);
-                                    if (LQ.docs.length > LQ.clientQuery.limit[0]) {
-                                        LQ.docs.splice(LQ.docs.length - 1, 1);
-
+                    if (LQ.clientQuery.limit) {
+                        model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip[0] || 0) + LQ.clientQuery.limit[0] - 1).limit(1)
+                            .exec(function(err, docArr) {
+                                if (docArr.length === 1) {
+                                    var toFillIn = docArr[0];   //TODO check if this index is correct
+                                    if (toFillIn) {
+                                        LQ.docs.push(toFillIn);
+                                        LQ.callClientListeners(toFillIn, 'push');
                                     }
                                 }
-                                if (evName === 'update') {
-                                    index = getIndexInSorted(qDoc, LQ.docs, sortBy);
 
-                                    if (cQindex === -1) {
-                                        LQ.docs.splice(index, 0, qDoc);    //insert the document
-                                    } else {
-                                        if (cQindex !== index) {
-                                            if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
-                                                LQ.docs.splice(cQindex, 1);
-                                                LQ.docs.splice(index - 1, 0, qDoc);
-                                            } else {
-                                                LQ.docs.splice(cQindex, 1);
-                                                LQ.docs.splice(index, 0, qDoc);
+                            }
+                        );
+
+                    }
+
+                } else {
+                    var checkQuery = model.findOne(LQ.mQuery);
+                    checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, id) {
+                            if (err) {
+                                console.error(err);
+                            }
+                            if (id) {
+                                var qDoc;
+                                if (LQ.clientQuery.populate) {
+                                    qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
+                                } else {
+                                    qDoc = doc;
+                                }
+                                if (LQ.clientQuery.sort) {
+                                    var sortBy = LQ.clientQuery.sort[0].split(' ');	//check for string is performed on query initialization
+                                    var index;
+                                    if (evName === 'create') {
+                                        if (cQindex === -1) {
+                                            index = getIndexInSorted(qDoc, LQ.docs, sortBy);
+                                            LQ.docs.splice(index, 0, qDoc);
+                                            if (LQ.docs.length > LQ.clientQuery.limit[0]) {
+                                                LQ.docs.splice(LQ.docs.length - 1, 1);
+
                                             }
+                                        }
+                                    }
+                                    if (evName === 'update') {
+                                        index = getIndexInSorted(qDoc, LQ.docs, sortBy);
+
+                                        if (cQindex === -1) {
+                                            LQ.docs.splice(index, 0, qDoc);    //insert the document
+                                        } else {
+                                            if (cQindex !== index) {
+                                                if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
+                                                    LQ.docs.splice(cQindex, 1);
+                                                    LQ.docs.splice(index - 1, 0, qDoc);
+                                                } else {
+                                                    LQ.docs.splice(cQindex, 1);
+                                                    LQ.docs.splice(index, 0, qDoc);
+                                                }
+
+                                            } else {
+                                                LQ.docs[index] = qDoc;
+                                            }
+                                        }
+
+                                    }
+                                    if (_.isNumber(index)) {
+                                        LQ.callClientListeners(qDoc, evName, index);
+                                    }
+
+                                } else {
+                                    if (evName === 'create') {
+                                        if (cQindex === -1) {
+                                            LQ.docs.push(qDoc);
+                                            LQ.callClientListeners(qDoc, evName, null);
+                                        }
+                                    }
+                                    if (evName === 'update') {
+                                        if (cQindex === -1) {
+                                            LQ.docs.push(qDoc);
+                                            LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
 
                                         } else {
-                                            LQ.docs[index] = qDoc;
+                                            LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
+
                                         }
                                     }
 
                                 }
-                                if (_.isNumber(index)) {
-                                    LQ.callClientListeners(qDoc, evName, index);
-                                }
-
                             } else {
-                                if (evName === 'create') {
-                                    LQ.docs.push(qDoc);
-                                    LQ.callClientListeners(qDoc, evName, null);
+                                if (evName === 'update' && cQindex !== -1) {
+                                    LQ.docs.splice(cQindex, 1);
+                                    LQ.callClientListeners(doc, evName, false);		//doc was in the result, but after update is no longer
                                 }
-                                if (evName === 'update') {
-                                    if (cQindex === -1) {
-                                        LQ.docs.push(qDoc);
-                                        LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
-
-                                    } else {
-                                        LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
-
-                                    }
-                                }
-
-                            }
-                        } else {
-                            if (evName === 'update' && cQindex !== -1) {
-                                LQ.docs.splice(cQindex, 1);
-                                LQ.callClientListeners(doc, evName, false);		//doc was in the result, but after update is no longer
                             }
                         }
-                    }
-                );
-            }
+                    );
+                }
+            });
+
         });
 
     });
@@ -298,7 +306,7 @@ var expose = function (model, schema, opts) {
         /**
          *
          * @param {Document.Id} id
-         * @returns {Number}	-1 when not found
+         * @returns {Number} -1 when not found
          */
         getIndexById: function (id) {
             id = id.id;
@@ -453,23 +461,19 @@ var expose = function (model, schema, opts) {
                         return;
                     }
 
-                    socket.registeredLQs[LQIndex] = LQ;
-
-                    LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
-
-                    LQ.firstExecPromise.then(function (queryResult) {
+                    LQ.firstExecPromise.then(function () {
                         var retVal;
                         if (LQOpts.hasOwnProperty('count')) {
-                            retVal = {count: queryResult.length, index: clIndex};
+                            retVal = {count: LQ.docs.length, index: LQIndex};
                         } else {
-                            if (Array.isArray(queryResult)) {
-                                retVal = {docs: queryResult, index: clIndex};
-                            } else {
-                                retVal = {doc: queryResult, index: clIndex};
-                            }
+                            retVal = {docs: LQ.docs, index: LQIndex};
                         }
 
                         def.resolve(retVal);
+
+                        socket.registeredLQs[LQIndex] = LQ;
+
+                        LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
                     });
 
 
@@ -486,12 +490,16 @@ var expose = function (model, schema, opts) {
 
                 LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
                     if (clientQuery.hasOwnProperty('findOne')) {
-                        liveQueries[qKey].docs = [rDocs];
+                        if (rDocs) {
+                            LQ.docs = [rDocs];
+                        } else {
+                            LQ.docs = [];
+                        }
                     } else {
                         var i = rDocs.length;
                         while(i--)
                         {
-                            liveQueries[qKey].docs[i] = rDocs[i];
+                            LQ.docs[i] = rDocs[i];
                         }
                     }
 

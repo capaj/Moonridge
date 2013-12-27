@@ -85,6 +85,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
          */
         function Model() {
             var model = this;
+            var lastIndex = 0;
             this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
@@ -270,10 +271,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 								if (LQ._waitingOnFirstResponse === true) {
 									LQ._waitingOnFirstResponse = false;
 								}
-								var index = res.index;
 
-								model._LQs[index] = LQ;
-								LQ.index = index;
 								if (LQ._query.count) {
 									LQ.count = res.count;
 								} else {
@@ -291,8 +289,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						};
 
 						LQ._waitingOnFirstResponse = true;
-						LQ.promise = model.rpc.liveQuery(LQ._query);
+                        lastIndex += 1;
 
+                        model._LQs[lastIndex] = LQ;
+                        LQ.index = lastIndex;
+						LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index);
 
 						$rootScope.$watch(function () {
 							return LQ._query;

@@ -399,11 +399,11 @@ var expose = function (model, schema, opts) {
             }
         },
         /**
-         *
          * @param {Object} clientQuery object to be parsed by queryBuilder, consult mongoose query.js docs for reference
+         * @param {Number} LQIndex
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
-        liveQuery: function (clientQuery) {
+        liveQuery: function (clientQuery, LQIndex) {
             try{
                 validateClientQuery(clientQuery);
             }catch(e){
@@ -447,19 +447,15 @@ var expose = function (model, schema, opts) {
             var pushListeners = function (LQOpts) {
                 socket.clientChannelPromise.then(function (clFns) {
                     var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
-                    var lastIndex = activeClientQueryIndexes[activeClientQueryIndexes.length-1];
-                    if (!lastIndex) {
-                        lastIndex = 0;
-                    } else {
-                        if (activeClientQueryIndexes.length > maxLQsPerClient) {
-                            def.reject(new Error('Limit for queries per client reached. Try stopping some queries.'));
-                            return;
-                        }
-                    }
-                    var clIndex = Number(lastIndex) + 1;
-                    socket.registeredLQs[clIndex] = LQ;
 
-                    LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: clIndex, qOpts: LQOpts};
+                    if (activeClientQueryIndexes.length > maxLQsPerClient) {
+                        def.reject(new Error('Limit for queries per client reached. Try stopping some live queries.'));
+                        return;
+                    }
+
+                    socket.registeredLQs[LQIndex] = LQ;
+
+                    LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
 
                     LQ.firstExecPromise.then(function (queryResult) {
                         var retVal;

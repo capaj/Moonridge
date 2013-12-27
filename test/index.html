@@ -28,59 +28,7 @@
     <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
     <script src="/rpc/rpc-client-angular.js"></script>
     <script type="text/javascript" src="/moonridge-angular-client.js"></script>
+    <script src="/mr-test-ctrl.js" type="text/javascript"></script>
 
-    <script type="text/javascript">
-        angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope) {
-            var MR = $scope.MR;
-//            debugger;
-//            MR.socket.on('disconnect', function () {
-//                console.log("Ha disconnected!");
-//            });
-            var liveQuery = MR.fighter.liveQuery;
-            var limit = 2;
-            $scope.LQ = liveQuery().sort('health').limit(limit).exec();
-//            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();
-            $scope.oneLQ = liveQuery().findOne().exec();
-            $scope.cLQ = liveQuery().count().exec();
-            $scope.LQ.promise.then(function (LQ) {
-                console.log(LQ);
-            });
-
-            $scope.changeQuery = function () {
-                limit += 1;
-                $scope.LQ = liveQuery().sort('health').limit(limit).exec();
-            };
-
-            $scope.hit = function (fighter) {
-                fighter.health -= 1;
-                MR.fighter.update(fighter);
-            };
-
-            $scope.heal = function (fighter) {
-                fighter.health += 1;
-                MR.fighter.update(fighter);
-            };
-
-            $scope.remove = MR.fighter.remove;
-
-            $scope.create = function () {
-                MR.fighter.create({name: $scope.name, health: $scope.health});
-            };
-
-        }).run(function ($MR, $q, $timeout) {
-            var dfd = $q.defer();
-            var MRB = $MR('local', dfd.promise);
-            MRB.connectPromise.then(function (socket) {
-                //you can hook up more events here
-                socket.on('disconnect', function () {
-                    console.log("Ha disconnected!");
-                });
-            });
-            $timeout(function () {
-                //just an example, in real application you would use here some auth token instead of nick
-                dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=admin" } } );
-            }, 900)
-        });
-    </script>
 </body>
 </html>

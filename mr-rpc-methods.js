@@ -88,10 +88,13 @@ var expose = function (model, schema, opts) {
                                         if (cQindex === -1) {
                                             index = getIndexInSorted(qDoc, LQ.docs, sortBy);
                                             LQ.docs.splice(index, 0, qDoc);
-                                            if (LQ.docs.length > LQ.clientQuery.limit[0]) {
-                                                LQ.docs.splice(LQ.docs.length - 1, 1);
+                                            if (LQ.clientQuery.limit) {
+                                                if (LQ.docs.length > LQ.clientQuery.limit[0]) {
+                                                    LQ.docs.splice(LQ.docs.length - 1, 1);
 
+                                                }
                                             }
+
                                         }
                                     }
                                     if (evName === 'update') {

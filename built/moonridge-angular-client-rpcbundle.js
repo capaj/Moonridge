@@ -464,7 +464,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				 *
 				 * @param {Object} doc
 				 * @param {bool|Number} isInResult for count it indicates whether to increment, decrement or leave as is,
-			 * 								for normal queries can be a numerical index also
+			     * 								   for normal queries can be a numerical index also
 				 */
 				LQ.on_update = function (doc, isInResult) {
 //					console.log("index sent: " + isInResult);
@@ -577,72 +577,56 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				 *  is used for emulating mongoose query
 				 * @constructor
 				 */
-				var QueryChainable = function () {
-					var self = this;
-					this.exec = function () {
-						if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
-							throw new Error('count and sort must NOT be used on the same query');
-						}
+                var QueryChainable = function () {
+                    var self = this;
+                    this.exec = function () {
+                        if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
+                            throw new Error('count and sort must NOT be used on the same query');
+                        }
                         LQ._queryStringified = JSON.stringify(LQ._query);
                         if (model._LQsByQuery[LQ._queryStringified]) {
                             return model._LQsByQuery[LQ._queryStringified];
                         }
                         //if previous check did not found an existing query
                         model._LQsByQuery[LQ._queryStringified] = LQ;
-						var actionsOnResponse = function (first) {
-							LQ.promise = LQ.promise.then(function (res) {
 
-                                if (LQ._waitingOnFirstResponse === true) {
-									LQ._waitingOnFirstResponse = false;
-								}
-
-								if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
-									LQ.count = res.count;
-								} else {
-
-                                    var i = res.docs.length;
-                                    LQ.count = i;
-                                    while(i--) {
-                                        LQ.docs[i] = res.docs[i];
-                                    }
-
-								}
-
-								return LQ;	//
-							}, function (err) {
-								$log.error(err);
-							});
-						};
-
-						LQ._waitingOnFirstResponse = true;
+                        LQ._waitingOnFirstResponse = true;
                         lastIndex += 1;
 
                         model._LQs[lastIndex] = LQ;
                         LQ.index = lastIndex;
-						LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index);
 
-						$rootScope.$watch(function () {
-							return LQ._query;
-						}, function (nV, oV) {
-							if (angular.isUndefined(nV)) {
-								return;
-							}
-							if (!LQ._waitingOnFirstResponse) {
-								LQ.stop && LQ.stop();
-								LQ.promise = model.rpc.liveQuery(nV);
-							}
+                        LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index).then(function (res) {
 
-                            actionsOnResponse();
+                            if (LQ._waitingOnFirstResponse === true) {
+                                LQ._waitingOnFirstResponse = false;
+                            }
 
-						}, true);
+                            if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
+                                LQ.count = res.count;
+                            } else {
 
-						return LQ;
-					};
+                                var i = res.docs.length;
+                                LQ.count = i;
+                                while(i--) {
+                                    LQ.docs[i] = res.docs[i];
+                                }
+
+                            }
+
+                            return LQ;	//
+                        }, function (err) {
+                            $log.error(err);
+                        });
+
+                        return LQ;
+                    };
+
                     var APslice = Array.prototype.slice;
 
                     qMethodsEnum.forEach(function (method) {
-						self[method] = function () {
-							var qr = LQ._query;
+                        self[method] = function () {
+                            var qr = LQ._query;
 
                             if (qr.hasOwnProperty(method)) {
                                 if (typeof qr[method] === 'object') {
@@ -659,11 +643,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                                 qr[method] = APslice.call(arguments);
                             }
 
-							return self;
-						};
-					});
+                            return self;
+                        };
+                    });
 
-				};
+                };
+
 				var queryChainable = new QueryChainable();
 
 				return  queryChainable;

@@ -2,8 +2,8 @@ angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope)
     var MR = $scope.MR;
 
     var fighterLQ = MR.fighter.liveQuery;
-//    MR.fighter.create({name: 'Jon Snow', health: 70});
-//    MR.fighter.create({name: 'Roose Bolton', health: 35});
+    MR.fighter.create({name: 'Jon Snow', health: 70});
+    MR.fighter.create({name: 'Roose Bolton', health: 35});
     var limit = 2;
     $scope.LQ = fighterLQ().sort('health').limit(limit).exec();
 //            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();

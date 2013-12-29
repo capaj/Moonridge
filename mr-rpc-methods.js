@@ -256,8 +256,12 @@ var expose = function (model, schema, opts) {
      */
     function accesControlQueryModifier(clQuery, schema, userPL, op) { // gives us
         var pathPs = schema.pathPermissions;
-
-        var select = clQuery.select || {};  //overriding clQuery select field to adhere to permissions
+        var select;
+        if (clQuery.select) {
+            select = clQuery.select[0];
+        } else {
+            select = {};
+        }
         if (_.isString(select)) {
             //in this case, we need to parse the string and return the object notation
             var props = select.split(' ');
@@ -279,7 +283,7 @@ var expose = function (model, schema, opts) {
             }
         }
 
-        clQuery.select = select; //after modifying the query, we just
+        clQuery.select = [select]; //after modifying the query, we just put it back as array so that we can call it with apply
         return clQuery;
     }
 

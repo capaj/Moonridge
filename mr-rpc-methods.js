@@ -70,11 +70,11 @@ var expose = function (model, schema, opts) {
 
                 } else {
                     var checkQuery = model.findOne(LQ.mQuery);
-                    checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, id) {
+                    checkQuery.where('_id').equals(doc._id).count().exec(function(err, check) {
                             if (err) {
                                 console.error(err);
                             }
-                            if (id) {
+                            if (check === 1) {   //doc satisfies the query
                                 var qDoc;
                                 if (LQ.clientQuery.populate) {
                                     qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
@@ -510,11 +510,14 @@ var expose = function (model, schema, opts) {
                         }
                     }
 
-                    pushListeners(queryOptions);
-
                     return rDocs;
 
+                }, function (err) {
+                    console.error("First LiveQuery exec failed with err " + err);
+                    def.reject(err);
                 });
+
+                pushListeners(queryOptions);
             }
             return def.promise;
         },

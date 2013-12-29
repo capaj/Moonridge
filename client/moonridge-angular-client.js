@@ -271,17 +271,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         //if previous check did not found an existing query
                         model._LQsByQuery[LQ._queryStringified] = LQ;
 
-                        LQ._waitingOnFirstResponse = true;
                         lastIndex += 1;
 
                         model._LQs[lastIndex] = LQ;
                         LQ.index = lastIndex;
 
                         LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index).then(function (res) {
-
-                            if (LQ._waitingOnFirstResponse === true) {
-                                LQ._waitingOnFirstResponse = false;
-                            }
 
                             if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
                                 LQ.count = res.count;

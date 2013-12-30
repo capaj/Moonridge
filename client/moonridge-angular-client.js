@@ -305,14 +305,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                             var qr = LQ._query;
 
                             if (qr.hasOwnProperty(method)) {
-                                if (typeof qr[method] === 'object') {
-                                    var ind = Object.keys(qr).length;
-                                    qr[method][ind] = APslice.call(arguments);
-                                } else {
+                                if (Array.isArray(qr[method])) {
                                     qr[method] = {
                                         0: qr[method],
                                         1: APslice.call(arguments)
                                     }
+                                } else {
+                                    //must be an object
+                                    var ind = Object.keys(qr).length;
+                                    qr[method][ind] = APslice.call(arguments);
                                 }
 
                             } else {

@@ -236,8 +236,11 @@ var expose = function (model, schema, opts) {
         }
 
         if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
-            if (doc.owner.toString() === socketContext.manager.user.id || doc.id === socketContext.manager.user.id) {
-                return true;    // owner does not need any permissions, user modifying himself also has permissions
+            if (doc.owner && doc.owner.toString() === socketContext.manager.user.id) {
+                return true;    // owner does not need any permissions
+            }
+            if (doc.id === socketContext.manager.user.id) {
+                return true;    //user modifying himself also has permissions
             }
         }
 

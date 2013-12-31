@@ -90,7 +90,18 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
 //            this.methods = rpc;
+            this.update = function (toUpdate) {
+                delete toUpdate.__v;
+                return model.rpc.update(toUpdate);
+            };
 
+            this.create = function (toCreate) {
+                return model.rpc.create(toCreate);
+            };
+
+            this.remove = function (toRemove) {
+                return model.rpc.remove(toRemove._id);
+            };
             /**
              *
              * @param {Object} query NOTE: do not use + sign in select expressions
@@ -336,7 +347,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 		MRInstance.getModel = function (name, handshake) {
             var model = models[name];
             if (model) {
-                return model.deferred.promise
+                return model.deferred.promise;
             } else {
                 model = new Model();
                 models[name] = model;
@@ -366,19 +377,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     model.deferred.resolve(model);
                 });
             });
-
-            model.update = function (toUpdate) {
-                delete toUpdate.__v;
-                return model.rpc.update(toUpdate);
-            };
-
-            model.create = function (toCreate) {
-                return model.rpc.create(toCreate);
-            };
-
-            model.remove = function (toRemove) {
-                return model.rpc.remove(toRemove._id);
-            };
 
 			return model.deferred.promise;
 

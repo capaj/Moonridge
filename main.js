@@ -61,11 +61,34 @@ var createServer = function (io, app) {
     app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //exposed client file
         res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.min.js');
     });
+    var allQueries = [];
+
+    app.get('/health', function(req, res){
+
+        var allModels = {};
+        var index = allQueries.length;
+        while(index--) {
+            var modelQueriesForSerialization = {};
+            var model = allQueries[index];
+            for (var LQ in model.queries) {
+                var listenerCount = Object.keys(model.queries[LQ].listeners).length;
+                modelQueriesForSerialization[LQ] = listenerCount;
+            }
+            allModels[model.modelName] = modelQueriesForSerialization;
+
+        }
+        res.send({
+            pid: process.pid,
+            memory: process.memoryUsage(),
+            uptime: process.uptime(),   //in seconds
+            liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
+        });
+    });
 
     var socketNamespace = rpc.createServer(io, app);
 
     toCallOnCreate.forEach(function (CB) {
-       CB();
+       allQueries.push(CB());   //return object containing modelName and liveQueries Object for that model
     });
 
     return socketNamespace;

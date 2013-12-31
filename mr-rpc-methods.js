@@ -69,12 +69,12 @@ var expose = function (model, schema, opts) {
                     }
 
                 } else {
-                    var checkQuery = model.findOne(LQ.mQuery);
-                    checkQuery.where('_id').equals(doc._id).count().exec(function(err, check) {
+                    var checkQuery = model.findOne(LQ.mQueryNoSelects);
+                    checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
                                 console.error(err);
                             }
-                            if (check === 1) {   //doc satisfies the query
+                            if (checkedDoc) {   //doc satisfies the query
                                 var qDoc;
                                 if (LQ.clientQuery.populate) {
                                     qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
@@ -253,14 +253,16 @@ var expose = function (model, schema, opts) {
     };
 
     /**
-     *  This function should always modify the query so that no one sees properties that they are not allowed to see
+     *  This function should always modify the query so that no one sees properties that they are not allowed to see,
+     *  the query is modified right on the input and not somewhere later because then we get less variation and therefore less queries created
+     *  and checked on the server
      * @param {Object} clQuery object parsed from stringified argument
      * @param {Schema} schema mongoose schema
      * @param {Number} userPL user privilege level
      * @param {String} op
      * @returns {Object}
      */
-    function accesControlQueryModifier(clQuery, schema, userPL, op) { // gives us
+    function accesControlQueryModifier(clQuery, schema, userPL, op) { // guards the properties that are marked with higher required permissions for reading
         var pathPs = schema.pathPermissions;
         var select;
         if (clQuery.select) {
@@ -304,6 +306,13 @@ var expose = function (model, schema, opts) {
         this.docs = [];
         this.listeners = {};
         this.mQuery = mQuery;   //mongoose query
+        if (clientQuery.select) {
+            var clQueryNS = _.clone(clientQuery);
+            delete clQueryNS.select;
+            this.mQueryNoSelects = queryBuilder(model, clQueryNS);   //mongoose query
+        } else {
+            this.mQueryNoSelects = mQuery;   //mongoose query
+        }
         this.qKey = qKey;
         this.clientQuery = clientQuery; //serializable client query object
         return this;
@@ -398,6 +407,7 @@ var expose = function (model, schema, opts) {
          * @returns {Promise}
          */
         find: function (clientQuery) {
+            //TODO change this to query, so that it has the same power as liveQuery, just without pushing listeners
             accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
             clientQuery.lean = []; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
@@ -626,6 +636,8 @@ var expose = function (model, schema, opts) {
                 }
             });
         });
+
+        return {modelName: modelName, queries: liveQueries}; // returning for health check
     };
 
 };

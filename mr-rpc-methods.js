@@ -394,8 +394,13 @@ var expose = function (model, schema, opts) {
 
     function validateClientQuery(clientQuery) {	//errors are forwarded to client
         //TODO check query for user priviliges
-        if (clientQuery && clientQuery.sort && !_.isString(clientQuery.sort[0])) {
-            throw new Error('only string notation for sort method is supported for liveQueries');
+        if (clientQuery.sort){
+            if (clientQuery.count) {
+                throw new Error('Mongoose does not support sort and count in one query');
+            }
+            if(!_.isString(clientQuery.sort[0])) {
+                throw new Error('only string notation for sort method is supported for liveQueries');
+            }
         }
     }
 
@@ -403,11 +408,18 @@ var expose = function (model, schema, opts) {
     var channel = {
         /**
          *
-         * @param clientQuery
-         * @returns {Promise}
+         * @param {Object} clientQuery
+         * @returns {Promise} from executing the mongoose.Query
          */
-        find: function (clientQuery) {
-            //TODO change this to query, so that it has the same power as liveQuery, just without pushing listeners
+        query: function (clientQuery) {
+            try{
+                validateClientQuery(clientQuery);
+            }catch(e){
+                return e;
+            }
+            if (!opts.checkPermission(this, 'R')) {
+                return new Error('You lack a privilege to read this document');
+            }
             accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
             clientQuery.lean = []; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);

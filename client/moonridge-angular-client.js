@@ -81,6 +81,44 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         };
 
         /**
+         * is used for emulating mongoose query
+         * @param {Object} queryMaster
+         * @param {Function} execFn
+         * @constructor
+         */
+        var QueryChainable = function (queryMaster, execFn) {
+            var self = this;
+            this.exec = execFn;
+
+            var APslice = Array.prototype.slice;
+
+            qMethodsEnum.forEach(function (method) {
+                self[method] = function () {
+                    var qr = queryMaster._query;
+
+                    if (qr.hasOwnProperty(method)) {
+                        if (Array.isArray(qr[method])) {
+                            qr[method] = {
+                                0: qr[method],
+                                1: APslice.call(arguments)
+                            }
+                        } else {
+                            //must be an object
+                            var ind = Object.keys(qr).length;
+                            qr[method][ind] = APslice.call(arguments);
+                        }
+
+                    } else {
+                        qr[method] = APslice.call(arguments);
+                    }
+
+                    return self;
+                };
+            });
+
+        };
+
+        /**
          * @constructor
          */
         function Model() {
@@ -102,6 +140,16 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             this.remove = function (toRemove) {
                 return model.rpc.remove(toRemove._id);
             };
+
+            this.query = function () {
+                var master = {_query:{}};
+                var queryChainable = new QueryChainable(master, function () {
+                    return model.rpc.query(master._query);
+                });
+
+                return  queryChainable;
+            };
+
             /**
              *
              * @param {Object} query NOTE: do not use + sign in select expressions
@@ -265,79 +313,46 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						throw new Error('There must be a valid index property, when stop is called')
 					}
 				};
-				/**
-				 *  is used for emulating mongoose query
-				 * @constructor
-				 */
-                var QueryChainable = function () {
-                    var self = this;
-                    this.exec = function () {
-                        if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
-                            throw new Error('count and sort must NOT be used on the same query');
-                        }
-                        LQ._queryStringified = JSON.stringify(LQ._query);
-                        if (model._LQsByQuery[LQ._queryStringified]) {
-                            return model._LQsByQuery[LQ._queryStringified];
-                        }
-                        //if previous check did not found an existing query
-                        model._LQsByQuery[LQ._queryStringified] = LQ;
 
-                        lastIndex += 1;
+                var queryExecFn = function () {
+                    if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
+                        throw new Error('count and sort must NOT be used on the same query');
+                    }
+                    LQ._queryStringified = JSON.stringify(LQ._query);
+                    if (model._LQsByQuery[LQ._queryStringified]) {
+                        return model._LQsByQuery[LQ._queryStringified];
+                    }
+                    //if previous check did not found an existing query
+                    model._LQsByQuery[LQ._queryStringified] = LQ;
 
-                        model._LQs[lastIndex] = LQ;
-                        LQ.index = lastIndex;
+                    lastIndex += 1;
 
-                        LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index).then(function (res) {
+                    model._LQs[lastIndex] = LQ;
+                    LQ.index = lastIndex;
 
-                            if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
-                                LQ.count = res.count;
-                            } else {
+                    LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index).then(function (res) {
 
-                                var i = res.docs.length;
-                                LQ.count = i;
-                                while(i--) {
-                                    LQ.docs[i] = res.docs[i];
-                                }
+                        if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
+                            LQ.count = res.count;
+                        } else {
 
+                            var i = res.docs.length;
+                            LQ.count = i;
+                            while(i--) {
+                                LQ.docs[i] = res.docs[i];
                             }
 
-                            return LQ;	//
-                        }, function (err) {
-                            $log.error(err);
-                        });
+                        }
 
-                        return LQ;
-                    };
-
-                    var APslice = Array.prototype.slice;
-
-                    qMethodsEnum.forEach(function (method) {
-                        self[method] = function () {
-                            var qr = LQ._query;
-
-                            if (qr.hasOwnProperty(method)) {
-                                if (Array.isArray(qr[method])) {
-                                    qr[method] = {
-                                        0: qr[method],
-                                        1: APslice.call(arguments)
-                                    }
-                                } else {
-                                    //must be an object
-                                    var ind = Object.keys(qr).length;
-                                    qr[method][ind] = APslice.call(arguments);
-                                }
-
-                            } else {
-                                qr[method] = APslice.call(arguments);
-                            }
-
-                            return self;
-                        };
+                        return LQ;	//
+                    }, function (err) {
+                        $log.error(err);
                     });
 
+                    return LQ;
                 };
 
-				var queryChainable = new QueryChainable();
+				var queryChainable = new QueryChainable(LQ, queryExecFn);
 
 				return  queryChainable;
             }

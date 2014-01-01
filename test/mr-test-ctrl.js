@@ -10,7 +10,11 @@ angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope)
     $scope.oneLQ = fighterLQ().findOne().exec();
     $scope.cLQ = fighterLQ().count().exec();
     $scope.LQ.promise.then(function (LQ) {
-        console.log(LQ);
+        console.log(LQ);    //LiveQuery
+    });
+
+    MR.fighter.query().findOne().exec().then(function (res) {
+        console.log(res);   //query result
     });
 
     $scope.changeQuery = function () {

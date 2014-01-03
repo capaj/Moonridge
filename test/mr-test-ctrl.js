@@ -38,7 +38,7 @@ angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope)
         MR.fighter.create({name: $scope.name, health: $scope.health});
     };
 
-}).run(function ($MR, $q, $timeout) {
+}).run(function ($MR, $q, $timeout, $rpc) {
     var dfd = $q.defer();
     var MRB = $MR('local', dfd.promise);
     MRB.connectPromise.then(function (socket) {
@@ -47,8 +47,9 @@ angular.module('MRTest', ['Moonridge']).controller('testCtrl', function ($scope)
             console.log("Ha disconnected!");
         });
     });
+
     $timeout(function () {
         //just an example, in real application you would use here some auth token instead of nick
         dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=admin" } } );
-    }, 900)
+    }, 100)
 });

@@ -57,22 +57,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
      * @returns {*}
      */
     var Moonridge = function (name, params) {
-        var MRInstance;
+        var MRSingleton;
 
         if (MRs[name]) {
             return MRs[name];
         } else {
-            MRInstance = {};
-            MRs[name] = MRInstance;
+            MRSingleton = {};
+            MRs[name] = MRSingleton;
         }
 
         var models = {};
-        MRInstance.connectPromise = $q.when(params).then(function (rParams) {
-            MRInstance.socket = $rpc.connect(rParams.url, rParams.hs);
-            return MRInstance.socket;
+        MRSingleton.connectPromise = $q.when(params).then(function (rParams) {
+            MRSingleton.socket = $rpc.connect(rParams.url, rParams.hs);
+            return MRSingleton.socket;
         });
 
-        MRInstance.getAllModels = function () {
+        MRSingleton.getAllModels = function () {
             $rpc.loadChannel('Moonridge').then(function (mrChnl) {
                 mrChnl.getModels().then(function (models) {
 //                    TODO call getModel for all models
@@ -358,8 +358,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             }
         }
 
-		//
-		MRInstance.getModel = function (name, handshake) {
+        /**
+         * loads one model
+         * @param name
+         * @param handshake
+         * @returns {Promise} which resolves with the model
+         */
+		MRSingleton.getModel = function (name, handshake) {
             var model = models[name];
             if (model) {
                 return model.deferred.promise;
@@ -368,7 +373,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 models[name] = model;
             }
 
-            MRInstance.connectPromise.then(function () {
+            MRSingleton.connectPromise.then(function () {
                 var promises = {
                     client: $rpc.expose('MR-' + name, {
                         pub: function (doc, eventName) {
@@ -394,10 +399,25 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             });
 
 			return model.deferred.promise;
-
 		};
 
-        return MRInstance;
+        /**
+         * loads more than one model
+         * @param {Array<string>} models
+         * @param handshake
+         * @returns {Promise} which resolves with an Object where models are indexed by their names
+         */
+        MRSingleton.getModels = function (models, handshake) {
+            var promises = {};
+            var index = models.length;
+            while(index--) {
+                var modelName = models[index];
+                promises[modelName] = MRSingleton.getModel(modelName, handshake);
+            }
+            return $q.all(promises);
+        };
+
+        return MRSingleton;
     };
     /**
      * simple getter for MRs stored instances
@@ -421,8 +441,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
  * @restrict AC
  *
  * @description
- * Will instantiate angular controller when Moonridge model resolves. This way it is possible to work with it
- * without waiting on promises to resolve.
+ * Will instantiate angular controller when Moonridge model resolves. This way it is possible to work with it instantly
+ * without waiting on promises to resolve inside the controller itself.
  *
   */
 .directive('mrController', function ($controller, $q, $MR) {
@@ -452,38 +472,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         MR.getModel(attr.mrModel).then(instantiateAngularCtrl, onError);
                     }else if(attr.mrModels){
                         var mNames = attr.mrModels.split(',');
-                        var promises = {};
-                        mNames.forEach(function (name) {
-                            promises[name] = MR.getModel(name);
-                        });
-                        $q.all(promises).then(instantiateAngularCtrl, onError);
+                        MR.getModels(mNames).then(instantiateAngularCtrl, onError);
                     }
-
-
-                }
-            };
-        }
-    }
-}).directive('mrRepeat', function ($controller, $q, $MR) {
-    return {
-        compile: function compile(tEl, tAttrs) {
-            var LQprop = tEl.attr('mr-repeat');
-            tEl.attr('ng-repeat', LQprop + '.docs');
-            return {
-                pre: function (scope, iElement, attr, controller) {
-                    var LQ = scope[LQprop];
-                    //TODO make this work
-//                    scope.$watch(LQprop + '.query', function (nV, oV) {
-//                        if (nV) {
-//                            if (nV.sort) {
-//                                if (angular.isString()) {
-//                                    var val = iElement.attr('ng-repeat');
-//                                    iElement.attr('ng-repeat', val + "| orderBy:'" + LQ._query.sort + "'");
-//                                }
-//                            }
-//                        }
-//                    });
-
 
                 }
             };

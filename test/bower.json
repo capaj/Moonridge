@@ -4,17 +4,12 @@
   "dependencies": {
     "moment": "~2.1.0",
     "angular": "~1.2.6",
-    "angular-bootstrap": "~0.6.0",
     "angular-route": "~1.2.6",
     "angular-loader": "~1.2.6",
     "angular-moment": "latest",
-    "angular-translate": "~1.1.0",
     "angularLocalStorage-nc": "~0.2.1",
     "script.js": "latest",
     "jquery": "~2.0.3"
   },
-  "env": "dev",
-  "resolutions": {
-    "angular": ">=1"
-  }
+  "env": "dev"
 }

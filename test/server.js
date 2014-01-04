@@ -17,6 +17,11 @@ app.configure(function(){
 });
 
 var server = app.listen(app.get('port'));
+
+//This block is not needed when running normally as npm module
+app.get('/es5-shim.js', function (req, res) {
+    res.sendfile('./node_modules/socket.io-rpc/tests/es5-shim.js');
+});
 app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
 	res.sendfile('./client/moonridge-angular-client.js');
 });
@@ -61,6 +66,6 @@ io.configure(function (){
 
 Moonridge.createServer(io, app);
 
-app.get('*', function (req, res) {
+app.get('/', function (req, res) {
     res.sendfile('./test/index.html');
 });

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html ng-app="MRTest">
 <head>
-    <title></title>
+    <title>Moonridge browser test suite</title>
+    <!--uncomment es5-shim for IE8 support-->
+    <!--<script type="text/javascript" src="/es5-shim.js"></script>-->
 </head>
 <body mr-controller="testCtrl" mr-backend="local" mr-models="user,fighter">
     <label for="query">Name</label><input type="text" id="query" ng-model='name'>

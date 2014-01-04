@@ -158,13 +158,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             this.liveQuery = function (query) {
 				var LQ = {};
                 LQ.docs = [];
-                Object.defineProperty(LQ, 'doc', {
-                    enumerable: false,
-                    configurable: false,
-                    get: function () {
-                        return LQ.docs[0];
-                    }
-                });
+                if (navigator.userAgent.indexOf('MSIE 8.0') === -1) {
+                    Object.defineProperty(LQ, 'doc', {
+                        enumerable: false,
+                        configurable: false,
+                        get: function () {
+                            return LQ.docs[0];
+                        }
+                    });
+                }
                 LQ.count = 0;
 				LQ._query = query || {};	//serializable query object
 

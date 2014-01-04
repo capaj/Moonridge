@@ -3,9 +3,9 @@
   "version": "0.0.2",
   "dependencies": {
     "moment": "~2.1.0",
-    "angular": "~1.2.6",
-    "angular-route": "~1.2.6",
-    "angular-loader": "~1.2.6",
+    "angular": "~1.2.7",
+    "angular-route": "~1.2.7",
+    "angular-loader": "~1.2.7",
     "angular-moment": "latest",
     "angularLocalStorage-nc": "~0.2.1",
     "script.js": "latest",

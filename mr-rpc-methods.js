@@ -53,10 +53,15 @@ var expose = function (model, schema, opts) {
                     LQ.callClientListeners(doc, evName, false);
 
                     if (LQ.clientQuery.limit) {
-                        model.find(LQ.mQuery).lean().skip((LQ.clientQuery.skip[0] || 0) + LQ.clientQuery.limit[0] - 1).limit(1)
+                        var skip = 0;
+                        if (LQ.clientQuery.skip) {
+                            skip = LQ.clientQuery.skip[0];
+                        }
+                        skip += LQ.clientQuery.limit[0] - 1;
+                        model.find(LQ.mQuery).lean().skip(skip).limit(1)
                             .exec(function(err, docArr) {
                                 if (docArr.length === 1) {
-                                    var toFillIn = docArr[0];   //TODO check if this index is correct
+                                    var toFillIn = docArr[0];
                                     if (toFillIn) {
                                         LQ.docs.push(toFillIn);
                                         LQ.callClientListeners(toFillIn, 'push');

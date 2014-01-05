@@ -466,7 +466,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     return model.rpc.query(master._query);
                 });
 
-                return  queryChainable;
+                return queryChainable;
             };
 
             /**
@@ -800,4 +800,64 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
         }
     }
-});
+})
+/**
+ * @ngdoc directive
+ * @name Moonridge.directive:mrRepeat
+ * @restrict A
+ *
+ * @description
+ * syntactic sugar on top of ng-repeat directive.
+ *
+ */
+.directive('mrRepeat', function ($compile, mrSpinner) {
+    return {
+        compile: function compile(tEl, tAttrs) {
+            var content = tEl.html();
+            tEl.html(mrSpinner);
+            return function (scope, el, attr) {
+                var LQprop = attr.mrRepeat;
+                var LQname = LQprop.split('in ')[1];
+
+                scope.$watch(LQname, function (nV, oV) {
+                    var isLQ;
+                    function onReady(resolveP) {
+                        el.removeAttr('mr-repeat');
+                        if (isLQ) {
+                            el.attr('ng-repeat', LQprop + '.docs');
+                        } else {
+                            el.attr('ng-repeat', LQprop);
+                            scope[LQname] = resolveP;   // overwriting the promise on scope with result of the query
+                        }
+
+                        el.html(content);
+                        $compile(el)(scope);
+
+                    }
+                    if (nV) {
+                        if (nV.promise) {
+                            isLQ = true;
+                            nV.promise.then(onReady);
+                        } else if(nV.then) {
+                            isLQ = false;
+                            nV.then(onReady);
+                        }
+                    }
+                    if (oV && oV.stop && !attr.noStopping) {
+                        oV.stop();
+                        console.log("Query " + oV._queryStringified + ' was stopped automatically.');
+                    }
+                });
+
+            }
+
+        }
+    }
+}).value('mrSpinner',
+'<div class="spinner">'+
+    '<div class="rect1"></div>'+
+    '<div class="rect2"></div>'+
+    '<div class="rect3"></div>'+
+    '<div class="rect4"></div>'+
+    '<div class="rect5"></div>'+
+'</div>');

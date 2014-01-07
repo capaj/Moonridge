@@ -2,6 +2,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     var MR = $scope.MR;
 
     var fighterLQ = MR.fighter.liveQuery;
+
     MR.fighter.create({name: 'Jon Snow', health: 70});
     MR.fighter.create({name: 'Roose Bolton', health: 35});
     var limit = 3;
@@ -38,7 +39,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         MR.fighter.create({name: $scope.name, health: $scope.health});
     };
 
-}).run(function ($MR, $q, $timeout, $rpc) {
+}).controller('loginCtrl',function ($scope, $MR, $q, $timeout, $rpc) {
     var dfd = $q.defer();
     var MRB = $MR('local', dfd.promise);
     MRB.connectPromise.then(function (socket) {
@@ -48,8 +49,14 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         });
     });
 
-    $timeout(function () {
-        //just an example, in real application you would use here some auth token instead of nick
+    $scope.admin = function () {
         dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=admin" } } );
-    }, 100)
+
+    }
+
+    $scope.user = function () {
+        dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=testUser" } } );
+
+    }
+
 });

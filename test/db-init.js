@@ -39,11 +39,16 @@ module.exports = function (MR) {
     Promise.all(prs).then(function () {
         console.log("all collections should be dropped");
 
-        //just run once to have a user
         user.model.create({
             name: 'admin', privilige_level: 50
         }).then(function () {
             console.log("admin created");
+        });
+
+        user.model.create({
+            name: 'testUser', privilige_level: 10
+        }).then(function () {
+            console.log("testUser created");
         });
 
 

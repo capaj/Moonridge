@@ -448,6 +448,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
  *
   */
 .directive('mrController', function ($controller, $q, $MR) {
+    var onError = function (err) {
+        throw new Error("Cannot instantiate mr-controller - error: " + err);
+    };
     return {
         scope: true,
         compile: function compile(tEl, tAttrs) {
@@ -467,9 +470,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         });
                         iElement.children().data('$ngControllerController', ctrl);
                     };
-                    var onError = function (err) {
-                        throw new Error("Cannot instantiate mr-controller - error: " + err);
-                    };
+
                     if (attr.mrModel) {
                         MR.getModel(attr.mrModel).then(instantiateAngularCtrl, onError);
                     }else if(attr.mrModels){
@@ -497,38 +498,38 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             var content = tEl.html();
             tEl.html(mrSpinner);
             return function (scope, el, attr) {
-                var LQprop = attr.mrRepeat;
-                var LQname = LQprop.split('in ')[1];
+                var repeatExpr = attr.mrRepeat;
+                var varName = repeatExpr.split('in ')[1];
 
-                scope.$watch(LQname, function (nV, oV) {
-                    var isLQ;
-                    function onReady(resolveP) {
-                        el.removeAttr('mr-repeat');
-                        if (isLQ) {
-                            el.attr('ng-repeat', LQprop + '.docs');
-                        } else {
-                            el.attr('ng-repeat', LQprop);
-                            scope[LQname] = resolveP;   // overwriting the promise on scope with result of the query
-                        }
-
-                        el.html(content);
-                        $compile(el)(scope);
-
-                        if (isLQ && !attr.noStopping) {
-                            scope.$on('$destroy', function() {
-                                nV.stop();
-                                console.log("Query " + nV._queryStringified + ' was stopped automatically.');
-                            });
-
-                        }
+                var LQ;
+                function onReady(resolveP) {
+                    el.removeAttr('mr-repeat');
+                    if (LQ) {
+                        el.attr('ng-repeat', repeatExpr + '.docs');
+                    } else {
+                        el.attr('ng-repeat', repeatExpr);
+                        scope[varName] = resolveP;   // overwriting the promise on scope with result of the query
                     }
+
+                    el.html(content);
+                    $compile(el)(scope);
+
+                    if (LQ && !attr.noStopping) {
+                        scope.$on('$destroy', function() {
+                            LQ.stop();
+//                                console.log("Query " + LQ._queryStringified + ' was stopped automatically.');
+                        });
+
+                    }
+                }
+
+                scope.$watch(varName, function (nV) {
                     if (nV) {
                         if (nV.promise) {
-                            isLQ = true;
+                            LQ = nV;
                             nV.promise.then(onReady);
 
                         } else if(nV.then) {
-                            isLQ = false;
                             nV.then(onReady);
                         }
                     }

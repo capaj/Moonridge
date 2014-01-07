@@ -33,23 +33,30 @@
         }
     </style>
 </head>
-<body mr-controller="testCtrl" mr-backend="local" mr-models="user,fighter">
-    <label for="query">Name</label><input type="text" id="query" ng-model='name'>
-    <label for="health">health</label><input type="number" id="health" ng-model='health'>
-    <button ng-click="create()">create</button>
-    <button ng-click="changeQuery()">limit +1</button>
-    <br/>
-    Total documents: <span ng-bind="cLQ.count"></span>
-    <div>
-        <h1>Find query</h1>
-        <p mr-repeat="fighter in LQ" class="left-slide">
-            {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
-        </p>
-        <h1>Find One query</h1>
-        <p>
-            {{ oneLQ.doc }} <button ng-click="hit(oneLQ.doc)">Hit</button> <button ng-click="heal(oneLQ.doc)">Heal</button> <button ng-click="remove(oneLQ.doc)">Del</button>
-        </p>
-    </div>
+<body >
+<div ng-controller="loginCtrl">
+    <button ng-click="user()">User</button>
+    <button ng-click="admin()">Admin</button>
+</div>
+   <div mr-controller="testCtrl" mr-backend="local" mr-models="user,fighter">
+       <label for="query">Name</label><input type="text" id="query" ng-model='name'>
+       <label for="health">health</label><input type="number" id="health" ng-model='health'>
+       <button ng-click="create()">create</button>
+       <button ng-click="changeQuery()">limit +1</button>
+       <br/>
+       Total documents: <span ng-bind="cLQ.count"></span>
+       <div>
+           <h1>Find query</h1>
+           <p mr-repeat="fighter in LQ" class="left-slide">
+               {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
+           </p>
+           <h1>Find One query</h1>
+           <p>
+               {{ oneLQ.doc }} <button ng-click="hit(oneLQ.doc)">Hit</button> <button ng-click="heal(oneLQ.doc)">Heal</button> <button ng-click="remove(oneLQ.doc)">Del</button>
+           </p>
+       </div>
+   </div>
+
 
     <script src="/socket.io/socket.io.js"></script>
 

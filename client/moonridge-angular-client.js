@@ -514,19 +514,23 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         el.html(content);
                         $compile(el)(scope);
 
+                        if (isLQ && !attr.noStopping) {
+                            scope.$on('$destroy', function() {
+                                nV.stop();
+                                console.log("Query " + nV._queryStringified + ' was stopped automatically.');
+                            });
+
+                        }
                     }
                     if (nV) {
                         if (nV.promise) {
                             isLQ = true;
                             nV.promise.then(onReady);
+
                         } else if(nV.then) {
                             isLQ = false;
                             nV.then(onReady);
                         }
-                    }
-                    if (oV && oV.stop && !attr.noStopping) {
-                        oV.stop();
-                        console.log("Query " + oV._queryStringified + ' was stopped automatically.');
                     }
                 });
 

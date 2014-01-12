@@ -5,6 +5,7 @@ var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
+var logger = require('./utils/logger');
 /**
  *
  * @param {Model} model Moonridge model
@@ -26,15 +27,15 @@ var expose = function (model, schema, opts) {
      */
     function deleteUnpermittedProps(doc, op, userPL) {
         var pathPs = schema.pathPermissions;
-        var doc = _.clone(doc);
+        var docClone = _.clone(doc);
 
         for (var prop in pathPs) {
             var perm = pathPs[prop];
             if (perm[op] && perm[op] > userPL) {
-                delete doc[prop];
+                delete docClone[prop];
             }
         }
-        return doc;
+        return docClone;
     }
 
     var getIndexInSorted = require('./utils/indexInSortedArray');
@@ -77,7 +78,7 @@ var expose = function (model, schema, opts) {
                     var checkQuery = model.findOne(LQ.mQueryNoSelects);
                     checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
-                                console.error(err);
+                                logger.error(err);
                             }
                             if (checkedDoc) {   //doc satisfies the query
                                 var qDoc;
@@ -363,6 +364,7 @@ var expose = function (model, schema, opts) {
 
         },
         _distributeChange: function (doc, evName, isInResult) {
+            logger.info('doc %s event %s, pos param: ' + isInResult, doc._id, evName);
             for (var socketId in this.listeners) {
                 var listener = this.listeners[socketId];
                 var toSend = null;
@@ -543,7 +545,7 @@ var expose = function (model, schema, opts) {
                     return rDocs;
 
                 }, function (err) {
-                    console.error("First LiveQuery exec failed with err " + err);
+                    logger.error("First LiveQuery exec failed with err " + err);
                     def.reject(err);
                 });
 
@@ -653,6 +655,8 @@ var expose = function (model, schema, opts) {
                 }
             });
         });
+
+        logger.info('Model %s was exposed', modelName);
 
         return {modelName: modelName, queries: liveQueries}; // returning for health check
     };

@@ -1,5 +1,20 @@
 /**
  *
+ * @param {Object} obj
+ * @param {Array<String>} accessorStrings
+ * @returns {*}
+ */
+var getValueForProp = function (obj, accessorStrings) {
+    var prop = obj;
+    while(accessorStrings.length) {
+        prop = prop[accessorStrings[0]];
+        accessorStrings = accessorStrings.slice(1);
+    }
+    return prop;
+};
+
+/**
+ *
  * @param {Object} element
  * @param {Array<Object>} array sorted
  * @param {Array<String>} sortBy keys
@@ -15,15 +30,20 @@ module.exports = function getIndexForElement(element, array, sortBy) {
 	var isLowerSorted = function isLowerSorted(first, second) {
 		var i = 0;
 		var prop = sortBy[0];
+        var firstVal;
+        var secondVal;
+        var accesorStrings;
 
 		while(sortBy[i]) {
 			if (prop[0] === '-') {
 				prop = prop.slice(1);
-
-				if (first[prop] < second[prop]) {
+                accesorStrings = prop.split('.');
+                firstVal = getValueForProp(first, accesorStrings);
+                secondVal = getValueForProp(second, accesorStrings);
+                if (firstVal < secondVal) {
 					return false;
 				}
-				if (first[prop] > second[prop]) {
+				if (firstVal > secondVal) {
 					return true;
 				} else {
 					i += 1;
@@ -31,10 +51,13 @@ module.exports = function getIndexForElement(element, array, sortBy) {
 				}
 
 			} else {
-				if (first[prop] < second[prop]) {
+                accesorStrings = prop.split('.');
+                firstVal = getValueForProp(first, accesorStrings);
+                secondVal = getValueForProp(second, accesorStrings);
+				if (firstVal < secondVal) {
 					return true;
 				}
-				if (first[prop] > second[prop]) {
+				if (firstVal > secondVal) {
 					return false;
 				} else {
 					i += 1;

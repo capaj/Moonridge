@@ -44,8 +44,8 @@ var expose = function (model, schema, opts) {
         var doc = mDoc.toObject();
         Object.keys(liveQueries).forEach(function (LQString) {
             var LQ = liveQueries[LQString];
-            LQ.firstExecPromise.then(function () {
 
+            var syncLogic = function () {
                 var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
 
                 if (evName === 'remove' && LQ.docs[cQindex]) {
@@ -156,7 +156,12 @@ var expose = function (model, schema, opts) {
                         }
                     );
                 }
-            });
+            };
+            if (LQ.firstExecDone) {
+                syncLogic();
+            } else {
+                LQ.firstExecPromise.then(syncLogic);
+            }
 
         });
 
@@ -500,7 +505,7 @@ var expose = function (model, schema, opts) {
                         return;
                     }
 
-                    LQ.firstExecPromise.then(function () {
+                    var resolveFn = function () {
                         var retVal;
                         if (LQOpts.hasOwnProperty('count')) {
                             retVal = {count: LQ.docs.length, index: LQIndex};
@@ -513,8 +518,13 @@ var expose = function (model, schema, opts) {
                         socket.registeredLQs[LQIndex] = LQ;
 
                         LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
-                    });
+                    };
 
+                    if (LQ.firstExecDone) {
+                        resolveFn();
+                    } else {
+                        LQ.firstExecPromise.then(resolveFn);
+                    }
 
                 }, function (err) {
                     def.reject(err);
@@ -528,6 +538,7 @@ var expose = function (model, schema, opts) {
                 liveQueries[qKey] = LQ;
 
                 LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
+                    LQ.firstExecDone = true;
                     if (clientQuery.hasOwnProperty('findOne')) {
                         if (rDocs) {
                             LQ.docs = [rDocs];

@@ -94,31 +94,11 @@ module.exports = function MRModel(name, schema, opts) {
 //        console.log('%s has been removed', doc._id);
     });
 
-	/**
-	 * static method for subscribing to events
-	 * @param {String|Array<String>} event
-	 * @param {Function} callback
-	 * @returns {*}
-	 */
-	var on = function on(event, callback) {
-		if (Array.isArray(event)) {
-			event.forEach(function (ev) {
-				on(ev, callback);
-			});
-		}
-		if (typeof callback == 'function') {
-			return schemaEvS.subscribe(event, callback);
-		} else {
-			throw new Error('Callback is something else than a function');
-		}
-	};
-
-	mgSchema.static('on', on);
+	mgSchema.static('on', schemaEvS.subscribe);
     mgSchema.static('onCUD', function (callback) {
-        ['create', 'update', 'remove'].forEach(function (ev) {
-            on(ev, callback);
-        });
+        schemaEvS.subscribe(['create', 'update', 'remove'], callback);
 	});
+
     mgSchema.static('off', unsubscribe);
     // Create model from schema
 

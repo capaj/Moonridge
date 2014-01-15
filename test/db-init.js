@@ -12,7 +12,18 @@ module.exports = function (MR) {
         born: Date,
         death: { type: Date, permissions:{R: 4, W: 20}},
         owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
-    });
+    }, {
+            permissions: {
+                C: 20,
+                R: 0,
+                U: 50,
+                D: 50
+            }
+//            checkPermission: function () {    //for overriding permission check
+//                return false;
+//            }
+        }
+    );
 
     Fighter.model.on('preupdate', function (doc, evName, previous) {
         console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic

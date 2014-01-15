@@ -118,6 +118,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
         };
 
+        function onRejection(reason) {
+            $log.error(reason);
+            return $q.reject(reason);
+        }
+
         /**
          * @constructor
          */
@@ -130,15 +135,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 //            this.methods = rpc;
             this.update = function (toUpdate) {
                 delete toUpdate.__v;
-                return model.rpc.update(toUpdate);
+                return model.rpc.update(toUpdate).catch(onRejection);
             };
 
             this.create = function (toCreate) {
-                return model.rpc.create(toCreate);
+                return model.rpc.create(toCreate).catch(onRejection);
             };
 
             this.remove = function (toRemove) {
-                return model.rpc.remove(toRemove._id);
+                return model.rpc.remove(toRemove._id).catch(onRejection);
             };
 
             this.query = function () {
@@ -347,9 +352,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         }
 
                         return LQ;	//
-                    }, function (err) {
-                        $log.error(err);
-                    });
+                    }, onRejection);
 
                     return LQ;
                 };

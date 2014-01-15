@@ -10,7 +10,7 @@ var logger = require('./utils/logger');
  *
  * @param {Model} model Moonridge model
  * @param {Schema} schema mongoose schema
- * @param {Object} opts
+ * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function (model, schema, opts) {
     var liveQueries = {};
@@ -18,7 +18,7 @@ var expose = function (model, schema, opts) {
     var modelName = model.modelName;
 
     /**
-     * similar purpose as accesControlQueryModifier but works not on query, but objects, usable whenever we are sending
+     * similar purpose as accessControlQueryModifier but works not on query, but objects, usable whenever we are sending
      * new doc to client without querying
      * @param {Object} doc just JS object, not a real mongoose doc
      * @param {String} op operation, 'R' or 'W'
@@ -231,37 +231,42 @@ var expose = function (model, schema, opts) {
         return evIds;
     }
 
-    /**
-     *
-     * @param {String} op operation to check, can be 'C','R', 'U', 'D'
-     * @param socketContext
-     * @param {Document} [doc]
-     * @returns {bool} true when user has permission, false when not
-     */
-    opts.checkPermission = function (socketContext, op, doc) {
-        var PL; //privilige level
-        try{
-            PL = socketContext.manager.user.privilige_level;
-        }catch(e){
-            PL = 0;
-        }
+    if (!opts.checkPermission) {
+        /**
+         *
+         * @param {String} op operation to check, can be 'C','R', 'U', 'D'
+         * @param socketContext
+         * @param {Document} [doc]
+         * @returns {bool} true when user has permission, false when not
+         */
+        opts.checkPermission = function (socketContext, op, doc) {
+            var PL; //privilige level
+            try{
+                PL = socketContext.manager.user.privilige_level;
+            }catch(e){
+                PL = 0;
+            }
 
-        if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
-            if (doc.owner && doc.owner.toString() === socketContext.manager.user.id) {
-                return true;    // owner does not need any permissions
+            if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
+                if (doc.owner && doc.owner.toString() === socketContext.manager.user.id) {
+                    return true;    // owner does not need any permissions
+                }
+                if (doc.id === socketContext.manager.user.id) {
+                    return true;    //user modifying himself also has permissions
+                }
             }
-            if (doc.id === socketContext.manager.user.id) {
-                return true;    //user modifying himself also has permissions
-            }
-        }
 
-        if (this.permissions && this.permissions[op]) {
-            if (PL < this.permissions[op]) {
-                return false;
+            if (this.permissions && this.permissions[op]) {
+                if (PL < this.permissions[op]) {
+                    return false;
+                }
             }
-        }
-        return true;
-    };
+            return true;
+        };
+    } else {
+        logger.info('checkPermission method is overriden for model "%s"', modelName);
+    }
+
 
     /**
      *  This function should always modify the query so that no one sees properties that they are not allowed to see,
@@ -273,7 +278,7 @@ var expose = function (model, schema, opts) {
      * @param {String} op
      * @returns {Object}
      */
-    function accesControlQueryModifier(clQuery, schema, userPL, op) { // guards the properties that are marked with higher required permissions for reading
+    function accessControlQueryModifier(clQuery, schema, userPL, op) { // guards the properties that are marked with higher required permissions for reading
         var pathPs = schema.pathPermissions;
         var select;
         if (clQuery.select) {
@@ -432,7 +437,7 @@ var expose = function (model, schema, opts) {
             if (!opts.checkPermission(this, 'R')) {
                 return new Error('You lack a privilege to read this document');
             }
-            accesControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
+            accessControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
             clientQuery.lean = []; // this should make query always lean
             var mQuery = queryBuilder(model, clientQuery);
             return mQuery.exec();
@@ -469,7 +474,7 @@ var expose = function (model, schema, opts) {
             }
             def = Promise.defer();
             if (!clientQuery.count) {
-                accesControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
+                accessControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
             }
 
             var queryOptions = {};

@@ -17,26 +17,33 @@ var expose = function (model, schema, opts) {
     opts = opts || {};
     var modelName = model.modelName;
 
-    /**
-     * similar purpose as accessControlQueryModifier but works not on query, but objects, usable whenever we are sending
-     * new doc to client without querying
-     * @param {Object} doc just JS object, not a real mongoose doc
-     * @param {String} op operation, 'R' or 'W'
-     * @param {Number} userPL privilige level of the current user
-     * @returns {*}
-     */
-    function deleteUnpermittedProps(doc, op, userPL) {
-        var pathPs = schema.pathPermissions;
-        var docClone = _.clone(doc);
+    if (opts.dataTransform) {
+        logger.info('dataTransform method is overridden for model "%s"', modelName);
+    } else {
+        /**
+         * similar purpose as accessControlQueryModifier but works not on query, but objects, usable whenever we are sending
+         * new doc to client without querying
+         * @param {Object} doc just JS object, not a real mongoose doc
+         * @param {String} op operation that is about to happen, possible values are: 'R', 'W'
+         * @param {Socket} socket
+         * @returns {*}
+         */
+        opts.dataTransform = function deleteUnpermittedProps(doc, op, socket) {
+            var userPL = socket.manager.user.privilige_level;
 
-        for (var prop in pathPs) {
-            var perm = pathPs[prop];
-            if (perm[op] && perm[op] > userPL) {
-                delete docClone[prop];
+            var pathPs = schema.pathPermissions;
+            var docClone = _.clone(doc);
+
+            for (var prop in pathPs) {
+                var perm = pathPs[prop];
+                if (perm[op] && perm[op] > userPL) {
+                    delete docClone[prop];
+                }
             }
+            return docClone;
         }
-        return docClone;
     }
+
 
     var getIndexInSorted = require('./utils/indexInSortedArray');
 
@@ -264,7 +271,7 @@ var expose = function (model, schema, opts) {
             return true;
         };
     } else {
-        logger.info('checkPermission method is overriden for model "%s"', modelName);
+        logger.info('checkPermission method is overridden for model "%s"', modelName);
     }
 
 
@@ -388,9 +395,8 @@ var expose = function (model, schema, opts) {
                     }
                 }
 
-                var uP = listener.socket.manager.user.privilige_level;
-                toSend = deleteUnpermittedProps(toSend, 'R', uP);
-                listener.rpcChannel.pubLQ(toSend, evName, listener.clIndex, isInResult);
+                toSend = opts.dataTransform(toSend, 'R', listener.socket);
+                listener.rpcChannel[evName](listener.clIndex, toSend, isInResult);
             }
         },
         /**
@@ -582,7 +588,7 @@ var expose = function (model, schema, opts) {
                 if (!opts.checkPermission(this, 'C')) {
                     return new Error('You lack a privilege to create this document');
                 }
-                deleteUnpermittedProps(newDoc, 'W', this.manager.user.privilige_level);
+                opts.dataTransform(newDoc, 'W', this);
                 if (schema.paths.owner) {
                     //we should set the owner field if it is present
                     newDoc.owner = this.manager.user._id;
@@ -617,7 +623,6 @@ var expose = function (model, schema, opts) {
             },
             update: function (toUpdate) {
 
-                var uPL = this.manager.user.privilige_level;
                 var def = Promise.defer();
                 var socket = this;
                 var id = toUpdate._id;
@@ -628,7 +633,7 @@ var expose = function (model, schema, opts) {
                 model.findById(id, function (err, doc) {
                     if (doc) {
                         if (opts.checkPermission(socket, 'U', doc)) {
-                            deleteUnpermittedProps(toUpdate, 'W', uPL);
+                            opts.dataTransform(toUpdate, 'W', socket);
                             var previousVersion = doc.toObject();
                             _.extend(doc, toUpdate);
                             doc.__v += 1;

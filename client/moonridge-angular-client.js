@@ -155,6 +155,23 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 return queryChainable;
             };
 
+            var createLQEventHandler = function (eventName) {
+                return function (LQId, doc, isInResult) {
+                    if (model._LQs[LQId]) {
+                        //updateLQ
+                        model._LQs[LQId]['on_' + eventName](doc, isInResult);
+                    } else {
+                        $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
+                    }
+                }
+            };
+
+            this.clientRPCMethods = {
+                update: createLQEventHandler('update'),
+                remove: createLQEventHandler('remove'),
+                create: createLQEventHandler('create')
+            };
+
             /**
              *
              * @param {Object} query NOTE: do not use + sign in select expressions
@@ -373,26 +390,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             var model = models[name];
             if (model) {
                 return model.deferred.promise;
-            } else {
-                model = new Model();
-                models[name] = model;
             }
+
+            model = new Model();
+            models[name] = model;
 
             MRSingleton.connectPromise.then(function () {
                 var promises = {
-                    client: $rpc.expose('MR-' + name, {
-                        pub: function (doc, eventName) {
-                            //todo implement
-                        },
-                        pubLQ: function (doc, eventName, LQId, isInResult) {
-                            if (model._LQs[LQId]) {
-                                //updateLQ
-                                model._LQs[LQId]['on_' + eventName](doc, isInResult);
-                            } else {
-                                $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
-                            }
-                        }
-                    }),
+                    client: $rpc.expose('MR-' + name, model.clientRPCMethods),
                     server: $rpc.loadChannel('MR-' + name, handshake)
                 };
 

@@ -33,9 +33,9 @@ module.exports = function MRModel(name, schema, opts) {
     var mgSchema = new this.Schema(schema);
 
     mgSchema.pres = {
-        onPrecreate: callNext,
-        onPreupdate: callNext,
-        onPreremove: callNext
+        preCreate: callNext,
+        preUpdate: callNext,
+        preRemove: callNext
     };
     if (opts) {
         if (opts.statics) {
@@ -69,9 +69,9 @@ module.exports = function MRModel(name, schema, opts) {
     mgSchema.pre('save', function preSave(next) {
         this._wasNew = this.isNew;
 		if (this.isNew) {
-			mgSchema.pres.onPrecreate(next, this);
+			mgSchema.pres.preCreate(next, this);
 		} else {
-			mgSchema.pres.onPreupdate(next, this)
+			mgSchema.pres.preUpdate(next, this)
 		}
     });
 
@@ -86,7 +86,7 @@ module.exports = function MRModel(name, schema, opts) {
     });
 
     mgSchema.pre('remove', function preRemove(next) {
-        mgSchema.pres.onPreremove(next, this);
+        mgSchema.pres.preRemove(next, this);
     });
 
 	mgSchema.post('remove', function postRemove(doc) {

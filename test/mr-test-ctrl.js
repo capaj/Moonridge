@@ -41,7 +41,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 
 }).controller('loginCtrl',function ($scope, $MR, $q, $timeout, $rpc) {
     var dfd = $q.defer();
-    var MRB = $MR('local', dfd.promise);
+    var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
     MRB.connectPromise.then(function (socket) {
         //you can hook up more events here
         socket.on('disconnect', function () {

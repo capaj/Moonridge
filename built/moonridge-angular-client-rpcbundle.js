@@ -319,7 +319,7 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 
 angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
     var MRs = {}; //stores instances of Moonridge
-
+    var defaultBackend;
 	var qMethodsEnum = [	//query methods which modifies the collection are not included, those have to be called via RPC methods
 		'all',
 		'and',
@@ -370,12 +370,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     /**
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
-     * @param {Object} params
-     * @param {String} params.url backend adress
-     * @param {Object} params.hs handshake for socket.io
-     * @returns {*}
+     * @param {Promise} connectPromise should be resolved with an object with following properties:
+     *                                  {String} url backend address
+     *                                  {Object} hs handshake for socket.io
+     * @param isDefault default if true, this backend will be used for any mr-controller, which does not have it defined
+     * @returns {Object} Moonridge singleton
      */
-    var Moonridge = function (name, params) {
+    var Moonridge = function (name, connectPromise, isDefault) {
         var MRSingleton;
 
         if (MRs[name]) {
@@ -386,7 +387,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         }
 
         var models = {};
-        MRSingleton.connectPromise = $q.when(params).then(function (rParams) {
+        MRSingleton.connectPromise = $q.when(connectPromise).then(function (rParams) {
             MRSingleton.socket = $rpc.connect(rParams.url, rParams.hs);
             return MRSingleton.socket;
         });
@@ -746,6 +747,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             return $q.all(promises);
         };
 
+        if (isDefault) {
+            defaultBackend = MRSingleton;
+        }
+
         return MRSingleton;
     };
     /**
@@ -760,6 +765,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         } else {
             throw new Error('no such Moonridge backend');
         }
+    };
+
+    Moonridge.getDefaultBackend = function () {
+        return defaultBackend;
     };
 
     return Moonridge;
@@ -784,9 +793,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var backend = attr.mrBackend;
+                    var MR;
+                    if (attr.mrBackend) {
+                        MR = $MR.getBackend(attr.mrBackend);
+                    } else {
+                        MR = $MR.getDefaultBackend();
+                    }
 
-                    var MR = $MR.getBackend(backend);
                     var instantiateAngularCtrl = function (model) {
                         scope.MR = model;	//MR for Moonridge
 						scope.$on('$destroy', function() {

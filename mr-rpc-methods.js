@@ -578,8 +578,7 @@ var expose = function (model, schema, opts) {
         //TODO have a method to stop and resume liveQuery
         //subscribe
         sub: subscribe,
-        subAll: subscribeAll,
-        populate: model.populate
+        subAll: subscribeAll
     };
 
     if (opts && opts.readOnly !== true) {

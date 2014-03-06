@@ -10,6 +10,7 @@
     "model",
     "liveQuery",
     "realtime",
+    "mongo",
     "mongoose"
   ],
   "repository": {

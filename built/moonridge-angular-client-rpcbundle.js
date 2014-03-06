@@ -801,21 +801,33 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     }
 
                     var instantiateAngularCtrl = function (model) {
-                        scope.MR = model;	//MR for Moonridge
 						scope.$on('$destroy', function() {
 							//TODO stop liveQueries
 						});
-                        var ctrl = $controller(ctrlName, {
+                        var localInj = {
                             $scope: scope
-                        });
+                        };
+                        var injName = 'models';
+                        if (attr.mrModel) {
+                            injName = attr.mrModel;
+                        }
+                        localInj[injName] = model;
+                        var ctrl = $controller(ctrlName, localInj);
                         iElement.children().data('$ngControllerController', ctrl);
                     };
 
-                    if (attr.mrModel) {
+                    if (attr.mrModel && attr.mrModels === undefined) {
                         MR.getModel(attr.mrModel).then(instantiateAngularCtrl, onError);
-                    }else if(attr.mrModels){
+                    }else if(attr.mrModels && attr.mrModel === undefined){
                         var mNames = attr.mrModels.split(',');
                         MR.getModels(mNames).then(instantiateAngularCtrl, onError);
+                    } else {
+                        var el = iElement[0].outerHTML;
+                        if (attr.mrModels && attr.mrModel) {
+                            throw new Error('Cannot have both mr-model and mr-models attributes defined on element: ' + el);
+                        } else {
+                            throw new Error('No Moonridge models defined on element: ' + el);
+                        }
                     }
 
                 }

@@ -6,19 +6,20 @@ MONgoose bRIDGE to angular.js. Takes your mongoose models and exposes them for e
 Offers killer feature of Meteor for MEAN stack. How?
 Basic usage in angular controller on the CLIENT side:
     
-    var MR = $scope.MR;
-    // create a book
-    MR.book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});
-    // query for it
-    MR.book.query().findOne().exec();
-    // delete it
-    MR.book.remove(book);
-    //best for last- liveQuery
-    $scope.LQ = MR.book.liveQuery().find().exec();
-    //$scope.LQ.docs will contain up to date synced collection of documents taht satisfy the query. You can
-    //use any query method except distinct, remove, update
-
-Of course it is not as simple as this, you need to connect to your backend and declaratively define mr-controller in your html, but that is also very simple. See test/index.html     
+    .controller('bookCtrl, 'function($scope, book){
+        // create a book
+        book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});
+        // query for it
+        book.query().findOne().exec();
+        // delete it
+        book.remove(book);
+        //best for last- liveQuery
+        $scope.LQ = book.liveQuery().find().exec();
+        //$scope.LQ.docs will contain up to date synced collection of documents taht satisfy the query. You can
+        //use any query method except distinct, remove, update
+    })
+    
+Of course it is not as simple as this, you need to connect to your backend and declaratively define mr-controller in your html, but that is also very simple. See [test/index.html](https://github.com/capaj/Moonridge/blob/master/test/index.html)     
 
 ##Supported browsers
 ###Desktop

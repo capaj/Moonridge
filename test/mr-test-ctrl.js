@@ -1,12 +1,11 @@
-angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope) {
-    var MR = $scope.MR;
+angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, models) {
 
-    var fighterLQ = MR.fighter.liveQuery;
+    var fighterLQ = models.fighter.liveQuery;
 
-    MR.fighter.create({name: 'Jon Snow', health: 70});
-    MR.fighter.create({name: 'Roose Bolton', health: 35});
-    $scope.limit = 5;
-    $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
+    models.fighter.create({name: 'Jon Snow', health: 70});
+    models.fighter.create({name: 'Roose Bolton', health: 35});
+    var limit = 5;
+    $scope.LQ = fighterLQ().sort('health').limit(limit).exec();
 //            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();
     $scope.oneLQ = fighterLQ().findOne().exec();
     $scope.cLQ = fighterLQ().count().exec();
@@ -14,7 +13,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log(LQ);    //LiveQuery
     });
 
-    MR.fighter.query().findOne().exec().then(function (res) {
+    models.fighter.query().findOne().exec().then(function (res) {
         console.log(res);   //query result
     });
 
@@ -25,18 +24,18 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 
     $scope.hit = function (fighter) {
         fighter.health -= 1;
-        MR.fighter.update(fighter);
+        models.fighter.update(fighter);
     };
 
     $scope.heal = function (fighter) {
         fighter.health += 1;
-        MR.fighter.update(fighter);
+        models.fighter.update(fighter);
     };
 
-    $scope.remove = MR.fighter.remove;
+    $scope.remove = models.fighter.remove;
 
     $scope.create = function () {
-        MR.fighter.create({name: $scope.name, health: $scope.health});
+        models.fighter.create({name: $scope.name, health: $scope.health});
     };
 
 }).controller('loginCtrl',function ($scope, $MR, $q, $timeout, $rpc) {
@@ -57,6 +56,6 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     $scope.user = function () {
         dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=testUser" } } );
 
-    }
+    };
 
 });

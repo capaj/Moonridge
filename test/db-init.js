@@ -7,12 +7,16 @@ module.exports = function (MR) {
     var user = MR.userModel({name: String, age: Number});
 
     var Fighter = MR.model('fighter', {
-        name: String,
-        health: Number,
-        born: Date,
-        death: { type: Date, permissions:{R: 4, W: 20}},
-        owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
-    }, {
+            name: String,
+            health: Number,
+            born: Date,
+            death: { type: Date, permissions: {R: 4, W: 20}},
+            owner: { type: mongoose.Schema.Types.ObjectId, ref: 'user', required: true }
+        }, {
+            schemaInit: function (schema) {
+                // if you want to call any methods on schema before model is created, you can do so in schemaInit
+                schema.index({ owner: 1, name: 1 }, { unique: true, dropDups: true });
+            },
             permissions: {
                 C: 20,
                 R: 0,
@@ -24,6 +28,7 @@ module.exports = function (MR) {
 //            }
         }
     );
+
 
     Fighter.model.on('preupdate', function (doc, evName, previous) {
         console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic

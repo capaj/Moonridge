@@ -45,6 +45,10 @@ mongoose.connect(locals.connString, function (err) {
         console.log("DB connected succesfully");
     }
 });
+mongoose.connection.on('error', function(err) {
+    console.error('MongoDB error: %s', err);
+});
+mongoose.set('debug', true);
 
 var MR = Moonridge.init(mongoose);
 var dbInit = require('./db-init');

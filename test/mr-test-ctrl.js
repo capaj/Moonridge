@@ -5,8 +5,8 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 
     MR.fighter.create({name: 'Jon Snow', health: 70});
     MR.fighter.create({name: 'Roose Bolton', health: 35});
-    var limit = 3;
-    $scope.LQ = fighterLQ().sort('health').limit(limit).exec();
+    $scope.limit = 5;
+    $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
 //            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();
     $scope.oneLQ = fighterLQ().findOne().exec();
     $scope.cLQ = fighterLQ().count().exec();
@@ -19,8 +19,8 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     });
 
     $scope.changeQuery = function () {
-        limit += 1;
-        $scope.LQ = fighterLQ().sort('health').limit(limit).exec();
+        $scope.limit += 1;
+        $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
     };
 
     $scope.hit = function (fighter) {
@@ -52,7 +52,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     $scope.admin = function () {
         dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=admin" } } );
 
-    }
+    };
 
     $scope.user = function () {
         dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=testUser" } } );

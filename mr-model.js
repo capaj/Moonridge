@@ -17,6 +17,7 @@ var _ = require('lodash');
  * @param {Object} opts.pres will extend the mongoose schema.pres calling respective methods before an event occurs with next as first param
  * @param {Object} opts.statics will extend the mongoose schema.statics so that you can call this function on your model
  * @param {Function} opts.authFn will be passed to socket.io-rpc as authorization function for the whole model channel
+ * @param {Function} opts.schemaInit gives you opportunity to use schema before mongoose model is instantiated
  * @returns {*}
  * @constructor
  */
@@ -30,6 +31,7 @@ module.exports = function MRModel(name, schema, opts) {
         next();
     };
     _.extend(schema, {owner: { type: this.Schema.Types.ObjectId, ref: 'user' }});   //user model should have owner field also
+    //mongoose schema
     var mgSchema = new this.Schema(schema);
 
     mgSchema.pres = {
@@ -43,7 +45,9 @@ module.exports = function MRModel(name, schema, opts) {
         }
         if (opts.pres) {
             _.extend(mgSchema.pres, opts.pres);
-
+        }
+        if (opts.schemaInit) {
+            opts.schemaInit(mgSchema);
         }
     }
 

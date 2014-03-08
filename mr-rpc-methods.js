@@ -400,17 +400,17 @@ var expose = function (model, schema, opts) {
             }
         },
         /**
-         * removes a socket listener from liveQuery
+         * removes a socket listener from liveQuery and also destroys the whole liveQuery if no more listeners are present
          * @param socket
          */
         removeListener: function (socket) {
             if (this.listeners[socket.id]) {
                 delete this.listeners[socket.id];
                 if (Object.keys(this.listeners).length === 0) {
-                    this.destroy()
+                    this.destroy(); // this will delete a liveQuery from liveQueries
                 }
             } else {
-                return new Error('no listener present on');
+                return new Error('no listener present on LQ ' + this.qKey);
             }
         }
     };
@@ -569,6 +569,7 @@ var expose = function (model, schema, opts) {
                 }, function (err) {
                     logger.error("First LiveQuery exec failed with err " + err);
                     def.reject(err);
+                    LQ.destroy();
                 });
 
                 pushListeners(queryOptions);
@@ -658,11 +659,21 @@ var expose = function (model, schema, opts) {
     }
     var authFn = opts && opts.authFn;
 
+    var requiredClientMethods = ['update', 'remove', 'create', 'push'];
+
     return function exposeCallback() {
         var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
         chnlSockets.on('connection', function (socket) {
 
             socket.clientChannelPromise = rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+                var index = requiredClientMethods.length;
+                while(index--) {
+                    var mName = requiredClientMethods[index];
+                    if (!_.isFunction(clFns[mName])) {
+                        socket.disconnect();    // forcibly disconnect, rather than having one bad client crash it
+                        throw new Error('Client ' + socket.id + ' does not have necessary liveQuery method ' + mName);
+                    }
+                }
                 socket.cRpcChnl = clFns;	// client RPC channel
                 return clFns;
             });

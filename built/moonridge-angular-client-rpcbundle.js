@@ -489,7 +489,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             this.clientRPCMethods = {
                 update: createLQEventHandler('update'),
                 remove: createLQEventHandler('remove'),
-                create: createLQEventHandler('create')
+                create: createLQEventHandler('create'),
+                push: createLQEventHandler('push')
             };
 
             /**

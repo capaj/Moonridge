@@ -32,7 +32,7 @@ var init = function (mongoose) {
 	 * @returns {*}
 	 */
 	function registerUserModel(schemaExtend, opts) {
-		if (userModel) {
+		if (userModel) {    //if it was already assigned, we throw
 			throw new Error('There can only be one user model');
 		}
 		var userSchema = require('./user-model-base');

@@ -6,6 +6,10 @@ var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
 var logger = require('./utils/logger');
+
+function isInt(n) {
+    return typeof n === 'number' && n % 1 == 0;
+}
 /**
  *
  * @param {Model} model Moonridge model
@@ -60,16 +64,16 @@ var expose = function (model, schema, opts) {
                     LQ.docs.splice(cQindex, 1);
                     LQ.callClientListeners(doc, evName, false);
 
-                    if (LQ.clientQuery.limit) {
+                    if (LQ.indexedByMethods.limit) {
                         var skip = 0;
-                        if (LQ.clientQuery.skip) {
-                            skip = LQ.clientQuery.skip[0];
+                        if (LQ.indexedByMethods.skip) {
+                            skip = LQ.indexedByMethods.skip[0];
                         }
-                        skip += LQ.clientQuery.limit[0] - 1;
+                        skip += LQ.indexedByMethods.limit[0] - 1;
                         model.find(LQ.mQuery).lean().skip(skip).limit(1)
                             .exec(function(err, docArr) {
                                 if (docArr.length === 1) {
-                                    var toFillIn = docArr[0];
+                                    var toFillIn = docArr[0];   //first and only document
                                     if (toFillIn) {
                                         LQ.docs.push(toFillIn);
                                         LQ.callClientListeners(toFillIn, 'push');
@@ -79,6 +83,14 @@ var expose = function (model, schema, opts) {
                             }
                         );
 
+                    } else if(LQ.indexedByMethods.findOne) {
+                        LQ.mQuery.exec(function(err, doc) {
+                            if (doc) {
+                                LQ.docs.push(doc);
+                                LQ.callClientListeners(doc, 'push');
+                            }
+
+                        });
                     }
 
                 } else {
@@ -89,20 +101,20 @@ var expose = function (model, schema, opts) {
                             }
                             if (checkedDoc) {   //doc satisfies the query
                                 var qDoc;
-                                if (LQ.clientQuery.populate) {
+                                if (LQ.indexedByMethods.populate) {
                                     qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
                                 } else {
                                     qDoc = doc;
                                 }
-                                if (LQ.clientQuery.sort) {
-                                    var sortBy = LQ.clientQuery.sort[0].split(' ');	//check for string is performed on query initialization
+                                if (LQ.indexedByMethods.sort) {
+                                    var sortBy = LQ.indexedByMethods.sort[0].split(' ');	//check for string is performed on query initialization
                                     var index;
                                     if (evName === 'create') {
                                         if (cQindex === -1) {
                                             index = getIndexInSorted(qDoc, LQ.docs, sortBy);
                                             LQ.docs.splice(index, 0, qDoc);
-                                            if (LQ.clientQuery.limit) {
-                                                if (LQ.docs.length > LQ.clientQuery.limit[0]) {
+                                            if (LQ.indexedByMethods.limit) {
+                                                if (LQ.docs.length > LQ.indexedByMethods.limit[0]) {
                                                     LQ.docs.splice(LQ.docs.length - 1, 1);
 
                                                 }
@@ -131,7 +143,7 @@ var expose = function (model, schema, opts) {
                                         }
 
                                     }
-                                    if (_.isNumber(index)) {
+                                    if (isInt(index)) {
                                         LQ.callClientListeners(qDoc, evName, index);
                                     }
 
@@ -321,23 +333,25 @@ var expose = function (model, schema, opts) {
     /**
      * @param {String} qKey
      * @param {Mongoose.Query} mQuery
-     * @param {Object} clientQuery
+     * @param {Object} queryMethodsHandledByMoonridge are query methods which are important for branching in the LQ
+     *                  syncing logic, we need their arguments accessible on separated object to be able to run
+     *                  liveQuerying effectively
      * @returns {Object}
      * @constructor
      */
-    function LiveQuery(qKey, mQuery, clientQuery) {
+    function LiveQuery(qKey, mQuery, queryMethodsHandledByMoonridge) {
         this.docs = [];
         this.listeners = {};
         this.mQuery = mQuery;   //mongoose query
-        if (clientQuery.select) {
-            var clQueryNS = _.clone(clientQuery);
+        if (queryMethodsHandledByMoonridge.select) {
+            var clQueryNS = _.clone(queryMethodsHandledByMoonridge);
             delete clQueryNS.select;
             this.mQueryNoSelects = queryBuilder(model, clQueryNS);   //mongoose query
         } else {
             this.mQueryNoSelects = mQuery;   //mongoose query
         }
         this.qKey = qKey;
-        this.clientQuery = clientQuery; //serializable client query object
+        this.indexedByMethods = queryMethodsHandledByMoonridge; //serializable client query object
         return this;
     }
 
@@ -370,8 +384,8 @@ var expose = function (model, schema, opts) {
          */
         callClientListeners: function (doc, evName, isInResult) {
             var self = this;
-            if (this.clientQuery.populate && doc.populate) {
-                populateWithClientQuery(doc, this.clientQuery.populate, function (err, populated) {
+            if (this.indexedByMethods.populate && doc.populate) {
+                populateWithClientQuery(doc, this.indexedByMethods.populate, function (err, populated) {
                     self._distributeChange(populated.toObject(), evName, isInResult);
                 });
 
@@ -389,7 +403,7 @@ var expose = function (model, schema, opts) {
                     // we don't need to send a doc when query is a count query
                 } else {
                     if (evName === 'remove') {
-                        toSend = doc._id.toString();	//remove needs only _id
+                        toSend = doc._id.toString();	//remove needs only _id, which should be always defined
                     } else {
                         toSend = doc;
                     }
@@ -415,17 +429,6 @@ var expose = function (model, schema, opts) {
         }
     };
 
-    function validateClientQuery(clientQuery) {	//errors are forwarded to client
-        //TODO check query for user priviliges
-        if (clientQuery.sort){
-            if (clientQuery.count) {
-                throw new Error('Mongoose does not support sort and count in one query');
-            }
-            if(!_.isString(clientQuery.sort[0])) {
-                throw new Error('only string notation for sort method is supported for liveQueries');
-            }
-        }
-    }
 
 
     var channel = {
@@ -435,18 +438,17 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from executing the mongoose.Query
          */
         query: function (clientQuery) {
-            try{
-                validateClientQuery(clientQuery);
-            }catch(e){
-                return e;
-            }
             if (!opts.checkPermission(this, 'R')) {
                 return new Error('You lack a privilege to read this document');
             }
             accessControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
-            clientQuery.lean = []; // this should make query always lean
-            var mQuery = queryBuilder(model, clientQuery);
-            return mQuery.exec();
+
+            try{
+                var queryAndOpts = queryBuilder(model, clientQuery);
+            }catch(e){
+                return e;   //building of the query failed
+            }
+            return queryAndOpts.mQuery.exec();
         },
         //unsubscribe
         unsub: unsubscribe,
@@ -467,36 +469,21 @@ var expose = function (model, schema, opts) {
          * @returns {Promise} from mongoose query, resolves with an array of documents
          */
         liveQuery: function (clientQuery, LQIndex) {
-            try{
-                validateClientQuery(clientQuery);
-            }catch(e){
-                return e;
-            }
             if (!opts.checkPermission(this, 'R')) {
-                return new Error('You lack a privilege to read this document');
-            }
-            if (!clientQuery) {
-                clientQuery = {};
+                return new Error('You lack a privilege to read this collection');
             }
             def = Promise.defer();
             if (!clientQuery.count) {
                 accessControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
             }
 
-            var queryOptions = {};
-            var moveParamToQueryOptions = function (param) {
-                if (clientQuery.hasOwnProperty(param)) {
-                    queryOptions[param] = clientQuery[param];
-                    delete clientQuery[param];
-                }
-            };
-            moveParamToQueryOptions('count');	//for serverside purposes count is useless
-
             try{
-                var mQuery = queryBuilder(model, clientQuery);
+                var queryAndOpts = queryBuilder(model, clientQuery);
             }catch(e){
                 return e;   //building of the query failed
             }
+            var queryOptions = queryAndOpts.opts;
+            var mQuery = queryAndOpts.mQuery;
 
             if (!mQuery.exec) {
                 return new Error('query builder has returned invalid query');
@@ -545,14 +532,14 @@ var expose = function (model, schema, opts) {
             if (LQ) {
                 pushListeners(queryOptions);
             } else {
-                LQ = new LiveQuery(qKey, mQuery, clientQuery);
+                LQ = new LiveQuery(qKey, mQuery, queryOptions);
                 liveQueries[qKey] = LQ;
 
                 LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
                     LQ.firstExecDone = true;
-                    if (clientQuery.hasOwnProperty('findOne')) {
+                    if (mQuery.op === 'findOne') {
                         if (rDocs) {
-                            LQ.docs = [rDocs];
+                            LQ.docs = [rDocs];  //rDocs is actually just one document
                         } else {
                             LQ.docs = [];
                         }

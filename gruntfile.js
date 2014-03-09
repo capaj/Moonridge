@@ -4,7 +4,8 @@ module.exports = function (grunt) {
             app: {
                 src: [
                     './node_modules/socket.io-rpc/socket.io-rpc-client-angular.js',
-                    './client/moonridge-angular-client.js'
+                    './client/moonridge-angular-client.js',
+                    './client/moonridge-methods-client-validations.js'
                 ],
                 dest: './built/moonridge-angular-client-rpcbundle.js'
             }

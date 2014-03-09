@@ -6,9 +6,10 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     models.fighter.create({name: 'Roose Bolton', health: 35});
     var limit = 5;
     $scope.LQ = fighterLQ().sort('health').limit(limit).exec();
-//            $scope.LQsec = liveQuery().sort('health').limit(limit).skip(1).exec();
+//    $scope.LQ = fighterLQ().sort('health').limit(limit).skip(1).exec();
     $scope.oneLQ = fighterLQ().findOne().exec();
     $scope.cLQ = fighterLQ().count().exec();
+
     $scope.LQ.promise.then(function (LQ) {
         console.log(LQ);    //LiveQuery
     });
@@ -38,6 +39,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         models.fighter.create({name: $scope.name, health: $scope.health});
     };
 
+
 }).controller('loginCtrl',function ($scope, $MR, $q, $timeout, $rpc) {
     var dfd = $q.defer();
     var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
@@ -47,14 +49,15 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
             console.log("Ha disconnected!");
         });
     });
+    var url = 'http://localhost:8080';
 
     $scope.admin = function () {
-        dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=admin" } } );
+        dfd.resolve({url: url, hs: { query: "nick=admin" } } );
 
     };
 
     $scope.user = function () {
-        dfd.resolve({url: 'http://localhost:8080', hs: { query: "nick=testUser" } } );
+        dfd.resolve({url: url, hs: { query: "nick=testUser" } } );
 
     };
 

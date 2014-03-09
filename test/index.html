@@ -44,8 +44,7 @@
        <button ng-click="create()">create</button>
        <button ng-click="changeQuery()">limit +1</button>
        <br/>
-       Total documents: <span ng-bind="cLQ.count"></span> || Limit: <span ng-bind="limit"></span>
-       <div>
+       Total documents: <span ng-bind="cLQ.count"></span> || Limit: <input type="number" ng-model="LQ.query.limit[0]">
            <h1>Find query</h1>
            <p mr-repeat="fighter in LQ" class="left-slide">
                {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
@@ -66,6 +65,7 @@
     <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
     <script src="/rpc/rpc-client-angular.js"></script>
     <script type="text/javascript" src="/moonridge-angular-client.js"></script>
+    <script type="text/javascript" src="/moonridge-methods-client-validations.js"></script>
     <script src="/mr-test-ctrl.js" type="text/javascript"></script>
 
 </body>

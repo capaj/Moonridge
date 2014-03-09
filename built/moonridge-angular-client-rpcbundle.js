@@ -317,56 +317,19 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 
 });
 
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log) {
+angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
     var MRs = {}; //stores instances of Moonridge
     var defaultBackend;
-	var qMethodsEnum = [	//query methods which modifies the collection are not included, those have to be called via RPC methods
-		'all',
-		'and',
-		'box',
-		'center',
-		'centerSphere',
-		'circle',
-		'comment',
-		'count',
-//	'distinct',		//must be done in server memory, TODO implement this
-		'elemMatch',
-		'equals',
-		'exists',
-		'find',
-		'findOne',
-		'geometry',
-		'gt',
-		'gte',
-		'hint',
-		'in',
-		'intersects',
-//		'lean', //always enabled
-		'limit', //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
-		'lt',
-		'lte',
-		'maxDistance',
-		'maxScan',
-		'mod',
-		'ne',
-		'near',
-		'nearSphere',
-		'nin',
-		'nor',
-		'or',
-		'polygon',
-		'populate',
-		'read',
-		'regex',
-		'select',
-		'size',
-		'skip',	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
-		'slice',
-		'sort',
-		'where',
-		'within'
-	];
 
+    var callJustOnce = [    //Moonridge methods which should be only once per query
+        'findOne',
+        'select',
+        'populate', //TODO exclude this, so that you can populate more than once like Mongoose allows, but now we can only populate once
+        'count',
+        'sort',
+        'limit',
+        'skip'
+    ];
     /**
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
@@ -412,29 +375,33 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
             var APslice = Array.prototype.slice;
 
-            qMethodsEnum.forEach(function (method) {
+            var createMethod = function (method) {
                 self[method] = function () {
-                    var qr = queryMaster._query;
+                    var argsArray = APslice.call(arguments);
 
-                    if (qr.hasOwnProperty(method)) {
-                        if (Array.isArray(qr[method])) {
-                            qr[method] = {
-                                0: qr[method],
-                                1: APslice.call(arguments)
-                            }
+                    //perform validation
+                    var validationResult = MRMethodsClientValidations[method](argsArray);
+                    if (validationResult instanceof Error) {
+                        throw validationResult;
+                    }
+                    var qr = queryMaster.query;
+                    qr.push({mN: method, args: argsArray});
+
+                    if (callJustOnce.indexOf(method) !== -1) {
+                        if (queryMaster.indexedByMethods[method]) {
+                            throw new Error(method + ' method can be called just once per query');
                         } else {
-                            //must be an object
-                            var ind = Object.keys(qr).length;
-                            qr[method][ind] = APslice.call(arguments);
+                            queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
                         }
-
-                    } else {
-                        qr[method] = APslice.call(arguments);
                     }
 
                     return self;
                 };
-            });
+            };
+
+            for (var method in MRMethodsClientValidations) {
+               createMethod(method);
+            }
 
         };
 
@@ -467,9 +434,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
 
             this.query = function () {
-                var master = {_query:{}};
+                var master = {query:[], indexedByMethods: {}};
                 var queryChainable = new QueryChainable(master, function () {
-                    return model.rpc.query(master._query);
+                    return model.rpc.query(master.query);
                 });
 
                 return queryChainable;
@@ -495,10 +462,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
             /**
              *
-             * @param {Object} query NOTE: do not use + sign in select expressions
+             * @param {Object} initialQuery NOTE: do not use + sign in select expressions
              * @returns {Promise|*}
              */
-            this.liveQuery = function (query) {
+            this.liveQuery = function (initialQuery) {
 				var LQ = {};
                 LQ.docs = [];
                 if (navigator.userAgent.indexOf('MSIE 8.0') === -1) {
@@ -511,7 +478,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     });
                 }
                 LQ.count = 0;
-				LQ._query = query || {};	//serializable query object
+				LQ.query = initialQuery || [];	//serializable query object
+				LQ.indexedByMethods = {};	// utility object to help with branching
 
 				LQ.getDocById = function (id) {
 					var i = LQ.docs.length;
@@ -523,13 +491,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					return null;
 				};
                 LQ.recountIfNormalQuery = function () {
-                    if (!LQ._query.count) {
+                    if (!LQ.indexedByMethods.count) {
                         LQ.count = LQ.docs.length;
                     }
                 };
 				//syncing logic
 				LQ.on_create = function (doc, index) {
-					if (LQ._query.count) {
+					if (LQ.indexedByMethods.count) {
 						LQ.count += 1; // when this is a count query, just increment and call it a day
 						return;
  					}
@@ -539,8 +507,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					} else {
 						LQ.docs.push(doc);
 					}
-					if (LQ._query.limit < LQ.docs.length) {
-						LQ.docs.splice(LQ.docs.length - 1, 1);
+					if (LQ.indexedByMethods.limit < LQ.docs.length) {
+						LQ.docs.splice(LQ.docs.length - 1, 1);  // this needs to occur after push of the new doc
 					}
                     LQ.recountIfNormalQuery();
                 };
@@ -553,7 +521,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				 */
 				LQ.on_update = function (doc, isInResult) {
 //					console.log("index sent: " + isInResult);
-					if (LQ._query.count) {	// when this is a count query
+					if (LQ.indexedByMethods.count) {	// when this is a count query
 						if (angular.isNumber(isInResult)) {
 							LQ.count += 1;
 						} else {
@@ -619,9 +587,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				 * @returns {boolean} true when it removes an element
 				 */
 				LQ.on_remove = function (id) {
-					if (LQ._query.count) {
+					if (LQ.indexedByMethods.count) {
 						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
-						return;
+						return true;
 					}
 
                     var i = LQ.docs.length;
@@ -642,7 +610,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 						model.rpc.unsubLQ(LQ.index).then(function (succes) {
 							if (succes) {
 								LQ.unsubscribed = true;
-                                if (LQ._query.count) {
+                                if (LQ.indexedByMethods.count) {
                                     LQ.count = 0;
                                 } else {
                                     LQ.doc = null;
@@ -660,10 +628,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 
                 var queryExecFn = function () {
-                    if (LQ._query.hasOwnProperty('count') && LQ._query.hasOwnProperty('sort')) {
+                    if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
                         throw new Error('count and sort must NOT be used on the same query');
                     }
-                    LQ._queryStringified = JSON.stringify(LQ._query);
+                    LQ._queryStringified = JSON.stringify(LQ.query);
                     if (model._LQsByQuery[LQ._queryStringified]) {
                         return model._LQsByQuery[LQ._queryStringified];
                     }
@@ -675,7 +643,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     model._LQs[lastIndex] = LQ;
                     LQ.index = lastIndex;
 
-                    LQ.promise = model.rpc.liveQuery(LQ._query, LQ.index).then(function (res) {
+                    LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function (res) {
 
                         if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
                             LQ.count = res.count;
@@ -900,3 +868,93 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     '<div class="rect4"></div>'+
     '<div class="rect5"></div>'+
 '</div>');
+angular.module('Moonridge').factory('MRMethodsClientValidations', function () {
+    function isInt(n) {
+        return typeof n === 'number' && n % 1 == 0;
+    }
+
+    var noop = function (args) {
+        return true;
+    };
+
+    var singleIntegerValidation = function (args) {
+        if (args.length === 1) {
+            if (isInt(args[0])) {
+                return true;
+            } else {
+                return new TypeError('Argument must be an integer');
+            }
+        }
+        return new Error('Method must be called with exactly one Number argument');
+    };
+
+    /**
+     * query methods which modifies the collection are not included, those have to be called via RPC methods
+     * @type {Object.<string, Function>} name of the method and validation function
+     */
+    var qMethodsEnum = {
+        all: noop,
+        and: noop,
+        box: noop,
+        center: noop,
+        centerSphere: noop,
+        circle: noop,
+        comment: noop,
+        count: noop,    //available on client, but done in server memory
+        //	distinct: noop,		//must be done in server memory, TODO implement this
+        elemMatch: noop,
+        equals: noop,
+        exists: noop,
+        find: noop,
+        findOne: function (args) {
+            if (args.length === 0) {
+                return true;
+            } else {
+                if (args.length > 1) {
+                    return new Error("FindOne does not take more than one argument");
+                }
+                if (typeof args[0] !== 'object') {
+                    return new TypeError("FindOne takes just one Object as argument");
+                }
+                return true;
+            }
+        },
+        geometry: noop,
+        gt: noop,
+        gte: noop,
+        hint: noop,
+        in: noop,
+        intersects: noop,
+//		lean: noop, //always enabled
+        limit: singleIntegerValidation,
+        lt: noop,
+        lte: noop,
+        maxDistance: noop,
+        maxScan: singleIntegerValidation,
+        mod: noop,
+        ne: noop,
+        near: noop,
+        nearSphere: noop,
+        nin: noop,
+        nor: noop,
+        or: noop,
+        polygon: noop,
+        populate: noop,
+        read: noop,
+        regex: noop,
+        select: noop,
+        size: noop,
+        skip: singleIntegerValidation,	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+        slice: noop,
+        sort: noop,
+        where: function (args) {
+            if (args.length > 0 && args.length <= 2) {
+                return true;    //TODO check types here
+            }
+            return new Error('Method was called with wrong number of arguments');
+        },
+        within: noop
+    };
+    
+    return qMethodsEnum;
+});

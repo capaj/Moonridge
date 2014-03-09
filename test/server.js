@@ -29,6 +29,9 @@ app.get('/mr-spinner.css', function (req, res) {
 app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
 	res.sendfile('./client/moonridge-angular-client.js');
 });
+app.get('/moonridge-methods-client-validations.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
+	res.sendfile('./client/moonridge-methods-client-validations.js');
+});
 app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
     res.sendfile('./built/moonridge-angular-client-rpcbundle.js');
 });

@@ -2,7 +2,7 @@ var winston = require('winston');
 var env = process.env.NODE_ENV;
 var name = env || 'development';
 
-var cfg = require('../configs/' + name );
+var cfg = require('./' + name);
 
 var logger = new (winston.Logger)({
     transports: [
@@ -10,5 +10,4 @@ var logger = new (winston.Logger)({
 //        new (winston.transports.File)({ filename: 'moonridge.log' })
     ]
 });
-
 module.exports = logger;

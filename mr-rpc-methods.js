@@ -5,7 +5,7 @@ var eventNames = require('./schema-events').eventNames;
 var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
-var logger = require('./utils/logger');
+var logger = require('./logger/logger');
 
 function isInt(n) {
     return typeof n === 'number' && n % 1 == 0;

@@ -1,7 +1,7 @@
 Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badge.fury.io/js/moonridge)
 =========
 
-MONgoose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
+MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
 
 Offers killer feature of Meteor for MEAN stack. How?
 Basic usage in angular controller on the CLIENT side:
@@ -15,11 +15,15 @@ Basic usage in angular controller on the CLIENT side:
         book.remove(book);
         //best for last- liveQuery
         $scope.LQ = book.liveQuery().find().exec();
-        //$scope.LQ.docs will contain up to date synced collection of documents taht satisfy the query. You can
+        //$scope.LQ.docs will contain up to date synced collection of documents that satisfy the query. You can
         //use any query method except distinct, remove, update
     })
     
 Of course it is not as simple as this, you need to connect to your backend and declaratively define mr-controller in your html, but that is also very simple. See [test/index.html](https://github.com/capaj/Moonridge/blob/master/test/index.html)     
+
+##Errorhandling
+
+This is based on socket.io-rpc project, so errors are propagated for all server-side calls which return an error.
 
 ##Supported browsers
 ###Desktop

@@ -398,7 +398,13 @@ var expose = function (model, schema, opts) {
             };
 
             if (typeof doc.populate === 'function') {
-                populateWithClientQuery(doc, this.indexedByMethods.populate, actuallySend);
+                populateWithClientQuery(doc, this.indexedByMethods.populate, function (err, populated) {
+                    if (err) {
+                        throw err;
+                    }
+                    doc = populated.toObject();
+                    actuallySend();
+                });
             } else {
                 actuallySend();
             }

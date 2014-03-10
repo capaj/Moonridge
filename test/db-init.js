@@ -38,8 +38,7 @@ module.exports = function (MR) {
 
     var battleM = MR.model('battle', {
         name: String,
-        started: Date,
-        ended: Date,
+        year: Number,
         fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
     });
 

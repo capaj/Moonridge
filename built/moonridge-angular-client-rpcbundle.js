@@ -6,6 +6,8 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
     var deferreds = [];
     var baseURL;
     var rpcMaster;
+    var knownTemplates = {};
+
     var serverRunDate;  // used for invalidating the cache
     var serverRunDateDeferred = $q.defer();
     serverRunDateDeferred.promise.then(function (date) {
@@ -79,7 +81,7 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 
     var registerRemoteFunctions = function (data, storeInCache) {
         var channel = serverChannels[data.name];
-        data.fnNames.forEach(function (fnName) {
+        var remoteMethodInvocation = function (fnName) {
             channel[fnName] = function () {
                 invocationCounter++;
                 channel._socket.emit('call',
@@ -92,7 +94,18 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
                 deferreds[invocationCounter] = $q.defer();
                 return deferreds[invocationCounter].promise;
             };
-        });
+        };
+
+        if (data.fnNames) {
+            if (data.tplId) {
+                //store the template
+                knownTemplates[data.tplId] = data.fnNames;
+            }
+            data.fnNames.forEach(remoteMethodInvocation);   //initialize from incoming data
+        } else {
+            knownTemplates[data.tplId].forEach(remoteMethodInvocation); //this has to be initialized from known template
+        }
+
 
         channel._loadDef.resolve(channel);
         if (storeInCache !== false) {
@@ -283,13 +296,17 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 		compile: function compile(tEl, tAttrs) {
 			return {
 				pre: function (scope, iElement, attr, controller) {
-					var ctrlName = attr.rpcController;
+                    if (!attr.rpcChannel) {
+                        throw new Error("No channel name defined on rpc-controller element: " + iElement[0].outerHTML);
+                    }
+                    var ctrlName = attr.rpcController;
                     var instantiate = function (promise) {
                         promise.then(function (channel) {
-                            scope.rpc = channel;
-                            var ctrl = $controller(ctrlName, {
+                            var localInj = {
                                 $scope: scope
-                            });
+                            };
+                            localInj[attr.rpcChannel] = channel;
+                            var ctrl = $controller(ctrlName, localInj);
                             iElement.children().data('$ngControllerController', ctrl);
                         }, function (err) {
                             console.error("Cannot instantiate rpc-controller - channel failed to load");
@@ -324,7 +341,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     var callJustOnce = [    //Moonridge methods which should be only once per query
         'findOne',
         'select',
-        'populate', //TODO exclude this, so that you can populate more than once like Mongoose allows, but now we can only populate once
         'count',
         'sort',
         'limit',
@@ -422,10 +438,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 //            this.methods = rpc;
             this.update = function (toUpdate) {
                 delete toUpdate.__v;
+                delete toUpdate.$$hashKey;
                 return model.rpc.update(toUpdate).catch(onRejection);
             };
 
             this.create = function (toCreate) {
+                delete toCreate.$$hashKey;
                 return model.rpc.create(toCreate).catch(onRejection);
             };
 

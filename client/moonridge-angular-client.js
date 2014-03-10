@@ -5,7 +5,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     var callJustOnce = [    //Moonridge methods which should be only once per query
         'findOne',
         'select',
-        'populate', //TODO exclude this, so that you can populate more than once like Mongoose allows, but now we can only populate once
         'count',
         'sort',
         'limit',
@@ -103,10 +102,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 //            this.methods = rpc;
             this.update = function (toUpdate) {
                 delete toUpdate.__v;
+                delete toUpdate.$$hashKey;
                 return model.rpc.update(toUpdate).catch(onRejection);
             };
 
             this.create = function (toCreate) {
+                delete toCreate.$$hashKey;
                 return model.rpc.create(toCreate).catch(onRejection);
             };
 

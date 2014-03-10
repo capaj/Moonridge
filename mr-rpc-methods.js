@@ -62,7 +62,7 @@ var expose = function (model, schema, opts) {
                 if (evName === 'remove' && LQ.docs[cQindex]) {
 
                     LQ.docs.splice(cQindex, 1);
-                    LQ.callClientListeners(doc, evName, false);
+                    LQ._distributeChange(doc, evName, false);
 
                     if (LQ.indexedByMethods.limit) {
                         var skip = 0;
@@ -76,7 +76,7 @@ var expose = function (model, schema, opts) {
                                     var toFillIn = docArr[0];   //first and only document
                                     if (toFillIn) {
                                         LQ.docs.push(toFillIn);
-                                        LQ.callClientListeners(toFillIn, 'push');
+                                        LQ._distributeChange(toFillIn, 'push');
                                     }
                                 }
 
@@ -87,32 +87,30 @@ var expose = function (model, schema, opts) {
                         LQ.mQuery.exec(function(err, doc) {
                             if (doc) {
                                 LQ.docs.push(doc);
-                                LQ.callClientListeners(doc, 'push');
+                                LQ._distributeChange(doc, 'push');
                             }
 
                         });
                     }
 
                 } else {
-                    var checkQuery = model.findOne(LQ.mQueryNoSelects);
+                    var checkQuery = model.findOne(LQ.mQuery);
                     checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
                                 logger.error(err);
                             }
                             if (checkedDoc) {   //doc satisfies the query
-                                var qDoc;
-                                if (LQ.indexedByMethods.populate) {
-                                    qDoc = mDoc;   //if query has populate utilised, then we have to use the result from checkQuery as a doc
-                                } else {
-                                    qDoc = doc;
+
+                                if (LQ.indexedByMethods.populate.length !== 0) {    //needs to populate before send
+                                    doc = mDoc;
                                 }
                                 if (LQ.indexedByMethods.sort) {
                                     var sortBy = LQ.indexedByMethods.sort[0].split(' ');	//check for string is performed on query initialization
                                     var index;
                                     if (evName === 'create') {
                                         if (cQindex === -1) {
-                                            index = getIndexInSorted(qDoc, LQ.docs, sortBy);
-                                            LQ.docs.splice(index, 0, qDoc);
+                                            index = getIndexInSorted(doc, LQ.docs, sortBy);
+                                            LQ.docs.splice(index, 0, doc);
                                             if (LQ.indexedByMethods.limit) {
                                                 if (LQ.docs.length > LQ.indexedByMethods.limit[0]) {
                                                     LQ.docs.splice(LQ.docs.length - 1, 1);
@@ -123,44 +121,44 @@ var expose = function (model, schema, opts) {
                                         }
                                     }
                                     if (evName === 'update') {
-                                        index = getIndexInSorted(qDoc, LQ.docs, sortBy);
+                                        index = getIndexInSorted(doc, LQ.docs, sortBy);
 
                                         if (cQindex === -1) {
-                                            LQ.docs.splice(index, 0, qDoc);    //insert the document
+                                            LQ.docs.splice(index, 0, doc);    //insert the document
                                         } else {
                                             if (cQindex !== index) {
                                                 if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
                                                     LQ.docs.splice(cQindex, 1);
-                                                    LQ.docs.splice(index - 1, 0, qDoc);
+                                                    LQ.docs.splice(index - 1, 0, doc);
                                                 } else {
                                                     LQ.docs.splice(cQindex, 1);
-                                                    LQ.docs.splice(index, 0, qDoc);
+                                                    LQ.docs.splice(index, 0, doc);
                                                 }
 
                                             } else {
-                                                LQ.docs[index] = qDoc;
+                                                LQ.docs[index] = doc;
                                             }
                                         }
 
                                     }
                                     if (isInt(index)) {
-                                        LQ.callClientListeners(qDoc, evName, index);
+                                        LQ._distributeChange(doc, evName, index);
                                     }
 
                                 } else {
                                     if (evName === 'create') {
                                         if (cQindex === -1) {
-                                            LQ.docs.push(qDoc);
-                                            LQ.callClientListeners(qDoc, evName, null);
+                                            LQ.docs.push(doc);
+                                            LQ._distributeChange(doc, evName, null);
                                         }
                                     }
                                     if (evName === 'update') {
                                         if (cQindex === -1) {
-                                            LQ.docs.push(qDoc);
-                                            LQ.callClientListeners(qDoc, evName, true);	//doc wasn't in the result, but after update is
+                                            LQ.docs.push(doc);
+                                            LQ._distributeChange(doc, evName, true);	//doc wasn't in the result, but after update is
 
                                         } else {
-                                            LQ.callClientListeners(qDoc, evName, null);	//doc is still in the query result on the same index
+                                            LQ._distributeChange(doc, evName, null);	//doc is still in the query result on the same index
 
                                         }
                                     }
@@ -169,7 +167,7 @@ var expose = function (model, schema, opts) {
                             } else {
                                 if (evName === 'update' && cQindex !== -1) {
                                     LQ.docs.splice(cQindex, 1);
-                                    LQ.callClientListeners(doc, evName, false);		//doc was in the result, but after update is no longer
+                                    LQ._distributeChange(doc, evName, false);		//doc was in the result, but after update is no longer
                                 }
                             }
                         }
@@ -343,13 +341,7 @@ var expose = function (model, schema, opts) {
         this.docs = [];
         this.listeners = {};
         this.mQuery = mQuery;   //mongoose query
-        if (queryMethodsHandledByMoonridge.select) {
-            var clQueryNS = _.clone(queryMethodsHandledByMoonridge);
-            delete clQueryNS.select;
-            this.mQueryNoSelects = queryBuilder(model, clQueryNS);   //mongoose query
-        } else {
-            this.mQueryNoSelects = mQuery;   //mongoose query
-        }
+
         this.qKey = qKey;
         this.indexedByMethods = queryMethodsHandledByMoonridge; //serializable client query object
         return this;
@@ -382,36 +374,36 @@ var expose = function (model, schema, opts) {
          * @param {String} evName
          * @param {Boolean|Number|null} isInResult when number, indicates an index where the doc should be inserted
          */
-        callClientListeners: function (doc, evName, isInResult) {
-            var self = this;
-            if (this.indexedByMethods.populate && doc.populate) {
-                populateWithClientQuery(doc, this.indexedByMethods.populate, function (err, populated) {
-                    self._distributeChange(populated.toObject(), evName, isInResult);
-                });
-
-            } else {
-                self._distributeChange(doc, evName, isInResult);
-            }
-
-        },
         _distributeChange: function (doc, evName, isInResult) {
-            logger.info('doc %s event %s, pos param: ' + isInResult, doc._id, evName);
-            for (var socketId in this.listeners) {
-                var listener = this.listeners[socketId];
-                var toSend = null;
-                if (listener.qOpts.count) {
-                    // we don't need to send a doc when query is a count query
-                } else {
-                    if (evName === 'remove') {
-                        toSend = doc._id.toString();	//remove needs only _id, which should be always defined
+            var self = this;
+            var actuallySend = function () {
+                for (var socketId in self.listeners) {
+                    var listener = self.listeners[socketId];
+                    var toSend = null;
+                    if (listener.qOpts.count) {
+                        // we don't need to send a doc when query is a count query
                     } else {
-                        toSend = doc;
+                        if (evName === 'remove') {
+                            toSend = doc._id.toString();	//remove needs only _id, which should be always defined
+                        } else {
+                            toSend = doc;
+                        }
                     }
-                }
 
-                toSend = opts.dataTransform(toSend, 'R', listener.socket);
-                listener.rpcChannel[evName](listener.clIndex, toSend, isInResult);
+                    toSend = opts.dataTransform(toSend, 'R', listener.socket);
+                    logger.info('calling doc %s event %s, pos param: ' + isInResult, doc._id, evName);
+
+                    listener.rpcChannel[evName](listener.clIndex, toSend, isInResult);
+                }
+            };
+
+            if (typeof doc.populate === 'function') {
+                populateWithClientQuery(doc, this.indexedByMethods.populate, actuallySend);
+            } else {
+                actuallySend();
             }
+
+
         },
         /**
          * removes a socket listener from liveQuery and also destroys the whole liveQuery if no more listeners are present

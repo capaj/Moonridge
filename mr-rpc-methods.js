@@ -19,10 +19,10 @@ function isInt(n) {
 var expose = function (model, schema, opts) {
     var getUser = function (socket) {
         var handshake = socket.manager.handshaken[socket.id];
-        if (handshake) {
+        if (handshake && handshake.user) {
             return handshake.user;
         } else {
-            throw new Error("User handshake data not found, either they weren't added, or they were deleted in the past");
+            throw new Error("Handshake user data not found, either they weren't added, or they were deleted in the past");
         }
     };
 

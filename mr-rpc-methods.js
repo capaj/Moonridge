@@ -17,8 +17,16 @@ function isInt(n) {
  * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function (model, schema, opts) {
+    var getUser = function (socket) {
+        var handshake = socket.manager.handshaken[socket.id];
+        if (handshake) {
+            return handshake.user;
+        } else {
+            throw new Error('User was connected, but he was not authorized, check your authorization function, it must call MR.authUser properly');
+        }
+    };
+
     var liveQueries = {};
-    opts = opts || {};
     var modelName = model.modelName;
 
     if (opts.dataTransform) {
@@ -33,7 +41,7 @@ var expose = function (model, schema, opts) {
          * @returns {*}
          */
         opts.dataTransform = function deleteUnpermittedProps(doc, op, socket) {
-            var userPL = socket.manager.user.privilige_level;
+            var userPL = getUser(socket).privilige_level;
 
             var pathPs = schema.pathPermissions;
             var docClone = _.clone(doc);
@@ -252,23 +260,24 @@ var expose = function (model, schema, opts) {
         /**
          *
          * @param {String} op operation to check, can be 'C','R', 'U', 'D'
-         * @param socketContext
+         * @param socket
          * @param {Document} [doc]
          * @returns {bool} true when user has permission, false when not
          */
-        opts.checkPermission = function (socketContext, op, doc) {
+        opts.checkPermission = function (socket, op, doc) {
             var PL; //privilige level
+            var user = getUser(socket);
             try{
-                PL = socketContext.manager.user.privilige_level;
+                PL = user.privilige_level;
             }catch(e){
                 PL = 0;
             }
 
             if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
-                if (doc.owner && doc.owner.toString() === socketContext.manager.user.id) {
+                if (doc.owner && doc.owner.toString() === user.id) {
                     return true;    // owner does not need any permissions
                 }
-                if (doc.id === socketContext.manager.user.id) {
+                if (doc.id === user.id) {
                     return true;    //user modifying himself also has permissions
                 }
             }
@@ -439,7 +448,7 @@ var expose = function (model, schema, opts) {
             if (!opts.checkPermission(this, 'R')) {
                 return new Error('You lack a privilege to read this document');
             }
-            accessControlQueryModifier(clientQuery,schema, this.manager.user.privilige_level, 'R');
+            accessControlQueryModifier(clientQuery,schema, getUser(this).privilige_level, 'R');
 
             try{
                 var queryAndOpts = queryBuilder(model, clientQuery);
@@ -472,7 +481,7 @@ var expose = function (model, schema, opts) {
             }
             def = Promise.defer();
             if (!clientQuery.count) {
-                accessControlQueryModifier(clientQuery, schema, this.manager.user.privilige_level, 'R');
+                accessControlQueryModifier(clientQuery, schema, getUser(this).privilige_level, 'R');
             }
 
             try{
@@ -576,7 +585,7 @@ var expose = function (model, schema, opts) {
                 opts.dataTransform(newDoc, 'W', this);
                 if (schema.paths.owner) {
                     //we should set the owner field if it is present
-                    newDoc.owner = this.manager.user._id;
+                    newDoc.owner = getUser(this)._id;
                 }
                 return model.create(newDoc);
 

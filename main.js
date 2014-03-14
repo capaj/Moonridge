@@ -3,6 +3,9 @@ var _ = require('lodash');
 var MRModel = require('./mr-model');
 var userModel;
 var toCallOnCreate = [];
+var authorizedUsers = {};   //indexed by socket.id that the user has currently
+var logger = require('./logger/logger');
+
 var init = function (mongoose) {
 
 	/**
@@ -16,8 +19,10 @@ var init = function (mongoose) {
 	 * @returns {MRModel}
 	 */
     function regNewModel(name, schema, opts) {
+        opts = opts || {};
+        opts.authorizedUsers = authorizedUsers;
 
-        var model = MRModel.apply(mongoose, arguments);
+        var model = MRModel.call(mongoose, name, schema, opts);
         toCallOnCreate.push(model._exposeCallback);
 
         return model;
@@ -32,6 +37,9 @@ var init = function (mongoose) {
 	 * @returns {*}
 	 */
 	function registerUserModel(schemaExtend, opts) {
+        opts = opts || {};
+        opts.authorizedUsers = authorizedUsers;
+
 		if (userModel) {    //if it was already assigned, we throw
 			throw new Error('There can only be one user model');
 		}
@@ -43,7 +51,17 @@ var init = function (mongoose) {
         return userModel;
 	}
 
-	return {model: regNewModel, userModel: registerUserModel};
+    /**
+     *
+     * @param hn
+     * @param {Object} user must have _id nad other mongoDB properties
+     */
+    function authUser(hn, user) {
+//        logger.info("Authenticated socket with id: " + hn.id);
+        hn.user = user;
+    }
+
+    return {model: regNewModel, userModel: registerUserModel, authUser: authUser};
 };
 
 /**
@@ -90,6 +108,12 @@ var createServer = function (io, app) {
     });
 
     var socketNamespace = rpc.createServer(io, {expressApp: app});
+
+    io.sockets.on('connection', function (socket) {
+        socket.on('disconnect', function() {
+            delete authorizedUsers[socket.id];
+        });
+    });
 
     toCallOnCreate.forEach(function (CB) {
        allQueries.push(CB());   //return object containing modelName and liveQueries Object for that model

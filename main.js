@@ -104,12 +104,6 @@ var createServer = function (io, app) {
 
     var socketNamespace = rpc.createServer(io, {expressApp: app});
 
-    io.sockets.on('connection', function (socket) {
-        socket.on('disconnect', function() {
-            delete authorizedUsers[socket.id];
-        });
-    });
-
     toCallOnCreate.forEach(function (CB) {
        allQueries.push(CB());   //return object containing modelName and liveQueries Object for that model
     });

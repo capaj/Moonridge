@@ -22,7 +22,7 @@ var expose = function (model, schema, opts) {
         if (handshake) {
             return handshake.user;
         } else {
-            throw new Error('User was connected, but he was not authorized, check your authorization function, it must call MR.authUser properly');
+            throw new Error("User handshake data not found, either they weren't added, or they were deleted in the past");
         }
     };
 

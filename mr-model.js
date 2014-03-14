@@ -22,6 +22,8 @@ var _ = require('lodash');
  * @constructor
  */
 module.exports = function MRModel(name, schema, opts) {
+    opts = opts || {};
+
     /**
      * is overriden for liveQueries
      * @param next
@@ -39,17 +41,17 @@ module.exports = function MRModel(name, schema, opts) {
         preUpdate: callNext,
         preRemove: callNext
     };
-    if (opts) {
-        if (opts.statics) {
-            _.extend(mgSchema.statics, opts.statics);
-        }
-        if (opts.pres) {
-            _.extend(mgSchema.pres, opts.pres);
-        }
-        if (opts.schemaInit) {
-            opts.schemaInit(mgSchema);
-        }
+
+    if (opts.statics) {
+        _.extend(mgSchema.statics, opts.statics);
     }
+    if (opts.pres) {
+        _.extend(mgSchema.pres, opts.pres);
+    }
+    if (opts.schemaInit) {
+        opts.schemaInit(mgSchema);
+    }
+
 
     var paths = mgSchema.paths;
     var pathPermissions = {};

@@ -3,7 +3,6 @@ var _ = require('lodash');
 var MRModel = require('./mr-model');
 var userModel;
 var toCallOnCreate = [];
-var authorizedUsers = {};   //indexed by socket.id that the user has currently
 var logger = require('./logger/logger');
 
 var init = function (mongoose) {
@@ -19,10 +18,8 @@ var init = function (mongoose) {
 	 * @returns {MRModel}
 	 */
     function regNewModel(name, schema, opts) {
-        opts = opts || {};
-        opts.authorizedUsers = authorizedUsers;
 
-        var model = MRModel.call(mongoose, name, schema, opts);
+        var model = MRModel.apply(mongoose, arguments);
         toCallOnCreate.push(model._exposeCallback);
 
         return model;
@@ -37,8 +34,6 @@ var init = function (mongoose) {
 	 * @returns {*}
 	 */
 	function registerUserModel(schemaExtend, opts) {
-        opts = opts || {};
-        opts.authorizedUsers = authorizedUsers;
 
 		if (userModel) {    //if it was already assigned, we throw
 			throw new Error('There can only be one user model');

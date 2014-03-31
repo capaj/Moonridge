@@ -432,6 +432,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         function Model() {
             var model = this;
             var lastIndex = 0;
+
             this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
@@ -442,11 +443,21 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 return model.rpc.update(toUpdate).catch(onRejection);
             };
 
+            /**
+             * deletes a $$hashkey and calls serverside method
+             * @param toCreate
+             * @returns {Promise}
+             */
             this.create = function (toCreate) {
                 delete toCreate.$$hashKey;
                 return model.rpc.create(toCreate).catch(onRejection);
             };
 
+            /**
+             *
+             * @param toRemove
+             * @returns {Promise}
+             */
             this.remove = function (toRemove) {
                 return model.rpc.remove(toRemove._id).catch(onRejection);
             };
@@ -462,9 +473,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
             var createLQEventHandler = function (eventName) {
                 return function (LQId, doc, isInResult) {
-                    if (model._LQs[LQId]) {
+                    var LQ = model._LQs[LQId];
+                    if (LQ) {
                         //updateLQ
-                        model._LQs[LQId]['on_' + eventName](doc, isInResult);
+                        LQ['on_' + eventName](doc, isInResult);
+                        LQ._invokeListeners(eventName, arguments);  //invoking model event
+                        LQ._invokeListeners('any', arguments);
                     } else {
                         $log.error('Unknown liveQuery calls this clients pub method, LQ id: ' + LQId);
                     }
@@ -485,6 +499,47 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              */
             this.liveQuery = function (initialQuery) {
 				var LQ = {};
+
+                var eventListeners = {
+                    update: [],
+                    remove: [],
+                    create: [],
+                    push: [],
+                    any: []
+                };
+                LQ._invokeListeners = function (which, params) {
+                    var index = eventListeners[which].length;
+                    while(index--) {
+                        eventListeners[which][index].call(model, params);
+                    }
+                };
+
+
+                /**
+                 * registers event callback on this model
+                 * @param {String} evName
+                 * @param {Function} callback
+                 * @returns {Number}
+                 */
+                LQ.on = function (evName, callback) {
+                    return eventListeners[evName].push(callback) - 1;
+                };
+
+                /**
+                 * unregisters previously registered event callback
+                 * @param {String} evName
+                 * @param {Number} evId
+                 * @returns {Boolean} true when event was unregistered, false when not found
+                 */
+                LQ.off = function (evName, evId){
+                    if (eventListeners[evName][evId]) {
+                        delete eventListeners[evName][evId];
+                        return true;
+                    } else {
+                        return false;
+                    }
+                };
+
                 LQ.docs = [];
                 if (navigator.userAgent.indexOf('MSIE 8.0') === -1) {
                     Object.defineProperty(LQ, 'doc', {

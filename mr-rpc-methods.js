@@ -437,10 +437,9 @@ var expose = function (model, schema, opts) {
     };
 
 
-
     var channel = {
         /**
-         *
+         * for running normal DB queries
          * @param {Object} clientQuery
          * @returns {Promise} from executing the mongoose.Query
          */
@@ -578,6 +577,10 @@ var expose = function (model, schema, opts) {
 
     if (opts && opts.readOnly !== true) {
         _.extend(channel, {
+            /**
+             * @param {Object} newDoc
+             * @returns {Promise}
+             */
             create: function (newDoc) {
                 if (!opts.checkPermission(this, 'C')) {
                     return new Error('You lack a privilege to create this document');
@@ -590,6 +593,11 @@ var expose = function (model, schema, opts) {
                 return model.create(newDoc);
 
             },
+            /**
+             * deletes a document by it's id
+             * @param {String} id
+             * @returns {Promise}
+             */
             remove: function (id) {
 
                 var def = Promise.defer();
@@ -615,6 +623,11 @@ var expose = function (model, schema, opts) {
                 });
                 return def.promise;
             },
+            /**
+             * finds a document by _id and then updates it
+             * @param toUpdate
+             * @returns {Promise}
+             */
             update: function (toUpdate) {
 
                 var def = Promise.defer();

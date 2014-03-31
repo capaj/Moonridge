@@ -14,6 +14,14 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log(LQ);    //LiveQuery
     });
 
+    $scope.LQ.on('create', function (LQ) {
+        console.log('create event handler called');    //
+    });
+
+    $scope.LQ.on('remove', function (LQ) {
+        console.log('remove event handler called');    //
+    });
+
     models.fighter.query().findOne().exec().then(function (res) {
         console.log(res);   //query result
     });

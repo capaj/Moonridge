@@ -25,7 +25,6 @@ var init = function (mongoose) {
         return model;
     }
 
-
 	/**
 	 *
 	 * @param schemaExtend
@@ -38,7 +37,7 @@ var init = function (mongoose) {
 		if (userModel) {    //if it was already assigned, we throw
 			throw new Error('There can only be one user model');
 		}
-		var userSchema = require('./user-model-base');
+		var userSchema = require('./utils/user-model-base');
 		_.extend(userSchema, schemaExtend);
 		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
         toCallOnCreate.push(userModel._exposeCallback);

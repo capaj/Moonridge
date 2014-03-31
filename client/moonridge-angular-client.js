@@ -174,7 +174,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 LQ._invokeListeners = function (which, params) {
                     var index = eventListeners[which].length;
                     while(index--) {
-                        eventListeners[which][index].call(model, params);
+                        eventListeners[which][index].call(LQ, params);
                     }
                 };
 

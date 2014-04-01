@@ -500,6 +500,12 @@ var expose = function (model, schema, opts) {
             var LQ = liveQueries[qKey];
             var def;
 
+            if (!socket.registeredLQs[LQIndex]) {
+                socket.registeredLQs[LQIndex] = LQ;
+            } else {
+                def.reject('LQ with this client-server index already exists');
+            }
+
             var pushListeners = function (LQOpts) {
                 socket.clientChannelPromise.then(function (clFns) {
                     var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
@@ -518,8 +524,6 @@ var expose = function (model, schema, opts) {
                         }
 
                         def.resolve(retVal);
-
-                        socket.registeredLQs[LQIndex] = LQ;
 
                         LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
                     };

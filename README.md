@@ -10,7 +10,7 @@ Offers killer feature of Meteor for MEAN stack. How?
     var Moonridge = require('moonridge');
     var MR = moonridge.init(mongoose);
     ...
-    var commentVote = MR.model('book', {
+    var bookModel = MR.model('book', {
             name: String,
             author: String
         }, {

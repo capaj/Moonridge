@@ -5,6 +5,7 @@ var userModel;
 var toCallOnCreate = [];
 var logger = require('./logger/logger');
 
+
 var init = function (mongoose) {
 
 	/**
@@ -60,8 +61,7 @@ var init = function (mongoose) {
 
 /**
  * @param {Manager} io socket.io manager
- * @param app
-
+ * @param {Object} app Express.js app object
  * @returns {SocketNamespace} master socket namespace
  */
 var createServer = function (io, app) {

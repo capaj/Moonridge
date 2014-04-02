@@ -4,8 +4,32 @@ Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badg
 MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
 
 Offers killer feature of Meteor for MEAN stack. How?
-Basic usage in angular controller on the CLIENT side:
-    
+##Basic usage in angular controller on the CLIENT side:
+###Serverside
+    var mongoose = require('mongoose');
+    var Moonridge = require('moonridge');
+    var MR = moonridge.init(mongoose);
+    ...
+    var commentVote = MR.model('book', {
+            name: String,
+            author: String
+        }, {
+             schemaInit: function (schema) {
+                // makes sure only one vote per nameXauthor exists
+                schema.index({ name: 1, author: 1 }, { unique: true, dropDups: true });
+            }
+        });
+    ...
+    moonridge.createServer(io, app);
+
+###HTML
+
+    <div mr-controller="bookCtrl" mr-model="book"><!--You must use mr-controller instead of ng-controller-->
+        <!--whatever you need to show-->
+    </div>
+
+###JS
+
     .controller('bookCtrl, 'function($scope, book){
         // create a book
         book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});

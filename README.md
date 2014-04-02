@@ -4,8 +4,8 @@ Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badg
 MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
 
 Offers killer feature of Meteor for MEAN stack. How?
-##Basic usage in angular controller on the CLIENT side:
-###Serverside
+##Basic usage serverside
+
     var mongoose = require('mongoose');
     var Moonridge = require('moonridge');
     var MR = moonridge.init(mongoose);
@@ -22,6 +22,7 @@ Offers killer feature of Meteor for MEAN stack. How?
     ...
     moonridge.createServer(io, app);
 
+##On the CLIENT side:
 ###HTML
 
     <div mr-controller="bookCtrl" mr-model="book"><!--You must use mr-controller instead of ng-controller-->
@@ -43,7 +44,7 @@ Offers killer feature of Meteor for MEAN stack. How?
         //use any query method except distinct, remove, update
     })
     
-Of course it is not as simple as this, you need to connect to your backend and declaratively define mr-controller in your html, but that is also very simple. See [test/index.html](https://github.com/capaj/Moonridge/blob/master/test/index.html)     
+Also you need to connect to your backend, but that is also very simple. See [test/index.html](https://github.com/capaj/Moonridge/blob/master/test/index.html)
 
 ##Errorhandling
 

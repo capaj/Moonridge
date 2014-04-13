@@ -1,11 +1,20 @@
 module.exports = function (grunt) {
     grunt.initConfig({
+        ngtemplates:  {
+            Moonridge: {
+                cwd:      './client',
+                src:      '**.html',
+                dest:     './client/templates.js'
+            }
+        },
         concat: {
             app: {
                 src: [
                     './node_modules/socket.io-rpc/socket.io-rpc-client-angular.js',
                     './client/moonridge-angular-client.js',
-                    './client/moonridge-methods-client-validations.js'
+                    './client/moonridge-methods-client-validations.js',
+                    './client/templates.js',
+                    './client/moonridge-query-dropdown.js'
                 ],
                 dest: './built/moonridge-angular-client-rpcbundle.js'
             }
@@ -24,9 +33,9 @@ module.exports = function (grunt) {
             }
         },
         less: {
-            spinner: {
-                src:  './client/mr-spinner.less',
-                dest: './built/mr-spinner.css'
+            client: {
+                src:  './client/moonridge-client.less',
+                dest: './built/moonridge-client.css'
             }
 
         }
@@ -35,6 +44,8 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-less');
     grunt.loadNpmTasks('grunt-ng-annotate');
-    grunt.registerTask('default', ['concat', 'less', 'ngAnnotate', 'uglify']);
+    grunt.loadNpmTasks('grunt-angular-templates');
+
+    grunt.registerTask('default', ['ngtemplates', 'concat', 'less', 'ngAnnotate', 'uglify']);
 
 };

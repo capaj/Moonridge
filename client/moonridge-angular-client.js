@@ -46,12 +46,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         /**
          * is used for emulating mongoose query
          * @param {Object} queryMaster
-         * @param {Function} execFn
+         * @param {Function} execFn which always returns a promise
+         * @param {Model} model
          * @constructor
          */
-        var QueryChainable = function (queryMaster, execFn) {
+        var QueryChainable = function (queryMaster, execFn, model) {
             var self = this;
             this.exec = execFn;
+            this._model = model;
 
             var APslice = Array.prototype.slice;
 
@@ -118,7 +120,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
 
             /**
-             *
              * @param toRemove
              * @returns {Promise}
              */
@@ -126,11 +127,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 return model.rpc.remove(toRemove._id).catch(onRejection);
             };
 
+            /**
+             * @returns {Array<String>}
+             */
+            this.listPaths = function () {
+                return model.rpc.listPaths().catch(onRejection);
+            };
+
+            /**
+             * @returns {QueryChainable} which has same methods as mongoose.js query. When you chain all query
+             *                           conditions, you use exec() to fire the query
+             */
             this.query = function () {
                 var master = {query:[], indexedByMethods: {}};
                 var queryChainable = new QueryChainable(master, function () {
                     return model.rpc.query(master.query);
-                });
+                }, model);
 
                 return queryChainable;
             };
@@ -157,12 +169,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
 
             /**
-             *
              * @param {Object} initialQuery NOTE: do not use + sign in select expressions
-             * @returns {Promise|*}
+             * @returns {QueryChainable} same as query, difference is that executing this QueryChainable won't return
+             *                           promise, but liveQuery object itself
              */
             this.liveQuery = function (initialQuery) {
-				var LQ = {};
+				var LQ = {_model: model};
 
                 var eventListeners = {
                     update: [],
@@ -369,6 +381,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 					}
 				};
 
+                /**
+                 * @returns {Object} live query object
+                 */
                 var queryExecFn = function () {
                     if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
                         throw new Error('count and sort must NOT be used on the same query');
@@ -406,7 +421,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     return LQ;
                 };
 
-				var queryChainable = new QueryChainable(LQ, queryExecFn);
+				var queryChainable = new QueryChainable(LQ, queryExecFn, model);
 
 				return  queryChainable;
             }

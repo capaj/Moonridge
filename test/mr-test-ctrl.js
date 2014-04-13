@@ -14,6 +14,10 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log(LQ);    //LiveQuery
     });
 
+    models.fighter.listPaths().then(function (paths) {
+        console.log(paths);
+    });
+
     $scope.LQ.on('create', function (LQ) {
         console.log('create event handler called');    //
     });
@@ -47,6 +51,15 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         models.fighter.create({name: $scope.name, health: $scope.health});
     };
 
+    $scope.dropdownTexts = [
+        "fighter's name",
+        "fighter's health",
+        false,
+        "fighter's death",
+        "fighter's owner",
+        "fighter's _id",
+        'version'
+    ];
 
 }).controller('loginCtrl',function ($scope, $MR, $q, $timeout, $rpc) {
     var dfd = $q.defer();

@@ -22,8 +22,8 @@ var server = app.listen(app.get('port'));
 app.get('/es5-shim.js', function (req, res) {
     res.sendfile('./node_modules/socket.io-rpc/tests/es5-shim.js');
 });
-app.get('/mr-spinner.css', function (req, res) {
-    res.sendfile('./built/mr-spinner.css');
+app.get('/moonridge-client.css', function (req, res) {
+    res.sendfile('./built/moonridge-client.css');
 });
 //This block is not needed when running normally as npm module
 app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module

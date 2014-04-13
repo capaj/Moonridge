@@ -4,7 +4,8 @@
     <title>Moonridge browser test suite</title>
     <!--uncomment es5-shim for IE8 support-->
     <!--<script type="text/javascript" src="/es5-shim.js"></script>-->
-    <link rel="stylesheet" href="/mr-spinner.css" type='text/css'>
+    <link rel="stylesheet" href="/moonridge-client.css" type='text/css'>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style type="text/css">
         .left-slide.ng-enter,
         .left-slide.ng-leave
@@ -31,7 +32,15 @@
             left: -100px;
             height: 0px;
         }
+
+        [ng-click] {
+        cursor: pointer;
+        }
+        mr-query-dropdown{
+            margin-top: 20px;
+        }
     </style>
+    <link href="css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body >
 <div ng-controller="loginCtrl">
@@ -44,8 +53,17 @@
        <button ng-click="create()">create</button>
        <button ng-click="changeQuery()">limit +1</button>
        <br/>
+
+       <br/>
        Total documents: <span ng-bind="cLQ.count"></span> || Limit: <input type="number" ng-model="LQ.query.limit[0]">
-           <h1>Find query</h1>
+       <div class="row query-header">
+           <div class="col-md-8">
+               <h1>Find query</h1>
+           </div>
+           <div class="col-md-4">
+               <mr-query-dropdown query="LQ" gui-path-texts="dropdownTexts"></mr-query-dropdown>
+           </div>
+       </div>
            <p mr-repeat="fighter in LQ" class="left-slide">
                {{ fighter }} <button ng-click="hit(fighter)">Hit</button> <button ng-click="heal(fighter)">Heal</button> <button ng-click="remove(fighter)">Del</button>
            </p>
@@ -58,14 +76,14 @@
 
 
     <script src="/socket.io/socket.io.js"></script>
-
+    <script src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
     <script src="/bower_components/jquery/jquery.min.js" type="text/javascript"></script>
     <script src="/bower_components/angular/angular.js" type="text/javascript"></script>
     <script src="/bower_components/angular-animate/angular-animate.js" type="text/javascript"></script>
     <script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
     <script src="/rpc/rpc-client-angular.js"></script>
-    <script type="text/javascript" src="/moonridge-angular-client.js"></script>
-    <script type="text/javascript" src="/moonridge-methods-client-validations.js"></script>
+    <script type="text/javascript" src="/moonridge-angular-client-rpcbundle.js"></script>
     <script src="/mr-test-ctrl.js" type="text/javascript"></script>
 
 </body>

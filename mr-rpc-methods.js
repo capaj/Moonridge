@@ -576,10 +576,16 @@ var expose = function (model, schema, opts) {
         //TODO have a method to stop and resume liveQuery
         //subscribe
         sub: subscribe,
-        subAll: subscribeAll
+        subAll: subscribeAll,
+        /**
+         * @returns {Array<String>}
+         */
+        listPaths: function () {
+            return Object.keys(schema.paths);
+        }
     };
 
-    if (opts && opts.readOnly !== true) {
+    if (opts.readOnly !== true) {
         _.extend(channel, {
             /**
              * @param {Object} newDoc
@@ -668,12 +674,11 @@ var expose = function (model, schema, opts) {
             }
         });
     }
-    var authFn = opts && opts.authFn;
 
     var requiredClientMethods = ['update', 'remove', 'create', 'push'];
 
     return function exposeCallback() {
-        var chnlSockets = rpc.expose('MR-' + modelName, channel, authFn);
+        var chnlSockets = rpc.expose('MR-' + modelName, channel, opts.authFn);
         chnlSockets.on('connection', function (socket) {
 
             socket.clientChannelPromise = rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {

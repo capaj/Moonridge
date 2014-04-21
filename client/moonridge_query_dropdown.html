@@ -6,8 +6,10 @@
         <li ng-repeat="path in paths">
             <div class="row" ng-if="guiPathTexts[$index] !== false">
                 <div class="col-md-4">
-                    <span class="glyphicon glyphicon-sort-by-attributes-alt"></span>
-                    <span class="glyphicon glyphicon-sort-by-attributes"></span>
+                    <span ng-class="{active: getSortTokens().indexOf('-' + path) !== -1}"
+                            class="glyphicon glyphicon-sort-by-attributes-alt" ng-click="sortBy('-' + path, $event)"></span>
+                    <span ng-class="{active: getSortTokens().indexOf(path) !== -1}"
+                            class="glyphicon glyphicon-sort-by-attributes" ng-click="sortBy(path, $event)"></span>
                 </div>
                 <div class="col-md-8">
                     <a ng-bind="guiPathTexts[$index] || path" ng-click="switchSort(path)"></a>

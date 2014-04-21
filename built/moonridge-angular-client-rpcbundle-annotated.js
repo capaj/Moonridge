@@ -1,4 +1,4 @@
-angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
+angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootScope, $q) {
     var invocationCounter = 0;
     var endCounter = 0;
     var serverChannels = {};
@@ -290,7 +290,7 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
     rpc.onEnd = nop;			//called when one call is returned
     rpc.auth = {};
     return rpc;
-}).directive('rpcController', function ($controller, $q, $rpc) {
+}]).directive('rpcController', ["$controller","$q","$rpc", function ($controller, $q, $rpc) {
     return {
 		scope: true,
 		compile: function compile(tEl, tAttrs) {
@@ -332,9 +332,9 @@ angular.module('RPC', []).factory('$rpc', function ($rootScope, $q) {
 		}
 	}
 
-});
+}]);
 
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
+angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope","$rpc","$q","$log","MRMethodsClientValidations", function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
     var MRs = {}; //stores instances of Moonridge
     var defaultBackend;
 
@@ -851,7 +851,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     };
 
     return Moonridge;
-})
+}])
 /**
  * @ngdoc directive
  * @name Moonridge.directive:mrController
@@ -862,7 +862,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
  * without waiting on promises to resolve inside the controller itself.
  *
   */
-.directive('mrController', function ($controller, $q, $MR) {
+.directive('mrController', ["$controller","$q","$MR", function ($controller, $q, $MR) {
     var onError = function (err) {
         throw new Error("Cannot instantiate mr-controller - error: " + err);
     };
@@ -913,7 +913,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
         }
     }
-})
+}])
 /**
  * @ngdoc directive
  * @name Moonridge.directive:mrRepeat
@@ -923,7 +923,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
  * syntactic sugar on top of ng-repeat directive.
  *
  */
-.directive('mrRepeat', function ($compile, mrSpinner) {
+.directive('mrRepeat', ["$compile","mrSpinner", function ($compile, mrSpinner) {
     return {
         compile: function compile(tEl, tAttrs) {
             var content = tEl.html();
@@ -970,7 +970,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
         }
     }
-}).value('mrSpinner',
+}]).value('mrSpinner',
 '<div class="spinner">'+
     '<div class="rect1"></div>'+
     '<div class="rect2"></div>'+

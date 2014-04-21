@@ -2,7 +2,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     var MRs = {}; //stores instances of Moonridge
     var defaultBackend;
 
-    var callJustOnce = [    //Moonridge methods which should be only once per query
+    //Moonridge methods which aren't run against the DB but rather jsut in memory
+    var callJustOnce = [
         'findOne',
         'select',
         'count',
@@ -67,15 +68,23 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         throw validationResult;
                     }
                     var qr = queryMaster.query;
-                    qr.push({mN: method, args: argsArray});
 
                     if (callJustOnce.indexOf(method) !== -1) {
                         if (queryMaster.indexedByMethods[method]) {
-                            throw new Error(method + ' method can be called just once per query');
+//                            throw new Error(method + ' method can be called just once per query');
+                            var qrIndex = qr.length;
+                            while(qrIndex--) {
+                                if (qr[qrIndex].mN === method) {
+                                    qr.splice(qrIndex, 1);
+                                }
+                            }
                         } else {
                             queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
                         }
                     }
+
+                    qr.push({mN: method, args: argsArray});
+
 
                     return self;
                 };
@@ -93,12 +102,13 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
         }
 
         /**
+         * @param {String} name
          * @constructor
          */
-        function Model() {
+        function Model(name) {
             var model = this;
             var lastIndex = 0;
-
+            this.name = name;
             this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
@@ -169,11 +179,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
 
             /**
-             * @param {Object} initialQuery NOTE: do not use + sign in select expressions
+             * @param {Object} previousLQ useful when we want to modify a running LQ, pass it after it is stopped
              * @returns {QueryChainable} same as query, difference is that executing this QueryChainable won't return
              *                           promise, but liveQuery object itself
              */
-            this.liveQuery = function (initialQuery) {
+            this.liveQuery = function (previousLQ) {
 				var LQ = {_model: model};
 
                 var eventListeners = {
@@ -232,8 +242,14 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     });
                 }
                 LQ.count = 0;
-				LQ.query = initialQuery || [];	//serializable query object
-				LQ.indexedByMethods = {};	// utility object to help with branching
+                if (angular.isObject(previousLQ)) {
+                    LQ.query = previousLQ.query;
+                    LQ.indexedByMethods = previousLQ.indexedByMethods;
+                } else {
+                    LQ.query = [];  //serializable query object
+                    // utility object to which helps when we need to resolve query type and branch our code
+                    LQ.indexedByMethods = {};
+                }
 
 				LQ.getDocById = function (id) {
 					var i = LQ.docs.length;
@@ -361,9 +377,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				//notify the server we don't want to receive any more updates
                 LQ.stop = function () {
 					if (angular.isNumber(LQ.index) && model._LQs[LQ.index] ) {
-						model.rpc.unsubLQ(LQ.index).then(function (succes) {
+                        LQ.stopped = true;
+                        model.rpc.unsubLQ(LQ.index).then(function (succes) {
 							if (succes) {
-								LQ.unsubscribed = true;
                                 if (LQ.indexedByMethods.count) {
                                     LQ.count = 0;
                                 } else {
@@ -389,7 +405,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         throw new Error('count and sort must NOT be used on the same query');
                     }
                     LQ._queryStringified = JSON.stringify(LQ.query);
-                    if (model._LQsByQuery[LQ._queryStringified]) {
+                    if (model._LQsByQuery[LQ._queryStringified] && model._LQsByQuery[LQ._queryStringified].stopped !== true) {
                         return model._LQsByQuery[LQ._queryStringified];
                     }
                     //if previous check did not found an existing query
@@ -439,7 +455,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 return model.deferred.promise;
             }
 
-            model = new Model();
+            model = new Model(name);
             models[name] = model;
 
             MRSingleton.connectPromise.then(function () {

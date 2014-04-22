@@ -14,7 +14,7 @@ angular.module('Moonridge').run(['$templateCache', function($templateCache) {
     "\n" +
     "        <li ng-repeat=\"path in paths\">\r" +
     "\n" +
-    "            <div class=\"row\" ng-if=\"guiPathTexts[$index] !== false\">\r" +
+    "            <div class=\"row\" ng-if=\"mrDropdown_guiPathTexts[$index] !== false\">\r" +
     "\n" +
     "                <div class=\"col-md-4\">\r" +
     "\n" +
@@ -30,7 +30,7 @@ angular.module('Moonridge').run(['$templateCache', function($templateCache) {
     "\n" +
     "                <div class=\"col-md-8\">\r" +
     "\n" +
-    "                    <a ng-bind=\"guiPathTexts[$index] || path\" ng-click=\"switchSort(path)\"></a>\r" +
+    "                    <a ng-bind=\"mrDropdown_guiPathTexts[$index] || path\" ng-click=\"switchSort(path)\"></a>\r" +
     "\n" +
     "                </div>\r" +
     "\n" +

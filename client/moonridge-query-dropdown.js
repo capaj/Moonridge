@@ -5,10 +5,11 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
         link: function (scope, elem, attrs) {
             var modelName;
             var LQScopeProp = attrs.query;
-            scope.guiPathTexts = scope.$eval(attrs.guiPathTexts);
 
             scope.$watch(LQScopeProp, function (query) {
                 if (query && query._model && query._model.rpc){
+                    scope.mrDropdown_guiPathTexts = scope.$eval(attrs.guiPathTexts);
+
                     if (modelName !== query._model.name) {
                         modelName = query._model.name;
                         query._model.rpc.listPaths().then(function (paths) {
@@ -27,12 +28,11 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                          */
                         scope.sortBy = function (sortPath, ev) {
                             console.log(sortPath, ev);
-                            scope[LQScopeProp].stop();
 
                             if (ev.shiftKey) {
                                 //append sort path to existing
                             } else {
-                                var newLQ = query._model.liveQuery(query);
+                                var newLQ = query._model.liveQuery(scope[LQScopeProp]);
                                 scope[LQScopeProp] = newLQ.sort(sortPath).exec();
 
                             }

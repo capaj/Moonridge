@@ -407,20 +407,20 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                     if (callJustOnce.indexOf(method) !== -1) {
                         if (queryMaster.indexedByMethods[method]) {
-//                            throw new Error(method + ' method can be called just once per query');
+
                             var qrIndex = qr.length;
                             while(qrIndex--) {
                                 if (qr[qrIndex].mN === method) {
-                                    qr.splice(qrIndex, 1);
+                                    qr.splice(qrIndex, 1);  //remove from query array because
                                 }
                             }
-                        } else {
-                            queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
                         }
+
+                        queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
+
                     }
 
                     qr.push({mN: method, args: argsArray});
-
 
                     return self;
                 };
@@ -520,7 +520,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              *                           promise, but liveQuery object itself
              */
             this.liveQuery = function (previousLQ) {
-				var LQ = {_model: model};
+
+                previousLQ && previousLQ.stop();
+
+                var LQ = {_model: model};
 
                 var eventListeners = {
                     update: [],
@@ -1084,7 +1087,7 @@ angular.module('Moonridge').run(['$templateCache', function($templateCache) {
     "\n" +
     "        <li ng-repeat=\"path in paths\">\r" +
     "\n" +
-    "            <div class=\"row\" ng-if=\"guiPathTexts[$index] !== false\">\r" +
+    "            <div class=\"row\" ng-if=\"mrDropdown_guiPathTexts[$index] !== false\">\r" +
     "\n" +
     "                <div class=\"col-md-4\">\r" +
     "\n" +
@@ -1100,7 +1103,7 @@ angular.module('Moonridge').run(['$templateCache', function($templateCache) {
     "\n" +
     "                <div class=\"col-md-8\">\r" +
     "\n" +
-    "                    <a ng-bind=\"guiPathTexts[$index] || path\" ng-click=\"switchSort(path)\"></a>\r" +
+    "                    <a ng-bind=\"mrDropdown_guiPathTexts[$index] || path\" ng-click=\"switchSort(path)\"></a>\r" +
     "\n" +
     "                </div>\r" +
     "\n" +
@@ -1122,10 +1125,11 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
         link: function (scope, elem, attrs) {
             var modelName;
             var LQScopeProp = attrs.query;
-            scope.guiPathTexts = scope.$eval(attrs.guiPathTexts);
 
             scope.$watch(LQScopeProp, function (query) {
                 if (query && query._model && query._model.rpc){
+                    scope.mrDropdown_guiPathTexts = scope.$eval(attrs.guiPathTexts);
+
                     if (modelName !== query._model.name) {
                         modelName = query._model.name;
                         query._model.rpc.listPaths().then(function (paths) {
@@ -1144,12 +1148,11 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                          */
                         scope.sortBy = function (sortPath, ev) {
                             console.log(sortPath, ev);
-                            scope[LQScopeProp].stop();
 
                             if (ev.shiftKey) {
                                 //append sort path to existing
                             } else {
-                                var newLQ = query._model.liveQuery(query);
+                                var newLQ = query._model.liveQuery(scope[LQScopeProp]);
                                 scope[LQScopeProp] = newLQ.sort(sortPath).exec();
 
                             }

@@ -71,20 +71,20 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                     if (callJustOnce.indexOf(method) !== -1) {
                         if (queryMaster.indexedByMethods[method]) {
-//                            throw new Error(method + ' method can be called just once per query');
+
                             var qrIndex = qr.length;
                             while(qrIndex--) {
                                 if (qr[qrIndex].mN === method) {
-                                    qr.splice(qrIndex, 1);
+                                    qr.splice(qrIndex, 1);  //remove from query array because
                                 }
                             }
-                        } else {
-                            queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
                         }
+
+                        queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
+
                     }
 
                     qr.push({mN: method, args: argsArray});
-
 
                     return self;
                 };
@@ -184,7 +184,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              *                           promise, but liveQuery object itself
              */
             this.liveQuery = function (previousLQ) {
-				var LQ = {_model: model};
+
+                previousLQ && previousLQ.stop();
+
+                var LQ = {_model: model};
 
                 var eventListeners = {
                     update: [],

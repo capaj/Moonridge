@@ -23,8 +23,8 @@
     "lodash": "~2.4",
     "mongoose": "~3.8",
     "socket.io": "latest",
-    "socket.io-rpc": "latest",
-    "bluebird": "~1.1",
+    "socket.io-rpc": "0.3.14",
+    "bluebird": "~1.2",
     "winston": "~0.7.2"
   },
   "devDependencies": {

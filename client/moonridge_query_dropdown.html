@@ -4,7 +4,7 @@
     </a>
     <ul class="dropdown-menu" role="menu">
         <li ng-repeat="path in paths">
-            <div class="row" ng-if="guiPathTexts[$index] !== false">
+            <div class="row" ng-if="mrDropdown_guiPathTexts[$index] !== false">
                 <div class="col-md-4">
                     <span ng-class="{active: getSortTokens().indexOf('-' + path) !== -1}"
                             class="glyphicon glyphicon-sort-by-attributes-alt" ng-click="sortBy('-' + path, $event)"></span>
@@ -12,7 +12,7 @@
                             class="glyphicon glyphicon-sort-by-attributes" ng-click="sortBy(path, $event)"></span>
                 </div>
                 <div class="col-md-8">
-                    <a ng-bind="guiPathTexts[$index] || path" ng-click="switchSort(path)"></a>
+                    <a ng-bind="mrDropdown_guiPathTexts[$index] || path" ng-click="switchSort(path)"></a>
                 </div>
             </div>
         </li>

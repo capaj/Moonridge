@@ -48,7 +48,7 @@ Also you need to connect to your backend, but that is also very simple. See [tes
 
 ##Errorhandling
 
-This is based on socket.io-rpc project, so errors are propagated for all server-side calls which return an error.
+All server-client communication is done by [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error.
 
 ##Supported browsers
 ###Desktop

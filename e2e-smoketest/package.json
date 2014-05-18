@@ -1,6 +1,6 @@
 {
     "name": "Moonridge-test",
-    "version": "0.0.5",
+    "version": "0.0.6",
     "dependencies": {
         "lodash": "~2.4",
         "mongoose": "~3.8",

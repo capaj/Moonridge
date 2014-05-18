@@ -27,6 +27,9 @@
     "bluebird": "~2.1",
     "winston": "~0.7"
   },
+  "peerDependencies": {
+     "mongoose": "~3.8"
+  },
   "devDependencies": {
     "grunt-contrib-concat": "~0.4",
     "grunt-contrib-uglify": "~0.5",

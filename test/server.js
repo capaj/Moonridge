@@ -54,18 +54,18 @@ dbInit(MR);
 
 var io = require('socket.io').listen(server);
 
-io.set('authorization', function (handshake, CB) {
+io.use(function(socket, next) {
+	var userName = socket.request._query.nick;
 
-	var userName = handshake._query.nick;
 	console.log("user wants to authorize: " + userName );
 	var user = mongoose.model('user');
 	user.findOne({name: userName}).exec().then(function (user) {
-		MR.authUser(handshake, user);
+		MR.authUser(socket, user);
 		console.log("Authenticated user: " + user.name);
-		CB(null, true);
+		next();
 	}, function (err) {
 		console.log("auth error " + err);
-		CB(null, false);
+		next(new Error('not authorized'));
 	})
 });
 

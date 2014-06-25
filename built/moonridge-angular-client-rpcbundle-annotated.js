@@ -1,4 +1,4 @@
-angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootScope, $q) {
+angular.module('RPC', []).factory('$rpc', ["$rootScope", "$q", function ($rootScope, $q) {
     var invocationCounter = 0;
     var endCounter = 0;
     var serverChannels = {};
@@ -183,7 +183,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootSco
                 .on('client channel created', function (name) {
 
                     var channel = clientChannels[name];
-                    var socket = io.connect(baseURL + '/rpcC-' + name + '/' + rpcMaster.socket.sessionid);  //rpcC stands for rpc Client
+                    var socket = io.connect(baseURL + '/rpcC-' + name + '/' + rpcMaster.io.engine.id);  //rpcC stands for rpc Client
                     channel._socket = socket;
                     socket.on('call', function (data) {
                         var exposed = channel.fns;
@@ -278,7 +278,8 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootSco
                 fnNames.push(fn);
             }
 
-            rpcMaster.emit('expose channel', {name: name, fns: fnNames});
+			rpcMaster.emit('expose channel', {name: name, fns: fnNames});
+
             return channel.deferred.promise;
         }
     };
@@ -290,7 +291,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootSco
     rpc.onEnd = nop;			//called when one call is returned
     rpc.auth = {};
     return rpc;
-}]).directive('rpcController', ["$controller","$q","$rpc", function ($controller, $q, $rpc) {
+}]).directive('rpcController', ["$controller", "$q", "$rpc", function ($controller, $q, $rpc) {
     return {
 		scope: true,
 		compile: function compile(tEl, tAttrs) {
@@ -334,7 +335,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope","$q", function ($rootSco
 
 }]);
 
-angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope","$rpc","$q","$log","MRMethodsClientValidations", function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
+angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q", "$log", "MRMethodsClientValidations", function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
     var MRs = {}; //stores instances of Moonridge
     var defaultBackend;
 
@@ -865,7 +866,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope","$rpc","$q","$
  * without waiting on promises to resolve inside the controller itself.
  *
   */
-.directive('mrController', ["$controller","$q","$MR", function ($controller, $q, $MR) {
+.directive('mrController', ["$controller", "$q", "$MR", function ($controller, $q, $MR) {
     var onError = function (err) {
         throw new Error("Cannot instantiate mr-controller - error: " + err);
     };
@@ -926,7 +927,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope","$rpc","$q","$
  * syntactic sugar on top of ng-repeat directive.
  *
  */
-.directive('mrRepeat', ["$compile","mrSpinner", function ($compile, mrSpinner) {
+.directive('mrRepeat', ["$compile", "mrSpinner", function ($compile, mrSpinner) {
     return {
         compile: function compile(tEl, tAttrs) {
             var content = tEl.html();

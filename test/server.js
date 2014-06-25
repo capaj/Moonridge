@@ -5,16 +5,11 @@ var ObjectId = mongoose.Types.ObjectId;
 var Moonridge = require('../main');
 var express = require('express');
 var app = module.exports = express();
+app.use(require('morgan')('dev'));
 
-app.configure(function(){
-    app.set('port', 8080);
-    app.use(express.favicon());
-    app.use(express.bodyParser());
-    app.use(express.methodOverride());
-    app.use(express.static('./test/'));
-    app.use(app.router);
+app.set('port', 8080);
 
-});
+app.use(express.static('./test/'));
 
 var server = app.listen(app.get('port'));
 
@@ -58,22 +53,22 @@ var dbInit = require('./db-init');
 dbInit(MR);
 
 var io = require('socket.io').listen(server);
-io.configure(function (){
-    io.set('authorization', function (handshake, CB) {
 
-        var userName = handshake.query.nick;
-        console.log("user wants to authorize: " + userName );
-        var user = mongoose.model('user');
-        user.findOne({name: userName}).exec().then(function (user) {
-            MR.authUser(handshake, user);
-            console.log("Authenticated user: " + user.name);
-            CB(null, true);
-        }, function (err) {
-            console.log("auth error " + err);
-            CB(null, false);
-        })
-    });
+io.set('authorization', function (handshake, CB) {
+
+	var userName = handshake._query.nick;
+	console.log("user wants to authorize: " + userName );
+	var user = mongoose.model('user');
+	user.findOne({name: userName}).exec().then(function (user) {
+		MR.authUser(handshake, user);
+		console.log("Authenticated user: " + user.name);
+		CB(null, true);
+	}, function (err) {
+		console.log("auth error " + err);
+		CB(null, false);
+	})
 });
+
 
 Moonridge.createServer(io, app);
 

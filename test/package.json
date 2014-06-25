@@ -4,6 +4,7 @@
     "dependencies": {
         "lodash": "~2.2",
         "mongoose": "~3.8",
-        "express": "latest"
+		"morgan": "^1.1.1",
+		"express": "~4"
     }
 }

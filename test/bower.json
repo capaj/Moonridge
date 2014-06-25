@@ -2,15 +2,15 @@
   "name": "Moonridge test",
   "version": "0.0.2",
   "dependencies": {
-    "moment": "~2.5",
-    "angular": "1.2.14",
-    "angular-route": "1.2.14",
-    "angular-loader": "1.2.14",
-    "angular-animate": "1.2.14",
+    "moment": "~2.6",
+    "angular": "1.2.18",
+    "angular-route": "1.2.18",
+    "angular-loader": "1.2.18",
+    "angular-animate": "1.2.18",
     "angular-moment": "latest",
     "angularLocalStorage-nc": "~0.2.1",
     "script.js": "latest",
-    "jquery": "~2.0.3"
+    "jquery": "~2.1"
   },
   "env": "dev"
 }

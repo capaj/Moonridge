@@ -6,6 +6,7 @@ var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
 var logger = require('./logger/logger');
+var getUser = require('./authentication').getUser;
 
 function isInt(n) {
     return typeof n === 'number' && n % 1 == 0;
@@ -17,14 +18,6 @@ function isInt(n) {
  * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function (model, schema, opts) {
-    var getUser = function (socket) {
-        var handshake = socket.manager.handshaken[socket.id];
-        if (handshake && handshake.user) {
-            return handshake.user;
-        } else {
-            throw new Error("Handshake user data not found, either they weren't added, or they were deleted in the past");
-        }
-    };
 
     var liveQueries = {};
     var modelName = model.modelName;
@@ -703,7 +696,7 @@ var expose = function (model, schema, opts) {
             });
         });
 
-        logger.info('Model %s was exposed', modelName);
+        logger.info('Model %s was exposed ', modelName);
 
         return {modelName: modelName, queries: liveQueries}; // returning for health check
     };

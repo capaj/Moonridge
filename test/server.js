@@ -58,6 +58,7 @@ io.use(function(socket, next) {
 	var userName = socket.request._query.nick;
 
 	console.log("user wants to authorize: " + userName );
+	console.log("socket.id: " + socket.id);
 	var user = mongoose.model('user');
 	user.findOne({name: userName}).exec().then(function (user) {
 		MR.authUser(socket, user);
@@ -68,7 +69,6 @@ io.use(function(socket, next) {
 		next(new Error('not authorized'));
 	})
 });
-
 
 Moonridge.createServer(io, app);
 

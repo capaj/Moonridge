@@ -4,7 +4,7 @@ var MRModel = require('./mr-model');
 var userModel;
 var toCallOnCreate = [];
 var logger = require('./logger/logger');
-
+var auth = require('./authentication');
 
 var init = function (mongoose) {
 
@@ -46,17 +46,7 @@ var init = function (mongoose) {
         return userModel;
 	}
 
-    /**
-     *
-     * @param hn
-     * @param {Object} user must have _id nad other mongoDB properties
-     */
-    function authUser(hn, user) {
-//        logger.info("Authenticated socket with id: " + hn.id);
-        hn.user = user;
-    }
-
-    return {model: regNewModel, userModel: registerUserModel, authUser: authUser};
+    return {model: regNewModel, userModel: registerUserModel, authUser: auth.authUser};
 };
 
 /**

@@ -1,0 +1,18 @@
+{
+	"name": "ng-tools",
+	"version": "0.3.1",
+    "dependencies": {
+        "showdown": "~0.3",
+		"angular": "1.2.16"
+	},
+	"devDependencies": {
+		"angular-mocks": "1.2.16"
+	},
+	"ignore": [
+		"**/.*",
+		"node_modules",
+		".idea",
+		"components",
+		"test.js"
+	]
+}

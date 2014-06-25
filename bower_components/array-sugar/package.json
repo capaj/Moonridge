@@ -1,0 +1,26 @@
+{
+    "name": "array-sugar",
+    "version": "0.1.4",
+    "private": false,
+    "author": "capaj <capajj@gmail.com>",
+    "description": "adds last, first, remove, contains, isEmpty and empty to array utilizing Object.defineProperty",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/capaj/array-sugar.git"
+    },
+    "main": "./array-sugar",
+    "engines": {
+        "node": ">=0.8"
+    },
+    "keywords": [
+        "array",
+        "array-methods",
+        "extend",
+        "sugar",
+        "syntactic sugar"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "nodeunit": "~0.8.1"
+    }
+}

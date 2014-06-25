@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+
+<head>
+    <script src="http://code.angularjs.org/1.2.16/angular.min.js"></script>
+    <script src="http://code.angularjs.org/1.2.16/angular-route.min.js"></script>
+    <script src="/ng-tools/src/module.js"></script>
+    <script src="/ng-tools/src/mark-current-links.js"></script>
+    <script>
+        console.log("app loaded");
+        var app = angular.module('myApp', ['ngRoute', 'ngTools']);
+
+        app.config(function ($routeProvider, $locationProvider) {
+            $locationProvider.html5Mode(true);  //Setting HTML5 Location Mode
+            var routes = [
+                { route:'/1', resolve: {template: '<h2>view 1</h2>'}},
+                { route:'/2', resolve: {template: '<h2>view 2</h2>', reloadOnSearch: false}},
+                { route:'/3', resolve: {template: '<h2>view 2</h2>', reloadOnSearch: false}}
+            ];
+
+            routes.forEach(function(routeDef){
+                $routeProvider.when(routeDef.route, routeDef.resolve);
+            });
+        });
+
+        app.controller('mainCtrl', function ($scope) {
+            $scope.routes = [1,2,3];
+            $scope.addLink = function () {
+                $scope.routes.push($scope.routes.length + 1);
+            };
+
+        })
+    </script>
+    <style type="text/css">
+        a.current p{
+            background-color: lightblue;
+        }
+    </style>
+</head>
+
+<body ng-controller="mainCtrl" mark-current-links>
+    <a ng-repeat="link in routes" href="/{{ link }}"><p>Route {{link}}</p></a>
+    <button ng-click="addLink()">add link</button>
+</body>
+
+</html>

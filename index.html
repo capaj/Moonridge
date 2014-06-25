@@ -3,8 +3,39 @@
 <head lang="en">
 	<meta charset="UTF-8">
 	<title>Moonridge - MOngoose bRIDGE to the browser</title>
+	<link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+	<style type="text/css">
+		.page-header small{margin-left: 30px;}
+		.feature-list .glyphicon-ok{
+			color: green;
+		}
+	</style>
+	<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css" rel="stylesheet">
 </head>
 <body>
-	<h2>Client side live querying</h2>
+	<div class="jumbotron">
+		<div class="container">
+			<div class="page-header">
+				<h1>Moonridge<small>Client side live querying</small></h1>
+			</div>
+		</div>
+	</div>
+	<div class="container-fluid">
+		<h3>Features</h3>
+		<ul class="list-group feature-list">
+			<li class="list-group-item">
+				<span class="glyphicon glyphicon-ok pull-right"></span>
+				live queries
+			</li>
+			<li class="list-group-item">
+				<span class="glyphicon glyphicon-ok pull-right"></span>
+				Mongoose API
+			</li>
+		</ul>
+	</div>
+
+
+	<script src="bower_components/jquery/dist/jquery.min.js"></script>
+	<script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+{
+  "name": "array-sugar",
+  "version": "0.1.4",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    ".idea",
+    "components",
+    "test.js"
+  ],
+  "homepage": "https://github.com/capaj/array-sugar",
+  "_release": "0.1.4",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.1.4",
+    "commit": "440e6799feecb016674a3c17da009318719c2d2b"
+  },
+  "_source": "git://github.com/capaj/array-sugar.git",
+  "_target": "~0.1",
+  "_originalSource": "array-sugar"
+}

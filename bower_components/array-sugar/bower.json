@@ -1,0 +1,11 @@
+{
+    "name": "array-sugar",
+    "version": "0.1.4",
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        ".idea",
+        "components",
+        "test.js"
+    ]
+}

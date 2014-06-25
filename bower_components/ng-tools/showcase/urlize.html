@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html ng-app="myApp">
+
+<head>
+    <script src="http://code.angularjs.org/1.2.16/angular.min.js"></script>
+    <script src="http://code.angularjs.org/1.2.16/angular-route.min.js"></script>
+    <script src="/src/module.js"></script>
+    <script src="/src/urlize.js"></script>
+    <script>
+        console.log("app reloaded");
+        var app = angular.module('myApp', ['ngRoute', 'ngTools']);
+
+        app.controller("myCtrl", function($scope, $location, $route) {
+
+
+            $scope.$on('$routeChangeStart', function(next, current) {
+                console.log('$routeChangeStart');
+            });
+
+            $scope.$on('$routeUpdate', function(next, current) {
+                console.log('$routeUpdate');
+            });
+
+            $scope.$on('$locationChangeStart', function(next, current) {
+                console.log('$locationChangeStart');
+            });
+
+            $scope.$on('$locationChangeSuccess', function(next, current) {
+                console.log('$locationChangeSuccess');
+            });
+        }).controller('routeCtrl', function ($scope, $location, urlize) {
+            urlize($scope, 'search');   // search object from scope will be synchronized on any change to URL
+
+
+            $scope.sa = function(){
+                console.log('changing');
+                $location.search({a: 'sdd', b: 2});
+                var a = $location.search();
+
+                console.log('changed to ' + JSON.stringify(a));
+            }
+        }).config(
+                function($locationProvider, $routeProvider) {
+                    $locationProvider.html5Mode(true);  //Setting HTML5 Location Mode
+                    var routes = [
+                        { route:'/route1', resolve: {template: '<h2>view 1</h2> <p>this view should trigger a warning</p>'}},
+                        { route:'/route2', resolve: {
+                            template: '<div ng-controller="routeCtrl"><h2>view 2</h2> <p>' +
+                                    '<input type="text" ng-model="search.a"><br/>' +
+                                    '<input type="number" ng-model="search.b"><br/>' +
+                                    '<button ng-click="sa()">search</button><br/>  ' +
+                                    ' </p></div>', reloadOnSearch: false}
+                        }
+                    ];
+
+                    routes.forEach(function(routeDef){
+                        $routeProvider.when(routeDef.route, routeDef.resolve);
+                    });
+
+//                    $routeProvider.otherwise({redirectTo:'/route1'});
+                }
+        );
+    </script>
+</head>
+
+<body ng-controller="myCtrl">
+
+<a href="/route1"><h1>Route 1</h1></a>
+<a href="/route2"><h1>Route 2</h1></a>
+<ng-view>
+
+</ng-view>
+
+</body>
+
+</html>

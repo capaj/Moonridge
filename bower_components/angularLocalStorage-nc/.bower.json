@@ -1,0 +1,28 @@
+{
+  "name": "angularLocalStorage-nc",
+  "version": "0.2.1",
+  "main": "src/angularLocalStorage.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "components",
+    "test",
+    "karma.conf.js"
+  ],
+  "dependencies": {
+    "angular": "~1.2.0-rc.2"
+  },
+  "devDependencies": {
+    "angular-mocks": "~1.2.0-rc.2"
+  },
+  "homepage": "https://github.com/capaj/angularLocalStorage",
+  "_release": "0.2.1",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.2.1",
+    "commit": "6f3fc752f38346dde92b4180922140c279cd30ec"
+  },
+  "_source": "git://github.com/capaj/angularLocalStorage.git",
+  "_target": "*",
+  "_originalSource": "angularLocalStorage-nc"
+}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html ng-app="promiseClassSC">
+
+<head>
+	<script src="/bower_components/angular/angular.js"></script>
+	<script src="/src/module.js"></script>
+	<script src="/src/promise-class.js"></script>
+	<style type="text/css">
+		.not-initialized{
+			background-color: yellow;
+		}
+		.in-progress{
+			background-color: blue;
+		}
+		.resolved{
+			background-color: green;
+		}
+		.rejected{
+			background-color: red;
+		}
+	</style>
+</head>
+
+<body ng-controller="mainCtrl">
+<h1 promise-class="prom">background changes according to promise</h1>
+
+<script type="text/javascript">
+	// Code goes here
+	angular.module('promiseClassSC', ['ngTools']).controller('mainCtrl', function ($timeout, $scope, $q) {
+		var def = $q.defer();
+
+		$timeout(function () {
+			console.log('init');
+			$scope.prom = def.promise;
+		}, 1000);
+
+		$timeout(function () {
+			def.resolve();
+			console.log('resolving');
+		}, 2000);
+
+	});
+</script>
+</body>
+</html>

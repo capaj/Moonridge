@@ -1,0 +1,14 @@
+{
+  "name": "script.js",
+  "homepage": "https://github.com/ded/script.js",
+  "version": "2.5.3",
+  "_release": "2.5.3",
+  "_resolution": {
+    "type": "version",
+    "tag": "v2.5.3",
+    "commit": "40982bf8fa0bee12506cfe14cf09b731f83412f1"
+  },
+  "_source": "git://github.com/ded/script.js.git",
+  "_target": "*",
+  "_originalSource": "script.js"
+}

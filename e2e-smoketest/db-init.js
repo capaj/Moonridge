@@ -1,5 +1,4 @@
 var mongoose = require('mongoose');
-var collectionsForDrop = ['fighters', 'users'];
 var Promise = require('bluebird');
 
 module.exports = function (MR) {
@@ -42,22 +41,23 @@ module.exports = function (MR) {
 		fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
 	});
 
-
-	collectionsForDrop.forEach(function (coll) {
+    var cleaningPromises = [fighter, user].map(function (mrModel) {
         var dfd = Promise.defer();
-        prs.push(dfd.promise);
-        mongoose.connection.collections[coll].drop( function(err) {	//TODO rewrite ti removeAll
-            console.log('collection ' + coll + ' dropped');
+
+        mrModel.model.remove({}, function(err) {
+            if (err) {
+                dfd.reject();
+            }
             dfd.resolve();
         });
+        return dfd.promise;
+
     });
 
-    Promise.all(prs).then(function () {
-        console.log("all collections should be dropped");
+    Promise.all(cleaningPromises).then(function () {
+        console.log("all collections should be clean");
 
-		fighter.reInitialize();	//this is done because with dropped collection I lost indexes too
-
-		user.model.create({
+        user.model.create({
             name: 'admin', privilige_level: 50
         }).then(function () {
             console.log("admin created");

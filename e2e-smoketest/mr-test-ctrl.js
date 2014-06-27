@@ -3,7 +3,9 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     var fighterLQ = models.fighter.liveQuery;
 
     models.fighter.create({name: 'Jon Snow', health: 70});
+    models.fighter.create({name: 'Jon Snow', health: 70});
     models.fighter.create({name: 'Roose Bolton', health: 35});
+
     $scope.limit = 6;
     $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
 //    $scope.LQ = fighterLQ().sort('health').limit(limit).skip(1).exec();

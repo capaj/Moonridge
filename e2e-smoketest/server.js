@@ -9,7 +9,7 @@ app.use(require('morgan')('dev'));
 
 app.set('port', 8080);
 
-app.use(express.static('./test/'));
+app.use(express.static('./e2e-smoketest/'));
 
 var server = app.listen(app.get('port'));
 

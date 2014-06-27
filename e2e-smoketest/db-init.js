@@ -45,10 +45,10 @@ module.exports = function (MR) {
     collectionsForDrop.forEach(function (coll) {
         var dfd = Promise.defer();
         prs.push(dfd.promise);
-        mongoose.connection.collections[coll].drop( function(err) {
-            console.log('collection ' + coll + ' dropped');
+//        mongoose.connection.collections[coll].drop( function(err) {
+//            console.log('collection ' + coll + ' dropped');
             dfd.resolve();
-        });
+//        });
     });
 
     Promise.all(prs).then(function () {

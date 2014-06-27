@@ -1,6 +1,7 @@
 var exposeMethods = require('./mr-rpc-methods');
 var EventBus = require('./schema-events');
 var _ = require('lodash');
+var logger = require('./logger/logger');
 
 /**
  * @param {String} name
@@ -49,6 +50,7 @@ module.exports = function MRModel(name, schema, opts) {
         _.extend(mgSchema.pres, opts.pres);
     }
     if (opts.schemaInit) {
+		logger.debug('schemaInit for ' + name);
         opts.schemaInit(mgSchema);
     }
 

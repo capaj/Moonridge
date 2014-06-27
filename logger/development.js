@@ -1,6 +1,6 @@
 module.exports = {
     logOpts: {
-        level: "info",
+        level: "debug",
         colorize: true,
         timestamp: true
     }

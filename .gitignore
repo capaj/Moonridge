@@ -13,5 +13,3 @@ logs
 results
 
 npm-debug.log
-test/bower_components/
-test/node_modules/

@@ -96,7 +96,8 @@ var expose = function (model, schema, opts) {
 
                 } else {
                     var checkQuery = model.findOne(LQ.mQuery);
-                    checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
+                    logger.debug('checking ' + doc._id + ' in a query ' + LQString);
+					checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
                                 logger.error(err);
                             }

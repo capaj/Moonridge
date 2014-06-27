@@ -49,11 +49,14 @@ module.exports = function MRModel(name, schema, opts) {
     if (opts.pres) {
         _.extend(mgSchema.pres, opts.pres);
     }
-    if (opts.schemaInit) {
-		logger.debug('schemaInit for ' + name);
-        opts.schemaInit(mgSchema);
-    }
+	var schemaInit = function() {
+		if (opts.schemaInit) {
+			logger.debug('schemaInit for ' + name);
+			opts.schemaInit(mgSchema);
+		}
+	};
 
+	schemaInit();
 
     var paths = mgSchema.paths;
     var pathPermissions = {};
@@ -114,6 +117,11 @@ module.exports = function MRModel(name, schema, opts) {
 
     var exposeCallback = exposeMethods(model, mgSchema, opts);
 
-    return {model: model, schema: mgSchema, _exposeCallback: exposeCallback};
+    return {
+		model: model,
+		reInitialize: schemaInit,
+		schema: mgSchema,
+		_exposeCallback: exposeCallback
+	};
 
 };

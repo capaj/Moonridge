@@ -259,13 +259,12 @@ var expose = function (model, schema, opts) {
          * @returns {bool} true when user has permission, false when not
          */
         opts.checkPermission = function (socket, op, doc) {
-            var PL; //privilige level
+            var PL = 0; //privilige level
             var user = getUser(socket);
-            try{
-                PL = user.privilige_level;
-            }catch(e){
-                PL = 0;
-            }
+
+			if (user) {
+				PL = user.privilige_level;
+			}
 
             if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
                 if (doc.owner && doc.owner.toString() === user.id) {
@@ -443,11 +442,8 @@ var expose = function (model, schema, opts) {
             }
             accessControlQueryModifier(clientQuery,schema, getUser(this).privilige_level, 'R');
 
-            try{
-                var queryAndOpts = queryBuilder(model, clientQuery);
-            }catch(e){
-                return e;   //building of the query failed
-            }
+			var queryAndOpts = queryBuilder(model, clientQuery);
+
             return queryAndOpts.mQuery.exec();
         },
         //unsubscribe
@@ -477,13 +473,10 @@ var expose = function (model, schema, opts) {
                 accessControlQueryModifier(clientQuery, schema, getUser(this).privilige_level, 'R');
             }
 
-            try{
-                var queryAndOpts = queryBuilder(model, clientQuery);
-            }catch(e){
-                return e;   //building of the query failed
-            }
-            var queryOptions = queryAndOpts.opts;
-            var mQuery = queryAndOpts.mQuery;
+            var builtQuery = queryBuilder(model, clientQuery);
+
+            var queryOptions = builtQuery.opts;
+            var mQuery = builtQuery.mQuery;
 
             if (!mQuery.exec) {
                 return new Error('query builder has returned invalid query');

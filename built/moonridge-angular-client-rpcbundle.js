@@ -761,11 +761,19 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function (res) {
 
                         if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
-                            LQ.count = res.count;
+                            //$log.debug('Count we got back from the server is ' + res.count);
+
+                            // this is not assignment but addition on purpose-if we create/remove docs before the initial
+                            // count is determined we keep count of them inside count property. This way we stay in sync
+                            // with the real count
+                            LQ.count += res.count;
+
                         } else {
 
                             var i = res.docs.length;
-                            LQ.count = i;
+                            LQ.count += i;
+                            //TODO here we need to merge the result of the query with changes which occured while the
+                            // query ran, so we can't just iterate
                             while(i--) {
                                 LQ.docs[i] = res.docs[i];
                             }
@@ -1121,7 +1129,7 @@ angular.module('Moonridge').run(['$templateCache', function($templateCache) {
 
 }]);
 
-angular.module('Moonridge').directive('mrQueryDropdown', function () {
+angular.module('Moonridge').directive('mrQueryDropdown', function ($log) {
     return {
         restrict: 'EA',
         templateUrl: 'moonridge_query_dropdown.html',
@@ -1136,7 +1144,7 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                     if (modelName !== query._model.name) {
                         modelName = query._model.name;
                         query._model.rpc.listPaths().then(function (paths) {
-                            console.log("mrQueryDropdown", paths);
+                            $log.log("mrQueryDropdown", paths);
                             scope.paths = paths;
                         });
 
@@ -1150,7 +1158,7 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                          * @param {Event} ev
                          */
                         scope.sortBy = function (sortPath, ev) {
-                            console.log(sortPath, ev);
+                            $log.log(sortPath, ev);
 
                             if (ev.shiftKey) {
                                 //append sort path to existing

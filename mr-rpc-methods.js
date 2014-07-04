@@ -96,12 +96,11 @@ var expose = function (model, schema, opts) {
 
                 } else {
                     var checkQuery = model.findOne(LQ.mQuery);
-                    logger.info('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
+                    logger.debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
 					checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
                                 logger.error(err);
                             }
-							logger.info(checkedDoc._id.toString());
                             if (checkedDoc) {   //doc satisfies the query
 
                                 if (LQ.indexedByMethods.populate.length !== 0) {    //needs to populate before send
@@ -395,7 +394,7 @@ var expose = function (model, schema, opts) {
                     }
 
                     toSend = opts.dataTransform(toSend, 'R', listener.socket);
-                    logger.info('calling doc %s event %s, pos param: ' + isInResult, doc._id, evName);
+                    logger.info('calling doc %s event %s, pos param %s', doc._id, evName, isInResult);
 
                     listener.rpcChannel[evName](listener.clIndex, toSend, isInResult);
                 }
@@ -528,8 +527,11 @@ var expose = function (model, schema, opts) {
                 LQ = new LiveQuery(qKey, mQuery, queryOptions);
                 liveQueries[qKey] = LQ;
 
+                pushListeners(queryOptions);
+
                 LQ.firstExecPromise = mQuery.exec().then(function (rDocs) {
                     LQ.firstExecDone = true;
+
                     if (mQuery.op === 'findOne') {
                         if (rDocs) {
                             LQ.docs = [rDocs];  //rDocs is actually just one document
@@ -552,13 +554,12 @@ var expose = function (model, schema, opts) {
                     LQ.destroy();
                 });
 
-                pushListeners(queryOptions);
             }
 
 			if (!socket.registeredLQs[LQIndex]) {
 				socket.registeredLQs[LQIndex] = LQ;
 			} else {
-				def.reject('LQ with this client-server index already exists');
+				def.reject(new Error('LQ with this client-server index already exists on socket '+ socket.id));
 			}
             return def.promise;
         },

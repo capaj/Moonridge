@@ -2,7 +2,6 @@ var mongoose = require('mongoose');
 var Promise = require('bluebird');
 
 module.exports = function (MR) {
-    var prs = [];
 
 	var user = MR.userModel({name: String, age: Number});
 	var fighter = MR.model('fighter', {

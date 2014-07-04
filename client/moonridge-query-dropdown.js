@@ -1,4 +1,4 @@
-angular.module('Moonridge').directive('mrQueryDropdown', function () {
+angular.module('Moonridge').directive('mrQueryDropdown', function ($log) {
     return {
         restrict: 'EA',
         templateUrl: 'moonridge_query_dropdown.html',
@@ -13,7 +13,7 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                     if (modelName !== query._model.name) {
                         modelName = query._model.name;
                         query._model.rpc.listPaths().then(function (paths) {
-                            console.log("mrQueryDropdown", paths);
+                            $log.log("mrQueryDropdown", paths);
                             scope.paths = paths;
                         });
 
@@ -27,7 +27,7 @@ angular.module('Moonridge').directive('mrQueryDropdown', function () {
                          * @param {Event} ev
                          */
                         scope.sortBy = function (sortPath, ev) {
-                            console.log(sortPath, ev);
+                            $log.log(sortPath, ev);
 
                             if (ev.shiftKey) {
                                 //append sort path to existing

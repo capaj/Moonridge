@@ -422,11 +422,19 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function (res) {
 
                         if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
-                            LQ.count = res.count;
+                            //$log.debug('Count we got back from the server is ' + res.count);
+
+                            // this is not assignment but addition on purpose-if we create/remove docs before the initial
+                            // count is determined we keep count of them inside count property. This way we stay in sync
+                            // with the real count
+                            LQ.count += res.count;
+
                         } else {
 
                             var i = res.docs.length;
-                            LQ.count = i;
+                            LQ.count += i;
+                            //TODO here we need to merge the result of the query with changes which occured while the
+                            // query ran, so we can't just iterate
                             while(i--) {
                                 LQ.docs[i] = res.docs[i];
                             }

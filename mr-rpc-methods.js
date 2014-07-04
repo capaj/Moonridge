@@ -96,11 +96,12 @@ var expose = function (model, schema, opts) {
 
                 } else {
                     var checkQuery = model.findOne(LQ.mQuery);
-                    logger.debug('checking ' + doc._id + ' in a query ' + LQString);
+                    logger.info('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
 					checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
                             if (err) {
                                 logger.error(err);
                             }
+							logger.info(checkedDoc._id.toString());
                             if (checkedDoc) {   //doc satisfies the query
 
                                 if (LQ.indexedByMethods.populate.length !== 0) {    //needs to populate before send
@@ -167,7 +168,8 @@ var expose = function (model, schema, opts) {
 
                                 }
                             } else {
-                                if (evName === 'update' && cQindex !== -1) {
+								logger.debug('Checked doc ' + doc._id + ' in a query ' + LQString + ' was not found');
+								if (evName === 'update' && cQindex !== -1) {
                                     LQ.docs.splice(cQindex, 1);
                                     LQ._distributeChange(doc, evName, false);		//doc was in the result, but after update is no longer
                                 }

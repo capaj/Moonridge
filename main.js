@@ -37,7 +37,7 @@ module.exports = {
          * @param schemaExtend
          * @param {Object} opts
          * @param {Function} opts.authFn will be set as default authFn for any model which user script might create, MANDATORY parameter
-         * @returns {*}
+		 * @returns {MRModel}
          */
         function registerUserModel(schemaExtend, opts) {
 

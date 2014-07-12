@@ -5,7 +5,8 @@ var logger = require('./logger/logger');
 
 /**
  * @param {String} name
- * @param {Schema} schema
+ * @param {Schema} schema NOTE: don't use these properties on your schemas: '$$hashKey', '__id', '__v', those names are
+ * reserved for angular and Mongoose
  * @param {Object} opts
  * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
  * @param {Object} opts.permissions should look something like:

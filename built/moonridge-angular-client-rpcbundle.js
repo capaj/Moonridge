@@ -451,14 +451,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
-//            this.methods = rpc;
 
 			/**
 			 * @param {Object} toUpdate moonridge object
 			 * @returns {Promise}
 			 */
             this.update = function (toUpdate) {
-                delete toUpdate.__v;
                 delete toUpdate.$$hashKey;
 				return model.rpc.update(toUpdate).catch(onRejection);
             };

@@ -118,7 +118,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 			 * @returns {Promise}
 			 */
             this.update = function (toUpdate) {
-                delete toUpdate.__v;
                 delete toUpdate.$$hashKey;
 				return model.rpc.update(toUpdate).catch(onRejection);
             };

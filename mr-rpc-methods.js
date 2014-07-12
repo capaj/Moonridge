@@ -634,14 +634,17 @@ var expose = function (model, schema, opts) {
                 var socket = this;
                 var id = toUpdate._id;
                 delete toUpdate._id;
-                if (toUpdate.hasOwnProperty('__v')) {
-                    delete toUpdate.__v;
-                }
+
                 model.findById(id, function (err, doc) {
                     if (doc) {
                         if (opts.checkPermission(socket, 'U', doc)) {
                             opts.dataTransform(toUpdate, 'W', socket);
                             var previousVersion = doc.toObject();
+							if (toUpdate.__v !== doc.__v) {
+								def.reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v));
+							} else {
+								delete toUpdate.__v; //save a bit of unnecesary work when we are extending doc on the next line
+							}
                             _.extend(doc, toUpdate);
                             doc.__v += 1;
                             schema.eventBus.fire.call(doc, 'preupdate', previousVersion);

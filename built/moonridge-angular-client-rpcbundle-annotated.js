@@ -452,10 +452,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
             this.deferred = $q.defer();
 //            this.methods = rpc;
+
+			/**
+			 * @param {Object} toUpdate moonridge object
+			 * @returns {Promise}
+			 */
             this.update = function (toUpdate) {
                 delete toUpdate.__v;
                 delete toUpdate.$$hashKey;
-                return model.rpc.update.apply(this, arguments).catch(onRejection);
+				return model.rpc.update(toUpdate).catch(onRejection);
             };
 
             /**
@@ -934,25 +939,38 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
  * @restrict A
  *
  * @description
- * syntactic sugar on top of ng-repeat directive.
+ * syntactic sugar on top of ng-repeat directive. Will be replaced in linking phase by ng-repeat directive,
+ * appends track by {model_name}._id if no track by expression is specified
  *
  */
 .directive('mrRepeat', ["$compile", "mrSpinner", function ($compile, mrSpinner) {
-    return {
+    var trackingProp = '_id'; //the same property that mongoose uses for identification of docs
+	return {
         compile: function compile(tEl, tAttrs) {
             var content = tEl.html();
             tEl.html(mrSpinner);
             return function (scope, el, attr) {
                 var repeatExpr = attr.mrRepeat;
-                var varName = repeatExpr.split('in ')[1];
+				var filterExpr = '';
+				if (repeatExpr.indexOf('|') !== -1) {
+					filterExpr = ' |' + repeatExpr.split('|')[1];	//everything after |
+					repeatExpr = repeatExpr.split('|')[0].trim();
+				}
+                var modelName = repeatExpr.split(' in ')[0];
+				var varName = repeatExpr.split(' in ')[1];	//property on scope holding the query promise
+
+				var trackingExpr = '';
+				if (repeatExpr.indexOf('track by') === -1) {
+					trackingExpr = ' track by ' + modelName + '.' + trackingProp;
+				}
 
                 var LQ;
                 function onReady(resolveP) {
                     el.removeAttr('mr-repeat');
                     if (LQ) {
-                        el.attr('ng-repeat', repeatExpr + '.docs');
+                        el.attr('ng-repeat', repeatExpr + '.docs' + filterExpr + trackingExpr);
                     } else {
-                        el.attr('ng-repeat', repeatExpr);
+                        el.attr('ng-repeat', repeatExpr  + filterExpr + trackingExpr);
                         scope[varName] = resolveP;   // overwriting the promise on scope with result of the query
                     }
 
@@ -970,11 +988,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
 
                 scope.$watch(varName, function (nV) {
                     if (nV) {
-                        if (nV.promise) {
+                        if (nV.promise) {	//when this is liveQuery
                             LQ = nV;
                             nV.promise.then(onReady);
 
-                        } else if(nV.then) {
+                        } else if(nV.then) {	//when this is one time query
                             nV.then(onReady);
                         }
                     }

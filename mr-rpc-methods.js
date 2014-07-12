@@ -650,7 +650,8 @@ var expose = function (model, schema, opts) {
                                 if (err) {
                                     def.reject(err);
                                 }
-                                def.resolve();
+                                def.resolve();	//we don't resolve with new document because when you want to display
+                                // current version of document, just use liveQuery
                             });
                         } else {
                             def.reject(new Error('You lack a privilege to update this document'));

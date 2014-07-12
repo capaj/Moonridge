@@ -1,23 +1,26 @@
 angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, models) {
 
-    var fighterLQ = models.fighter.liveQuery;
+	var fighter = models.fighter;
+	var fighterLQ = fighter.liveQuery;
 
-    models.fighter.create({name: 'Jon Snow', health: 70});
-    models.fighter.create({name: 'Littlefinger', health: 20});
-    models.fighter.create({name: 'Roose Bolton', health: 35});
-    models.fighter.create({name: 'Arya Stark', health: 50});
+    fighter.create({name: 'Jon Snow', health: 70});
+    fighter.create({name: 'Littlefinger', health: 20});
+    fighter.create({name: 'Roose Bolton', health: 35});
+    fighter.create({name: 'Arya Stark', health: 50});
 
-    $scope.limit = 6;
-    $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
+	angular.extend($scope, {
+		limit: 6,
+		oneLQ: fighterLQ().findOne().exec(),
+		cLQ: fighterLQ().count().exec()
+	});
 //    $scope.LQ = fighterLQ().sort('health').limit(limit).skip(1).exec();
-    $scope.oneLQ = fighterLQ().findOne().exec();
-    $scope.cLQ = fighterLQ().count().exec();
+    $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
 
     $scope.LQ.promise.then(function (LQ) {
         console.log(LQ);    //LiveQuery
     });
 
-    models.fighter.listPaths().then(function (paths) {
+    fighter.listPaths().then(function (paths) {
         console.log(paths);
     });
 
@@ -38,17 +41,17 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
     };
 
-    $scope.hit = function (fighter) {
-        fighter.health -= 1;
-        models.fighter.update(fighter);
+    $scope.hit = function (afighter) {
+        afighter.health -= 1;
+        fighter.update(afighter);
     };
 
-    $scope.heal = function (fighter) {
-        fighter.health += 1;
-        models.fighter.update(fighter);
+    $scope.heal = function (afighter) {
+        afighter.health += 1;
+        fighter.update(afighter);
     };
 
-    $scope.remove = models.fighter.remove;
+    $scope.remove = fighter.remove;
 
     $scope.create = function () {
         models.fighter.create({name: $scope.name, health: $scope.health});

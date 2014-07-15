@@ -3,10 +3,37 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 	var fighter = models.fighter;
 	var fighterLQ = fighter.liveQuery;
 
-    fighter.create({name: 'Jon Snow', health: 70});
-    fighter.create({name: 'Littlefinger', health: 20});
-    fighter.create({name: 'Roose Bolton', health: 35});
-    fighter.create({name: 'Arya Stark', health: 50});
+//    fighter.create({name: 'Jon Snow', health: 70});
+//    fighter.create({name: 'Robert Baratheon', health: 60});
+//    fighter.create({name: 'Littlefinger', health: 20});
+//    fighter.create({name: 'Roose Bolton', health: 35});
+//    fighter.create({name: 'Brienne of Tarth', health: 65});
+//    fighter.create({name: 'Sandor Clegane', health: 50});
+//
+//    fighter.create({name: 'Arya Stark', health: 50});
+//    fighter.create({name: 'Bran Stark', health: 40});
+//    fighter.create({name: 'Sansa Stark', health: 15});
+//    fighter.create({name: 'Khal Drogo', health: 65});
+
+    function makeid(){
+        var text = "";
+        var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+        for( var i=0; i < 5; i++ )
+            text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+        return text;
+    }
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min)) + min;
+    }
+
+    for (var i = 0; i < 80; i++) {
+        fighter.create({name: makeid(), health: getRandomInt(1, 100)});
+
+    }
+
 
 	angular.extend($scope, {
 		limit: 6,

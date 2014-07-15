@@ -772,12 +772,15 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
                             LQ.count += res.count;
 
                         } else {
-
+                            console.dir(res.docs);
                             var i = res.docs.length;
                             LQ.count += i;
                             //TODO here we need to merge the result of the query with changes which occured while the
                             // query ran, so we can't just iterate
                             while(i--) {
+                                if (LQ.docs.hasOwnProperty(i)) {
+                                    console.warn("Overwriting the property " + i + " at LiveQuery " + LQ._queryStringified);
+                                }
                                 LQ.docs[i] = res.docs[i];
                             }
 

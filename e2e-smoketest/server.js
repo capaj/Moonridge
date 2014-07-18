@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var _ = require('lodash');
 var locals = require('./localVariables.json');
-var ObjectId = mongoose.Types.ObjectId;
+
 var Moonridge = require('../main');
 var express = require('express');
 var app = module.exports = express();
@@ -35,20 +35,9 @@ app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //ex
     res.sendfile('./built/moonridge-angular-client-rpcbundle.min.js');
 });
 
-mongoose.connect(locals.connString, function (err) {
-    // if we failed to connect, abort
-    if (err) {
-        throw err;
-    } else {
-        console.log("DB connected succesfully");
-    }
-});
-mongoose.connection.on('error', function(err) {
-    console.error('MongoDB error: %s', err);
-});
 mongoose.set('debug', true);
 
-var MR = Moonridge.init(mongoose);
+var MR = Moonridge(mongoose, locals.connString);
 var dbInit = require('./db-init');
 dbInit(MR);
 
@@ -70,7 +59,7 @@ io.use(function(socket, next) {
 	})
 });
 
-Moonridge.createServer(io, app);
+MR.bootstrap(io, app);
 
 app.get('/', function (req, res) {
     res.sendfile('./test/index.html');

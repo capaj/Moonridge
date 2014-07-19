@@ -128,6 +128,11 @@ module.exports = function (mongoose, connString) {
 
 	}
 
-
-	return {model: regNewModel, userModel: registerUserModel, authUser: auth.authUser, bootstrap: bootstrap};
+    var MRInstance = {
+        model: regNewModel,
+        userModel: registerUserModel,
+        bootstrap: bootstrap
+    };
+    _.extend(MRInstance, auth); //adds auth methods
+    return  MRInstance;
 };

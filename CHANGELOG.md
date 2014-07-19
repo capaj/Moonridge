@@ -1,3 +1,6 @@
+#0.4.19 -> 0.4.20
+	Breaking change- API changed, instead of calling init call just the function that the whole module exports, 
+	also createServer is on the returned object as method 'bootstrap'
 #0.3.16 -> 0.4.0
     changed injection of Moonridge model into a controller, before model was/were on scope, now you will get them via DI
 

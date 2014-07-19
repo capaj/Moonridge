@@ -8,7 +8,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
 
     var mongoose = require('mongoose');
     var Moonridge = require('moonridge');
-    var MR = moonridge.init(mongoose);
+    var MR = moonridge(mongoose, "mongodb://localhost/moonridge_showcase");		//MongoDB address is optional-you can connect as always with mongoose
     ...
     var bookModel = MR.model('book', {
             name: String,
@@ -20,7 +20,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
             }
         });
     ...
-    moonridge.createServer(io, app);
+    moonridge.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
 
 ##On the CLIENT side:
 ###HTML
@@ -32,7 +32,13 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
     </div>
 
 ###JS
-
+	app.run(function($MR, $q){
+		var dfd = $q.defer();
+        var url = 'http://localhost:8080';	//your moonridge instance
+		//Moonridge backend
+		var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
+		dfd.resolve({url: url, hs: { query: "nick=admin" } } );	//resolve connects you to the Moonridge backend
+	})
     .controller('bookCtrl, 'function($scope, book){
         // create a book
         book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});
@@ -50,11 +56,11 @@ Also you need to connect to your backend, but that is also very simple. See [tes
 
 ##Errorhandling
 
-All server-client communication is done by [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
+All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
 
 ##Supported browsers
 ###Desktop
-    Internet Explorer 8+
+    Internet Explorer 8+ - though it needs es5shim
     Safari 4+
     Google Chrome 4+
     Firefox 4+

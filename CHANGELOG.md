@@ -1,3 +1,6 @@
+#0.4.20 -> 0.5.0
+	API polished even more, usual usecase somehow simplified, see readme diff for exact changes,
+	fixed a bug when some documents might have been lost in the init phase of liveQuery on the client
 #0.4.19 -> 0.4.20
 	Breaking change- API changed, instead of calling init call just the function that the whole module exports, 
 	also createServer is on the returned object as method 'bootstrap'

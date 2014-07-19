@@ -15,8 +15,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
      * @param {Promise} connectPromise should be resolved with an object with following properties:
-     *                                  {String} url backend address
-     *                                  {Object} hs handshake for socket.io
+     *                                  {String} url backend address where you will connect
+     *                                  {Object} hs handshake for socket.io which you can access via socket.request._query
      * @param isDefault default if true, this backend will be used for any mr-controller, which does not have it defined
      * @returns {Object} Moonridge singleton
      */
@@ -273,20 +273,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                 };
 				//syncing logic
 				LQ.on_create = function (doc, index) {
-					if (LQ.indexedByMethods.count) {
-						LQ.count += 1; // when this is a count query, just increment and call it a day
-						return;
- 					}
+					LQ.promise.then(function () {
+						if (LQ.indexedByMethods.count) {
+							LQ.count += 1; // when this is a count query, just increment and call it a day
+							return;
+						}
 
-					if (angular.isNumber(index)) {
-						LQ.docs.splice(index, 0, doc);
-					} else {
-						LQ.docs.push(doc);
-					}
-					if (LQ.indexedByMethods.limit < LQ.docs.length) {
-						LQ.docs.splice(LQ.docs.length - 1, 1);  // this needs to occur after push of the new doc
-					}
-                    LQ.recountIfNormalQuery();
+						if (angular.isNumber(index)) {
+							LQ.docs.splice(index, 0, doc);
+						} else {
+							LQ.docs.push(doc);
+						}
+						if (LQ.indexedByMethods.limit < LQ.docs.length) {
+							LQ.docs.splice(LQ.docs.length - 1, 1);  // this needs to occur after push of the new doc
+						}
+						LQ.recountIfNormalQuery();
+					});
                 };
 				LQ.on_push = LQ.on_create;  //used when item is not new but rather just was updated and fell into query results
 				/**
@@ -296,66 +298,67 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 			     * 								   for normal queries can be a numerical index also
 				 */
 				LQ.on_update = function (doc, isInResult) {
-//					console.log("index sent: " + isInResult);
-					if (LQ.indexedByMethods.count) {	// when this is a count query
-						if (angular.isNumber(isInResult)) {
-							LQ.count += 1;
-						} else {
-							if (isInResult === false) {
-								LQ.count -= 1;
-							}
-							if (isInResult === true) {
+					LQ.promise.then(function () {
+						if (LQ.indexedByMethods.count) {	// when this is a count query
+							if (angular.isNumber(isInResult)) {
 								LQ.count += 1;
+							} else {
+								if (isInResult === false) {
+									LQ.count -= 1;
+								}
+								if (isInResult === true) {
+									LQ.count += 1;
+								}
 							}
+							return;// just increment/decrement and call it a day
 						}
-						return;// just increment/decrement and call it a day
-					}
 
-                    var i = LQ.docs.length;
-                    while (i--) {
-                        var updated;
-                        if (LQ.docs[i]._id === doc._id) {
-                            if (isInResult === false) {
-								LQ.docs.splice(i, 1);  //removing from docs
-                                return;
-                            } else {
-                                // if a number, then doc should be moved
-                                if (angular.isNumber(isInResult)) {	//LQ with sorting
-                                    if (isInResult !== i) {
-                                        if (i < isInResult) {
-                                            LQ.docs.splice(i, 1);
-                                            LQ.docs.splice(isInResult - 1, 0, doc);
-                                        } else {
-                                            LQ.docs.splice(i, 1);
-                                            LQ.docs.splice(isInResult, 0, doc);
-                                        }
+						var i = LQ.docs.length;
+						while (i--) {
+							var updated;
+							if (LQ.docs[i]._id === doc._id) {
+								if (isInResult === false) {
+									LQ.docs.splice(i, 1);  //removing from docs
+									return;
+								} else {
+									// if a number, then doc should be moved
+									if (angular.isNumber(isInResult)) {	//LQ with sorting
+										if (isInResult !== i) {
+											if (i < isInResult) {
+												LQ.docs.splice(i, 1);
+												LQ.docs.splice(isInResult - 1, 0, doc);
+											} else {
+												LQ.docs.splice(i, 1);
+												LQ.docs.splice(isInResult, 0, doc);
+											}
 
-                                    } else {
-                                        updated = LQ.docs[i];
-                                        angular.extend(updated, doc);
-                                    }
+										} else {
+											updated = LQ.docs[i];
+											angular.extend(updated, doc);
+										}
 
-                                } else {
-									updated = LQ.docs[i];
-									angular.extend(updated, doc);
+									} else {
+										updated = LQ.docs[i];
+										angular.extend(updated, doc);
+									}
+
 								}
 
-                            }
-
-                            return;
-                        }
-                    }
-                    //when not found
-                    if (isInResult) {
-                        if (angular.isNumber(isInResult)) {	//LQ with sorting
-                            LQ.docs.splice(isInResult, 0, doc);
-                        } else {
-                            LQ.docs.push(doc); // pushing into docs if it was not found by loop
-                        }
-                        return;
-                    }
-                    $log.error('Failed to find updated document.');
-                    LQ.recountIfNormalQuery();
+								return;
+							}
+						}
+						//when not found
+						if (isInResult) {
+							if (angular.isNumber(isInResult)) {	//LQ with sorting
+								LQ.docs.splice(isInResult, 0, doc);
+							} else {
+								LQ.docs.push(doc); // pushing into docs if it was not found by loop
+							}
+							return;
+						}
+						$log.error('Failed to find updated document.');
+						LQ.recountIfNormalQuery();
+					});
                 };
 				/**
 				 *
@@ -363,22 +366,24 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				 * @returns {boolean} true when it removes an element
 				 */
 				LQ.on_remove = function (id) {
-					if (LQ.indexedByMethods.count) {
-						LQ.count -= 1;	// when this is a count query, just decrement and call it a day
-						return true;
-					}
+					LQ.promise.then(function () {
+						if (LQ.indexedByMethods.count) {
+							LQ.count -= 1;	// when this is a count query, just decrement and call it a day
+							return true;
+						}
 
-                    var i = LQ.docs.length;
-                    while (i--) {
-                        if (LQ.docs[i]._id === id) {
-                            LQ.docs.splice(i, 1);
-                            LQ.count -= 1;
-                            return true;
-                        }
-                    }
-                    $log.error('Failed to find deleted document.');
+						var i = LQ.docs.length;
+						while (i--) {
+							if (LQ.docs[i]._id === id) {
+								LQ.docs.splice(i, 1);
+								LQ.count -= 1;
+								return true;
+							}
+						}
+						$log.error('Failed to find deleted document.');
 
-					return false;
+						return false;
+					});
 				};
 				//notify the server we don't want to receive any more updates
                 LQ.stop = function () {
@@ -444,7 +449,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                         }
                         LQ._invokeListeners('init', res);
-
                         return LQ;	//
                     }, onRejection);
 

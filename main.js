@@ -67,11 +67,20 @@ module.exports = function (mongoose, connString) {
 	}
 
 	/**
-	 * @param {Manager} io socket.io manager
+	 *
 	 * @param {Object} app Express.js app object
-	 * @returns {SocketNamespace} master socket namespace
+	 * @param {Manager} [iop] socket.io manager
+	 * @returns {{rpcNsp: (Emitter), io: {Object}, server: http.Server}}
 	 */
-	function createServer(io, app) {
+	function bootstrap(app, iop) {
+		var io;
+		if (!iop) {
+			var server = app.listen(app.get('port'));
+
+			io = require('socket.io').listen(server);
+		} else {
+			io = iop;
+		}
 
 		app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
 			res.sendfile('node_modules/moonridge/client/moonridge-angular-client.js');
@@ -115,10 +124,10 @@ module.exports = function (mongoose, connString) {
 			}
 		});
 
-		return socketNamespace;
+		return {rpcNsp: socketNamespace, io: io, server: server};
 
 	}
 
 
-	return {model: regNewModel, userModel: registerUserModel, authUser: auth.authUser, bootstrap: createServer};
+	return {model: regNewModel, userModel: registerUserModel, authUser: auth.authUser, bootstrap: bootstrap};
 };

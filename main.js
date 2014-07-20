@@ -77,6 +77,10 @@ module.exports = function (mongoose, connString) {
 		if (!iop) {
 			var server = app.listen(app.get('port'));
 
+            server.on('listening', function() {
+                logger.info('Express server started on port %s at %s', server.address().port, server.address().address);
+            });
+
 			io = require('socket.io').listen(server);
 		} else {
 			io = iop;

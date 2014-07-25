@@ -52,7 +52,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
         //use any query method except distinct, remove, update
     })
     
-Also you need to connect to your backend, but that is also very simple. See [test/index.html](https://github.com/capaj/Moonridge/blob/master/test/index.html)
+Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)
 
 ##Errorhandling
 

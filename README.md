@@ -58,6 +58,9 @@ Also you need to connect to your backend-Moonridge uses a promise resolution for
 
 All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
 
+##TODO
+Needs implementing testing scenarios and mr-controllers need to work well in unit test and be easily mockable.
+
 ##Supported browsers
 ###Desktop
     Internet Explorer 8+ - though it needs es5shim

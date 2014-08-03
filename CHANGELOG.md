@@ -1,3 +1,5 @@
+#0.5.1 -> 0.5.2
+	mr-controller now works only with mr-models attribute. use of mr-model attribute is no longer supported
 #0.4.20 -> 0.5.0
 	API polished even more, usual usecase somehow simplified, see readme diff for exact changes,
 	fixed a bug when some documents might have been lost in the init phase of liveQuery on the client

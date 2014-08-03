@@ -1,6 +1,5 @@
-angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, models) {
+angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log, user) {
 
-	var fighter = models.fighter;
 	var fighterLQ = fighter.liveQuery;
 
     fighter.create({name: 'Jon Snow', health: 70});
@@ -32,9 +31,9 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log('remove event handler called');    //
     });
 
-//    models.fighter.query().findOne().exec().then(function (res) {
-//        console.log(res);   //query result
-//    });
+    user.query().findOne().exec().then(function (res) {
+        console.log(res);   //query result
+    });
 
     $scope.changeQuery = function () {
         $scope.limit += 1;
@@ -54,7 +53,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     $scope.remove = fighter.remove;
 
     $scope.create = function () {
-        models.fighter.create({name: $scope.name, health: $scope.health});
+        fighter.create({name: $scope.name, health: $scope.health});
     };
 
     $scope.dropdownTexts = [

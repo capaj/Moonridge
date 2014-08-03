@@ -801,7 +801,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
         }
 
         /**
-         * loads one model
+         * loads one model or returns already requested model promise
          * @param name
          * @param handshake
          * @returns {Promise} which resolves with the model
@@ -891,47 +891,44 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "$q",
         scope: true,
         compile: function compile(tEl, tAttrs) {
             return {
-                pre: function (scope, iElement, attr, controller) {
-                    var ctrlName = attr.mrController;
-                    var MR;
-                    if (attr.mrBackend) {
-                        MR = $MR.getBackend(attr.mrBackend);
-                    } else {
-                        MR = $MR.getDefaultBackend();
-                    }
+				pre: function (scope, iElement, attr, controller) {
+					var ctrlName = attr.mrController;
+					var MR;
+					if (attr.mrBackend) {
+						MR = $MR.getBackend(attr.mrBackend);
+					} else {
+						MR = $MR.getDefaultBackend();
+					}
+					var mrModels = attr.mrModels;
 
-                    var instantiateAngularCtrl = function (model) {
+					var instantiateAngularCtrl = function (models) {
 						scope.$on('$destroy', function() {
 							//TODO stop liveQueries
 						});
-                        var localInj = {
-                            $scope: scope
-                        };
-                        var injName = 'models';
-                        if (attr.mrModel) {
-                            injName = attr.mrModel;
-                        }
-                        localInj[injName] = model;
-                        var ctrl = $controller(ctrlName, localInj);
-                        iElement.children().data('$ngControllerController', ctrl);
-                    };
+						var localInj = {
+							$scope: scope
+						};
+						if (mrModels.indexOf(',') !== -1) {
+							angular.extend(localInj, models);
+						} else {
+							localInj[mrModels] = models;
+						}
 
-                    if (attr.mrModel && attr.mrModels === undefined) {
-                        MR.getModel(attr.mrModel).then(instantiateAngularCtrl, onError);
-                    }else if(attr.mrModels && attr.mrModel === undefined){
-                        var mNames = attr.mrModels.split(',');
-                        MR.getModels(mNames).then(instantiateAngularCtrl, onError);
-                    } else {
-                        var el = iElement[0].outerHTML;
-                        if (attr.mrModels && attr.mrModel) {
-                            throw new Error('Cannot have both mr-model and mr-models attributes defined on element: ' + el);
-                        } else {
-                            throw new Error('No Moonridge models defined on element: ' + el);
-                        }
-                    }
+						var ctrl = $controller(ctrlName, localInj);
+						iElement.children().data('$ngControllerController', ctrl);
+					};
 
-                }
-            };
+					if (mrModels === undefined) {
+						throw new Error('No Moonridge models defined on element: ' + el);
+					} else {
+						if (mrModels.indexOf(',') !== -1) {
+							MR.getModels(mrModels.split(',')).then(instantiateAngularCtrl, onError);
+						} else {
+							MR.getModel(mrModels).then(instantiateAngularCtrl, onError);
+						}
+					}
+				}
+			};
         }
     }
 }])

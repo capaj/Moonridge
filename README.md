@@ -24,8 +24,8 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
 
 ##On the CLIENT side:
 ###HTML
-
-    <div mr-controller="bookCtrl" mr-model="book"><!--You must use mr-controller instead of ng-controller-->
+	<!--You must use mr-controller instead of ng-controller-->
+    <div mr-controller="bookCtrl" mr-models="book"><!--You can load any number of models you like, separate them by commas-->
         <div ng-repeat="book in LQ.docs">
             <!-- regular angular templating -->
         </div>

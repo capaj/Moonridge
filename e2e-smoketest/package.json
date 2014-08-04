@@ -6,5 +6,10 @@
         "mongoose": "~3.8",
 		"morgan": "^1.1.1",
 		"express": "~4"
+    },
+    "devDependencies": {
+        "grunt-karma": "~0.8",
+        "karma-jasmine": "^0.1.5",
+        "karma-phantomjs-launcher": "^0.1.4"
     }
 }

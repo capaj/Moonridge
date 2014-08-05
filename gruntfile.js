@@ -11,24 +11,26 @@ module.exports = function (grunt) {
             app: {
                 src: [
                     './node_modules/socket.io-rpc/socket.io-rpc-client-angular.js',
-                    './client/moonridge-angular-client.js',
+                    './client/moonridge-model.js',
                     './client/moonridge-methods-client-validations.js',
+                    './client/query-chainable.js',
+                    './client/moonridge-directives.js',
                     './client/templates.js',
                     './client/moonridge-query-dropdown.js'
                 ],
-                dest: './built/moonridge-angular-client-rpcbundle.js'
+                dest: './built/moonridge-angular-client.js'
             }
         },
         ngAnnotate: {
             app: {
-                src: './built/moonridge-angular-client-rpcbundle.js',
-                dest: './built/moonridge-angular-client-rpcbundle-annotated.js'
+                src: './built/moonridge-angular-client.js',
+                dest: './built/moonridge-angular-client-annotated.js'
             }
         },
         uglify: {
             dist: {
                 files: {
-                    './built/moonridge-angular-client-rpcbundle.min.js': './built/moonridge-angular-client-rpcbundle-annotated.js'
+                    './built/moonridge-angular-client.min.js': './built/moonridge-angular-client-annotated.js'
                 }
             }
         },

@@ -21,17 +21,11 @@ app.get('/moonridge-client.css', function (req, res) {
 });
 //This block is not needed when running normally as npm module
 app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
-	res.sendfile('./client/moonridge-angular-client.js');
-});
-app.get('/moonridge-methods-client-validations.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
-	res.sendfile('./client/moonridge-methods-client-validations.js');
-});
-app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
-    res.sendfile('./built/moonridge-angular-client-rpcbundle.js');
+	res.sendfile('./built/moonridge-angular-client.js');
 });
 
-app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //exposed client file
-    res.sendfile('./built/moonridge-angular-client-rpcbundle.min.js');
+app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
+    res.sendfile('./built/moonridge-angular-client.min.js');
 });
 //END of special block which is only needed when moonridge is not as npm module
 

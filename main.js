@@ -87,16 +87,13 @@ module.exports = function (mongoose, connString) {
 		}
 
 		app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/client/moonridge-angular-client.js');
+			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.js');
 		});
 
-		app.get('/moonridge-angular-client-rpcbundle.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.js');
+		app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
+			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.min.js');
 		});
 
-		app.get('/moonridge-angular-client-rpcbundle.min.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client-rpcbundle.min.js');
-		});
 		var allQueries = [];
 
 		var socketNamespace = rpc.createServer(io, {expressApp: app});

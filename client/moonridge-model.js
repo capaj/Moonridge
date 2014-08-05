@@ -1,16 +1,7 @@
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, $q, $log, MRMethodsClientValidations) {
+angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, QueryChainable, $q, $log) {
     var MRs = {}; //stores instances of Moonridge
     var defaultBackend;
 
-    //Moonridge methods which aren't run against the DB but rather jsut in memory
-    var callJustOnce = [
-        'findOne',
-        'select',
-        'count',
-        'sort',
-        'limit',
-        'skip'
-    ];
     /**
      * A moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
@@ -42,58 +33,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 //                    TODO call getModel for all models
                 });
             });
-        };
-
-        /**
-         * is used for emulating mongoose query
-         * @param {Object} queryMaster
-         * @param {Function} execFn which always returns a promise
-         * @param {Model} model
-         * @constructor
-         */
-        var QueryChainable = function (queryMaster, execFn, model) {
-            var self = this;
-            this.exec = execFn;
-            this._model = model;
-
-            var APslice = Array.prototype.slice;
-
-            var createMethod = function (method) {
-                self[method] = function () {
-                    var argsArray = APslice.call(arguments);
-
-                    //perform validation
-                    var validationResult = MRMethodsClientValidations[method](argsArray);
-                    if (validationResult instanceof Error) {
-                        throw validationResult;
-                    }
-                    var qr = queryMaster.query;
-
-                    if (callJustOnce.indexOf(method) !== -1) {
-                        if (queryMaster.indexedByMethods[method]) {
-
-                            var qrIndex = qr.length;
-                            while(qrIndex--) {
-                                if (qr[qrIndex].mN === method) {
-                                    qr.splice(qrIndex, 1);  //remove from query array because
-                                }
-                            }
-                        }
-
-                        queryMaster.indexedByMethods[method] = argsArray; //we shall add it to the options, this object will be used when reiterating on LQ
-
-                    }
-
-                    qr.push({mN: method, args: argsArray});
-
-                    return self;
-                };
-            };
-
-            for (var method in MRMethodsClientValidations) {
-               createMethod(method);
-            }
-
         };
 
         function onRejection(reason) {
@@ -153,11 +92,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              */
             this.query = function () {
                 var master = {query:[], indexedByMethods: {}};
-                var queryChainable = new QueryChainable(master, function () {
+                return new QueryChainable(master, function () {
                     return model.rpc.query(master.query);
                 }, model);
-
-                return queryChainable;
             };
 
             var createLQEventHandler = function (eventName) {
@@ -409,7 +346,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 
                 /**
-                 * @returns {Object} live query object
+                 * @returns {Object} live query object with docs property which contains realtime result of the query
                  */
                 var queryExecFn = function () {
                     if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
@@ -455,9 +392,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     return LQ;
                 };
 
-				var queryChainable = new QueryChainable(LQ, queryExecFn, model);
-
-				return  queryChainable;
+                return new QueryChainable(LQ, queryExecFn, model);
             }
         }
 
@@ -481,7 +416,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     client: $rpc.expose('MR-' + name, model.clientRPCMethods),
                     server: $rpc.loadChannel('MR-' + name, handshake)
                 };
-
 
                 $q.all(promises).then(function (chnlPair) {
                     model.rpc = chnlPair.server;
@@ -533,140 +467,4 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
     };
 
     return Moonridge;
-})
-/**
- * @ngdoc directive
- * @name Moonridge.directive:mrController
- * @restrict AC
- *
- * @description
- * Will instantiate angular controller when Moonridge model resolves. This way it is possible to work with it instantly
- * without waiting on promises to resolve inside the controller itself.
- *
-  */
-.directive('mrController', function ($controller, $q, $MR) {
-    var onError = function (err) {
-        throw new Error("Cannot instantiate mr-controller - error: " + err);
-    };
-    return {
-        scope: true,
-        compile: function compile(tEl, tAttrs) {
-            return {
-				pre: function (scope, iElement, attr, controller) {
-					var ctrlName = attr.mrController;
-					var MR;
-					if (attr.mrBackend) {
-						MR = $MR.getBackend(attr.mrBackend);
-					} else {
-						MR = $MR.getDefaultBackend();
-					}
-					var mrModels = attr.mrModels;
-
-					var instantiateAngularCtrl = function (models) {
-						scope.$on('$destroy', function() {
-							//TODO stop liveQueries
-						});
-						var localInj = {
-							$scope: scope
-						};
-						if (mrModels.indexOf(',') !== -1) {
-							angular.extend(localInj, models);
-						} else {
-							localInj[mrModels] = models;
-						}
-
-						var ctrl = $controller(ctrlName, localInj);
-						iElement.children().data('$ngControllerController', ctrl);
-					};
-
-					if (mrModels === undefined) {
-						throw new Error('No Moonridge models defined on element: ' + el);
-					} else {
-						if (mrModels.indexOf(',') !== -1) {
-							MR.getModels(mrModels.split(',')).then(instantiateAngularCtrl, onError);
-						} else {
-							MR.getModel(mrModels).then(instantiateAngularCtrl, onError);
-						}
-					}
-				}
-			};
-        }
-    }
-})
-/**
- * @ngdoc directive
- * @name Moonridge.directive:mrRepeat
- * @restrict A
- *
- * @description
- * syntactic sugar on top of ng-repeat directive. Will be replaced in linking phase by ng-repeat directive,
- * appends track by {model_name}._id if no track by expression is specified
- *
- */
-.directive('mrRepeat', function ($compile, mrSpinner) {
-    var trackingProp = '_id'; //the same property that mongoose uses for identification of docs
-	return {
-        compile: function compile(tEl, tAttrs) {
-            var content = tEl.html();
-            tEl.html(mrSpinner);
-            return function (scope, el, attr) {
-                var repeatExpr = attr.mrRepeat;
-				var filterExpr = '';
-				if (repeatExpr.indexOf('|') !== -1) {
-					filterExpr = ' |' + repeatExpr.split('|')[1];	//everything after |
-					repeatExpr = repeatExpr.split('|')[0].trim();
-				}
-                var modelName = repeatExpr.split(' in ')[0];
-				var varName = repeatExpr.split(' in ')[1];	//property on scope holding the query promise
-
-				var trackingExpr = '';
-				if (repeatExpr.indexOf('track by') === -1) {
-					trackingExpr = ' track by ' + modelName + '.' + trackingProp;
-				}
-
-                var LQ;
-                function onReady(resolveP) {
-                    el.removeAttr('mr-repeat');
-                    if (LQ) {
-                        el.attr('ng-repeat', repeatExpr + '.docs' + filterExpr + trackingExpr);
-                    } else {
-                        el.attr('ng-repeat', repeatExpr  + filterExpr + trackingExpr);
-                        scope[varName] = resolveP;   // overwriting the promise on scope with result of the query
-                    }
-
-                    el.html(content);
-                    $compile(el)(scope);
-
-                    if (LQ && !attr.noStopping) {
-                        scope.$on('$destroy', function() {
-                            LQ.stop();
-//                                console.log("Query " + LQ._queryStringified + ' was stopped automatically.');
-                        });
-
-                    }
-                }
-
-                scope.$watch(varName, function (nV) {
-                    if (nV) {
-                        if (nV.promise) {	//when this is liveQuery
-                            LQ = nV;
-                            nV.promise.then(onReady);
-
-                        } else if(nV.then) {	//when this is one time query
-                            nV.then(onReady);
-                        }
-                    }
-                });
-
-            }
-
-        }
-    }
-}).value('mrSpinner',
-'<div class="spinner">'+
-    '<div class="rect1"></div>'+
-    '<div class="rect2"></div>'+
-    '<div class="rect3"></div>'+
-    '<div class="rect4"></div>'+
-    '<div class="rect5"></div>'+
-'</div>');
+});

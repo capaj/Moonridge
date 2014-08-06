@@ -2,6 +2,8 @@
 describe('testCtrl', function() {
     var MrMock, $rootScope, createController, fighterMock;
 
+	beforeEach(module('MRTest'));
+
     beforeEach(inject(function($injector) {
         // Set up the mock http service responses
         MrMock = $injector.get('MoonridgeMock');
@@ -16,15 +18,18 @@ describe('testCtrl', function() {
         var $controller = $injector.get('$controller');
 
         createController = function() {
-            return $controller('testCtrl', {'$scope' : $rootScope, fighter: fighterMock });
+			console.log("createController");
+            return $controller('testCtrl', {'$scope' : $rootScope, fighter: fighterMock, user: new MrMock() });
         };
     }));
 
 
-    it('should fetch two fighters', function() {
+    it('should fetch two fighters', function(done) {
         var controller = createController();
-
-        expect(controller.basicQuery.length).toBe(2);
+		setTimeout(function() {
+			expect(controller.basicQuery.length).toBe(2);
+			done();
+		},2);
 
     });
 

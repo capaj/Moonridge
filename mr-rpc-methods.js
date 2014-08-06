@@ -568,7 +568,7 @@ var expose = function (model, schema, opts) {
         sub: subscribe,
         subAll: subscribeAll,
         /**
-         * @returns {Array<String>}
+         * @returns {Array<String>} of the model's properties
          */
         listPaths: function () {
             return Object.keys(schema.paths);

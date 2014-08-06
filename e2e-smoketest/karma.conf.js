@@ -7,13 +7,22 @@ module.exports = function(config) {
         frameworks: ['jasmine'],
 
         // list of files / patterns to load in the browser
-        files: ['e2e-smoketest/mr-test-ctrl.js'],
+        files: [
+			'e2e-smoketest/bower_components/jquery/dist/jquery.min.js',
+			'e2e-smoketest/bower_components/angular/angular.js',
+			'e2e-smoketest/bower_components/angular-animate/angular-animate.js',
+			'e2e-smoketest/bower_components/angular-mocks/angular-mocks.js',
+			'e2e-smoketest/js/bootstrap.min.js',
+			'e2e-smoketest/mr-test-ctrl.js',
+			'built/moonridge-angular-client.js',
+			'client/moonridge-angular-mock.js',
+			'e2e-smoketest/test.js'],
 
         // list of files / patterns to exclude
         exclude: [],
 
         // web server port
-        port: 8080,
+        port: 8079,
 
         // level of logging
         // possible values: LOG_DISABLE || LOG_ERROR || LOG_WARN || LOG_INFO || LOG_DEBUG
@@ -27,7 +36,7 @@ module.exports = function(config) {
         // - Safari (only Mac)
         // - PhantomJS
         // - IE (only Windows)
-        browsers: ['PhantomJS']
+        browsers: ['Chrome']
         //    browsers: ['Chrome','Safari','Firefox','Opera','ChromeCanary'],
 
     });

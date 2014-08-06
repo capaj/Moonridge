@@ -14,7 +14,7 @@ angular.module('Moonridge').factory('QueryChainable', function (MRMethodsClientV
      * is used for emulating mongoose query
      * @param {Object} queryMaster
      * @param {Function} execFn which always returns a promise
-     * @param {Model} model
+     * @param {Model}
      * @constructor
      */
     function QueryChainable(queryMaster, execFn, model) {

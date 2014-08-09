@@ -91,9 +91,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
              *                           conditions, you use exec() to fire the query
              */
             this.query = function () {
-                var master = {query:[], indexedByMethods: {}};
-                return new QueryChainable(master, function () {
-                    return model.rpc.query(master.query);
+                var query = {query:[], indexedByMethods: {}};
+                return new QueryChainable(query, function () {
+                    var callQuery = function () {
+                        query.promise = model.rpc.query(query.query).then(function (result) {
+                            if (query.indexedByMethods.findOne) {
+                                query.doc = result;
+                            } else {
+                                query.docs = result;
+                            }
+                        });
+                    };
+
+                    query.exec = callQuery;
+                    callQuery();
+
+                    return query;
                 }, model);
             };
 
@@ -127,7 +140,17 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                 previousLQ && previousLQ.stop();
 
-                var LQ = {_model: model};
+                var LQ = {_model: model, docs: [], count: 0};
+
+                if (typeof Object.defineProperty === 'function') {
+                    Object.defineProperty(LQ, 'doc', {
+                        enumerable: false,
+                        configurable: false,
+                        get: function () {
+                            return LQ.docs[0];
+                        }
+                    });
+                }
 
                 var eventListeners = {
                     update: [],
@@ -174,17 +197,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     }
                 };
 
-                LQ.docs = [];
-                if (navigator.userAgent.indexOf('MSIE 8.0') === -1) {
-                    Object.defineProperty(LQ, 'doc', {
-                        enumerable: false,
-                        configurable: false,
-                        get: function () {
-                            return LQ.docs[0];
-                        }
-                    });
-                }
-                LQ.count = 0;
                 if (angular.isObject(previousLQ)) {
                     LQ.query = previousLQ.query;
                     LQ.indexedByMethods = previousLQ.indexedByMethods;

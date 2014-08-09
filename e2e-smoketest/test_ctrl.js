@@ -31,9 +31,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log('remove event handler called');    //
     });
 
-    user.query().findOne().exec().then(function (res) {
-        console.log(res);   //query result
-    });
+    $scope.admin = user.query().findOne().exec();
 
     $scope.changeQuery = function () {
         $scope.limit += 1;

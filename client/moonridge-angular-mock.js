@@ -1,42 +1,83 @@
 angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log, QueryChainable) {
 
-	var immediatePromise = function(res) {
+	var immediatePromise = function(res, success) {
 		var dfd = $q.defer();
-		dfd.resolve(res);
+        if (success === false) {
+            dfd.reject(res);
+        } else {
+            dfd.resolve(res);
+        }
 		return dfd.promise;
 	};
+
+    var makeQueryResult = function (res) {
+        var result = {promise: immediatePromise(res), on: angular.noop};
+        if (Array.isArray(res)) {
+            result.docs = res;
+        } else {
+            result.doc = res;
+        }
+        return result;
+    };
 
     var MoonridgeMock = function MoonridgeMock(callDefs) {
         this.callDefs = callDefs;
         this.docArray = [];
-		this.queryChainable =  function () {
+        var self = this;
+        /**
+         *
+         * @param {String} type
+         * @returns {QueryChainable}
+         */
+		var queryChainable =  function (type) {
 			var master = {query:[], indexedByMethods: {}};
-			new QueryChainable(master, function () {
-				return callDefs(master.query);
-			}, {});
-			return queryChainable;
+
+			return new QueryChainable(master, function () {
+                if (callDefs[type]) {
+                    return makeQueryResult(callDefs[type](master.query));
+                } else {
+                    if (master.indexedByMethods.findOne) {
+                        return makeQueryResult({});
+                    } else {
+                        return makeQueryResult([]);
+                    }
+                }
+            }, {});
 		};
-    };
 
-    MoonridgeMock.prototype = {
-        query: queryFluentBuilder,
-        liveQuery: queryFluentBuilder,
-		create: function(obj) {
-			this.docArray.push(obj);
-			return immediatePromise(obj);
-		},
-		remove: function(obj) {
-			//TODO implement
-            this.docArray.splice(this.docArray.indexOf(obj), 1);
-            return immediatePromise(obj);
+        angular.extend(this, {
+            query: function () {
+                return queryChainable('query');
+            },
+            liveQuery: function () {
+                return queryChainable('liveQuery');
+            },
+            create: function(obj) {
+                self.docArray.push(obj);
+                return immediatePromise(obj);
+            },
+            remove: function(obj) {
+                //TODO implement
+                self.docArray.splice(this.docArray.indexOf(obj), 1);
+                return immediatePromise(obj);
 
-        },
-		update: function(obj) {
-			//TODO implement
-		},
-		listPaths: function(obj) {
-			//TODO implement
-		}
+            },
+            update: function(obj) {
+                var updated = self.docArray.filter(function (doc) {
+                    return doc._id === obj._id;
+                });
+                if (updated[0]) {
+                    angular.extend(updated[0], obj);
+                    return immediatePromise(updated[0]);
+                } else {
+                    return immediatePromise(new Error('document not found'), false);
+                }
+            },
+            listPaths: function() {
+                //TODO implement
+                return immediatePromise(['_id']);
+            }
+        })
     };
 
     return MoonridgeMock;

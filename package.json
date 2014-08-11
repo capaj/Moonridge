@@ -24,8 +24,8 @@
   "dependencies": {
     "lodash": "~2.4",
     "socket.io": "1.0.6",
-    "socket.io-rpc": "0.4.2",
-    "bluebird": "~2.1",
+    "socket.io-rpc": "0.5.0",
+    "bluebird": "~2.2",
     "winston": "~0.7"
   },
   "peerDependencies": {

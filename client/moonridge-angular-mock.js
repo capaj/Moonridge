@@ -27,7 +27,10 @@ angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log, QueryCh
 		},
 		remove: function(obj) {
 			//TODO implement
-		},
+            this.docArray.splice(this.docArray.indexOf(obj), 1);
+            return immediatePromise(obj);
+
+        },
 		update: function(obj) {
 			//TODO implement
 		},

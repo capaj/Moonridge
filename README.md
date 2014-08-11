@@ -10,12 +10,12 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
     var Moonridge = require('moonridge');
     var MR = moonridge(mongoose, "mongodb://localhost/moonridge_showcase");		//MongoDB address is optional-you can connect as always with mongoose
     ...
-    var bookModel = MR.model('book', {
+    var bookModel = MR.model('book', {  //mongoose schema defintion
             name: String,
             author: String
         }, {
              schemaInit: function (schema) {
-                // makes sure only one vote per nameXauthor exists
+                // makes sure only one book per nameXauthor exists
                 schema.index({ name: 1, author: 1 }, { unique: true, dropDups: true });
             }
         });
@@ -24,7 +24,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
 
 ##On the CLIENT side:
 ###HTML
-	<!--You must use mr-controller instead of ng-controller-->
+	<!--You need to use mr-controller instead of ng-controller-->
     <div mr-controller="bookCtrl" mr-models="book"><!--You can load any number of models you like, separate them by commas-->
         <div ng-repeat="book in LQ.docs">
             <!-- regular angular templating -->
@@ -39,17 +39,17 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
 		var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
 		dfd.resolve({url: url, hs: { query: "nick=admin" } } );	//resolve connects you to the Moonridge backend
 	})
-    .controller('bookCtrl, 'function($scope, book){
+    .controller('bookCtrl', function($scope, book){
         // create a book
         book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});
         // query for it
-        book.query().findOne().exec();
+        var query = book.query().findOne().exec();
         // delete it
-        book.remove(book);
+        book.remove(query.doc);
         //best for last- liveQuery
         $scope.LQ = book.liveQuery().find().exec();
         //$scope.LQ.docs will contain up to date synced collection of documents that satisfy the query. You can
-        //use any query method except distinct, remove, update
+        //before exec() you can use any mongoose query method except distinct, remove, update
     })
     
 Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)

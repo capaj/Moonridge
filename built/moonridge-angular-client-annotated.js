@@ -52,6 +52,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
         }
         var channel = serverChannels[name];
         channel._loadDef = deferred;
+        channel._handshake = handshakeData;
         serverRunDateDeferred.promise.then(function () {
 
             var cacheKey = getCacheKey(name);
@@ -122,6 +123,11 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
      * @param {String} name
      */
     var connectToServerChannel = function (channel, name) {
+        var reconDfd = $q.defer();
+
+        if (channel._socket) {
+            return; //this was fired upon reconnect, so let's not register any more event subscribers
+        }
 
         channel._socket = io.connect(baseURL + '/rpc-' + name)
             .on('resolve', function (data) {
@@ -143,8 +149,12 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
                 channel._loadDef.reject(reason);
             })
             .on('disconnect', function (data) {
-                delete serverChannels[name];
+                channel._loadDef = reconDfd;
                 $log.warn("Server channel " + name + " disconnected.");
+            })
+            .on('reconnect', function () {
+                $log.info('reconnected channel' + name);
+                _loadChannel(name, channel._handshake, reconDfd);
             });
     };
 
@@ -430,9 +440,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
              *                           conditions, you use exec() to fire the query
              */
             this.query = function () {
-                var master = {query:[], indexedByMethods: {}};
-                return new QueryChainable(master, function () {
-                    return model.rpc.query(master.query);
+                var query = {query:[], indexedByMethods: {}};
+                return new QueryChainable(query, function () {
+                    var callQuery = function () {
+                        query.promise = model.rpc.query(query.query).then(function (result) {
+                            if (query.indexedByMethods.findOne) {
+                                query.doc = result;
+                            } else {
+                                query.docs = result;
+                            }
+                        });
+                    };
+
+                    query.exec = callQuery;
+                    callQuery();
+
+                    return query;
                 }, model);
             };
 
@@ -466,7 +489,17 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 
                 previousLQ && previousLQ.stop();
 
-                var LQ = {_model: model};
+                var LQ = {_model: model, docs: [], count: 0};
+
+                if (typeof Object.defineProperty === 'function') {
+                    Object.defineProperty(LQ, 'doc', {
+                        enumerable: false,
+                        configurable: false,
+                        get: function () {
+                            return LQ.docs[0];
+                        }
+                    });
+                }
 
                 var eventListeners = {
                     update: [],
@@ -513,17 +546,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
                     }
                 };
 
-                LQ.docs = [];
-                if (navigator.userAgent.indexOf('MSIE 8.0') === -1) {
-                    Object.defineProperty(LQ, 'doc', {
-                        enumerable: false,
-                        configurable: false,
-                        get: function () {
-                            return LQ.docs[0];
-                        }
-                    });
-                }
-                LQ.count = 0;
                 if (angular.isObject(previousLQ)) {
                     LQ.query = previousLQ.query;
                     LQ.indexedByMethods = previousLQ.indexedByMethods;
@@ -914,7 +936,7 @@ angular.module('Moonridge').factory('QueryChainable', ["MRMethodsClientValidatio
      * is used for emulating mongoose query
      * @param {Object} queryMaster
      * @param {Function} execFn which always returns a promise
-     * @param {Model} model
+     * @param {Model}
      * @constructor
      */
     function QueryChainable(queryMaster, execFn, model) {

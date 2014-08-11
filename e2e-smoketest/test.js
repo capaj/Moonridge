@@ -8,8 +8,8 @@ describe('testCtrl', function() {
         // Set up the mock http service responses
         MrMock = $injector.get('MoonridgeMock');
 
-        fighterMock = new MrMock({liveQuery: function (params) {
-            return [{name: 'Littlefinger', health: 20, _id: '1'}, {_id:'2', name: 'Roose Bolton', health: 35}];
+        fighterMock = new MrMock({liveQuery: function (params, query) {
+            query.resolvePromise([{name: 'Littlefinger', health: 20, _id: '1'}, {_id:'2', name: 'Roose Bolton', health: 35}]);
         }});
 
         userMock = new MrMock({query: function (params) {

@@ -34,7 +34,21 @@ angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log, QueryCh
 
 			return new QueryChainable(master, function () {
                 if (callDefs[type]) {
-                    return makeQueryResult(callDefs[type](master.query));
+                    var query = {
+                        resolvePromise: function (res) {
+                            query.promise = immediatePromise(res);
+                            if (Array.isArray(res)) {
+                                query.docs = res;
+                            } else {
+                                query.doc = res;
+                            }
+                        }, on: angular.noop
+                    };
+                    var fakeResult = callDefs[type](master, query);
+                    if (fakeResult) {
+                        query.resolvePromise(fakeResult);
+                    }
+                    return query;
                 } else {
                     if (master.indexedByMethods.findOne) {
                         return makeQueryResult({});

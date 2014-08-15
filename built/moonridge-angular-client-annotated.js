@@ -707,9 +707,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 				};
 
                 /**
+                 * @param {Boolean} skipSocketEvents when true, no events from socket will be subscribed
                  * @returns {Object} live query object with docs property which contains realtime result of the query
                  */
-                var queryExecFn = function () {
+                var queryExecFn = function (skipSocketEvents) {
                     if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
                         throw new Error('count and sort must NOT be used on the same query');
                     }
@@ -747,6 +748,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 
                         }
                         LQ._invokeListeners('init', res);
+
+                        if (!skipSocketEvents) {
+                            MRSingleton.socket.on('disconnect', function () {
+                                LQ.stopped = true;
+                            });
+
+                            MRSingleton.socket.on('reconnect', function () {
+                                //TODO maybe we have to wait until model.rpc can be called
+                                LQ.docs = [];
+                                LQ.count = 0;
+                                queryExecFn(true);
+                                LQ.stopped = false;
+
+                            });
+                        }
+
                         return LQ;	//
                     }, onRejection);
 
@@ -936,7 +953,7 @@ angular.module('Moonridge').factory('QueryChainable', ["MRMethodsClientValidatio
      * is used for emulating mongoose query
      * @param {Object} queryMaster
      * @param {Function} execFn which always returns a promise
-     * @param {Model}
+     * @param {Model} model
      * @constructor
      */
     function QueryChainable(queryMaster, execFn, model) {

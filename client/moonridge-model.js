@@ -358,9 +358,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 				};
 
                 /**
+                 * @param {Boolean} skipSocketEvents when true, no events from socket will be subscribed
                  * @returns {Object} live query object with docs property which contains realtime result of the query
                  */
-                var queryExecFn = function () {
+                var queryExecFn = function (skipSocketEvents) {
                     if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
                         throw new Error('count and sort must NOT be used on the same query');
                     }
@@ -398,6 +399,23 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
                         }
                         LQ._invokeListeners('init', res);
+
+                        if (!skipSocketEvents) {
+                            MRSingleton.socket.on('disconnect', function () {
+                                LQ.stopped = true;
+                            });
+
+                            MRSingleton.socket.on('reconnect', function () {
+                                //TODO maybe we have to wait until model.rpc can be called
+                                LQ.docs = [];
+                                LQ.count = 0;
+                                queryExecFn(true);
+
+                            });
+                        } else {
+                            LQ.stopped = false;
+                        }
+
                         return LQ;	//
                     }, onRejection);
 
@@ -410,8 +428,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
         /**
          * loads one model or returns already requested model promise
-         * @param name
-         * @param handshake
+         * @param {String} name
+         * @param {Object} handshake
          * @returns {Promise} which resolves with the model
          */
 		MRSingleton.getModel = function (name, handshake) {
@@ -433,6 +451,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     model.rpc = chnlPair.server;
                     model.deferred.resolve(model);
                 });
+
+                //TODO ondisconnect replace defferred
             });
 
 			return model.deferred.promise;

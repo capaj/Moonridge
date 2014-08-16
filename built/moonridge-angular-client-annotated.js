@@ -395,7 +395,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
          */
         function Model(name) {
             var model = this;
-            var lastIndex = 0;
+            var lastIndex = 0;  //this is used for storing liveQueries in _LQs object as an index, each liveQuery has unique
             this.name = name;
             this._LQs = {};	// holds all liveQueries on client indexed by numbers starting from 1, used for communicating with the server
             this._LQsByQuery = {};	// holds all liveQueries on client indexed query in json, used for checking if the query does not exist already
@@ -707,24 +707,28 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 				};
 
                 /**
-                 * @param {Boolean} skipSocketEvents when true, no events from socket will be subscribed
+                 * @param {Boolean} onReconnect when true, no events from socket will be subscribed
                  * @returns {Object} live query object with docs property which contains realtime result of the query
                  */
-                var queryExecFn = function (skipSocketEvents) {
-                    if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
-                        throw new Error('count and sort must NOT be used on the same query');
-                    }
-                    LQ._queryStringified = JSON.stringify(LQ.query);
-                    if (model._LQsByQuery[LQ._queryStringified] && model._LQsByQuery[LQ._queryStringified].stopped !== true) {
-                        return model._LQsByQuery[LQ._queryStringified];
-                    }
-                    //if previous check did not found an existing query
-                    model._LQsByQuery[LQ._queryStringified] = LQ;
+                var queryExecFn = function (onReconnect) {
+                    if (!LQ._queryStringified) {
+                        if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
+                            throw new Error('count and sort must NOT be used on the same query');
+                        }
+                        LQ._queryStringified = JSON.stringify(LQ.query);
+                        if (model._LQsByQuery[LQ._queryStringified] && model._LQsByQuery[LQ._queryStringified].stopped !== true) {
+                            return model._LQsByQuery[LQ._queryStringified];
+                        }
 
-                    lastIndex += 1;
+                        //if previous check did not found an existing query
+                        model._LQsByQuery[LQ._queryStringified] = LQ;
 
-                    model._LQs[lastIndex] = LQ;
-                    LQ.index = lastIndex;
+                        lastIndex += 1;
+
+                        model._LQs[lastIndex] = LQ;
+                        LQ.index = lastIndex;
+
+                    }
 
                     LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function (res) {
 
@@ -749,7 +753,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
                         }
                         LQ._invokeListeners('init', res);
 
-                        if (!skipSocketEvents) {
+                        if (!onReconnect) {
                             MRSingleton.socket.on('disconnect', function () {
                                 LQ.stopped = true;
                             });
@@ -758,10 +762,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
                                 //TODO maybe we have to wait until model.rpc can be called
                                 LQ.docs = [];
                                 LQ.count = 0;
+
                                 queryExecFn(true);
-                                LQ.stopped = false;
 
                             });
+                        } else {
+                            LQ.stopped = false;
                         }
 
                         return LQ;	//
@@ -776,8 +782,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 
         /**
          * loads one model or returns already requested model promise
-         * @param name
-         * @param handshake
+         * @param {String} name
+         * @param {Object} handshake
          * @returns {Promise} which resolves with the model
          */
 		MRSingleton.getModel = function (name, handshake) {
@@ -799,6 +805,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
                     model.rpc = chnlPair.server;
                     model.deferred.resolve(model);
                 });
+
+                //TODO ondisconnect replace defferred
             });
 
 			return model.deferred.promise;

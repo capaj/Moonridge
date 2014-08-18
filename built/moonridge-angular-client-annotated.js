@@ -42,7 +42,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
         try{
             localStorage[key] = JSON.stringify(data);
         }catch(e){
-            $log.warn("Error raised when writing to local storage: " + e); // probably quoata exceeded
+            $log.warn("Error raised when writing to local storage: " + e); // probably quota exceeded
         }
     }
 
@@ -144,7 +144,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
                     $log.error("Unknown error occured on RPC socket connection");
                 }
             })
-            .on('connect_failed', function (reason) {
+            .on('connectFailed', function (reason) {
                 $log.error('unable to connect to namespace ', reason);
                 channel._loadDef.reject(reason);
             })
@@ -162,10 +162,11 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
      * connects to remote server which exposes RPC calls
      * @param {String} url to connect to, for example http://localhost:8080
      * @param {Object} handshake for global authorization
-     * returns {Socket} master socket
+     * returns {Socket} master socket namespace which you can use for looking under the hood
      */
     var connect = function (url, handshake) {
-        if (!rpcMaster && url) {
+
+		if (!rpcMaster && url) {
             baseURL = url;
             rpcMaster = io.connect(url + '/rpc-master', handshake)
                 .on('serverRunDate', function (runDate) {
@@ -192,7 +193,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
                     $rootScope.$apply();
 
                 })
-                .on('client channel created', function (name) {
+                .on('clientChannelCreated', function (name) {
 
                     var channel = clientChannels[name];
                     var socket = io.connect(baseURL + '/rpcC-' + name + '/' + rpcMaster.io.engine.id);  //rpcC stands for rpc Client
@@ -223,6 +224,7 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
                     channel.deferred.resolve(channel);
 
                 });
+
             return rpcMaster;
 
         } else {
@@ -277,6 +279,8 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
         expose: function (name, toExpose) { //
             if (!clientChannels.hasOwnProperty(name)) {
                 clientChannels[name] = {};
+            } else {
+                return clientChannels[name].deferred.promise;
             }
             var channel = clientChannels[name];
             channel.fns = toExpose;
@@ -289,10 +293,24 @@ angular.module('RPC', []).factory('$rpc', ["$rootScope", "$log", "$q", function 
 				}
                 fnNames.push(fn);
             }
+			var expose = function() {
+				rpcMaster.emit('exposeChannel', {name: name, fns: fnNames});
+			};
 
-			rpcMaster.emit('expose channel', {name: name, fns: fnNames});
+			if (rpcMaster.connected) {
+				// when no on connect event will be fired, we just expose the channel immediately
+				expose();
+			}
 
-            return channel.deferred.promise;
+            rpcMaster
+                .on('disconnect', function () {
+                    channel.deferred = $q.defer();
+                })
+				.on('connect', expose)
+                .on('reexposeChannels', expose);	//not sure if this will be needed, since simulating socket.io
+                // reconnects is hard, leaving it here for now
+
+			return channel.deferred.promise;
         }
     };
     var nop = angular.noop;
@@ -372,8 +390,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
 
         var models = {};
         MRSingleton.connectPromise = $q.when(connectPromise).then(function (rParams) {
-            MRSingleton.socket = $rpc.connect(rParams.url, rParams.hs);
-            return MRSingleton.socket;
+            var socket = $rpc.connect(rParams.url, rParams.hs);
+            MRSingleton.socket = socket;
+
+            return socket;
         });
 
         MRSingleton.getAllModels = function () {
@@ -806,7 +826,26 @@ angular.module('Moonridge', ['RPC']).factory('$MR', ["$rootScope", "$rpc", "Quer
                     model.deferred.resolve(model);
                 });
 
-                //TODO ondisconnect replace defferred
+                MRSingleton.socket.on('disconnect', function () {
+                    console.log("model disconnect");
+                    model.deferred = $q.defer();
+                });
+
+                MRSingleton.socket.on('reconnect', function () {
+                    console.log("model reconnect");
+
+                    var promises = {
+                        client: $rpc.expose('MR-' + name, model.clientRPCMethods),
+                        server: $rpc.loadChannel('MR-' + name, handshake)
+                    };
+
+                    $q.all(promises).then(function (chnlPair) {
+                        console.log("model reconnect resolve both client and server channel");
+
+                        model.rpc = chnlPair.server;
+                        model.deferred.resolve(model);
+                    });
+                });
             });
 
 			return model.deferred.promise;

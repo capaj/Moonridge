@@ -23,8 +23,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
 
         var models = {};
         MRSingleton.connectPromise = $q.when(connectPromise).then(function (rParams) {
-            MRSingleton.socket = $rpc.connect(rParams.url, rParams.hs);
-            return MRSingleton.socket;
+            var socket = $rpc.connect(rParams.url, rParams.hs);
+            MRSingleton.socket = socket;
+
+            return socket;
         });
 
         MRSingleton.getAllModels = function () {
@@ -457,7 +459,26 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     model.deferred.resolve(model);
                 });
 
-                //TODO ondisconnect replace defferred
+                MRSingleton.socket.on('disconnect', function () {
+                    console.log("model disconnect");
+                    model.deferred = $q.defer();
+                });
+
+                MRSingleton.socket.on('reconnect', function () {
+                    console.log("model reconnect");
+
+                    var promises = {
+                        client: $rpc.expose('MR-' + name, model.clientRPCMethods),
+                        server: $rpc.loadChannel('MR-' + name, handshake)
+                    };
+
+                    $q.all(promises).then(function (chnlPair) {
+                        console.log("model reconnect resolve both client and server channel");
+
+                        model.rpc = chnlPair.server;
+                        model.deferred.resolve(model);
+                    });
+                });
             });
 
 			return model.deferred.promise;

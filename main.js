@@ -1,6 +1,6 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
-var MRModel = require('./mr-model');
+var MRModel = require('./mr-server-model');
 var userModel;
 var toCallOnCreate = [];
 var logger = require('./logger/logger');

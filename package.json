@@ -21,6 +21,7 @@
     "type": "git",
     "url": "https://github.com/capaj/Moonridge.git"
   },
+  "homepage" : "http://capaj.github.io/Moonridge/",
   "dependencies": {
     "lodash": "~2.4",
     "socket.io": "1.0.6",

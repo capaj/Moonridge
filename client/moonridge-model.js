@@ -449,9 +449,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             models[name] = model;
 
             MRSingleton.connectPromise.then(function () {
-                var promises = {
-                    client: $rpc.expose('MR-' + name, model.clientRPCMethods),
-                    server: $rpc.loadChannel('MR-' + name, handshake)
+				var ccName = 'MR-' + name;
+				var promises = {
+                    client: $rpc.expose(ccName, model.clientRPCMethods),
+                    server: $rpc.loadChannel(ccName, handshake)
                 };
 
                 $q.all(promises).then(function (chnlPair) {
@@ -468,8 +469,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     console.log("model reconnect");
 
                     var promises = {
-                        client: $rpc.expose('MR-' + name, model.clientRPCMethods),
-                        server: $rpc.loadChannel('MR-' + name, handshake)
+                        client: $rpc.getClientChannel(ccName).deferred.promise,
+                        server: $rpc.loadChannel(ccName, handshake)
                     };
 
                     $q.all(promises).then(function (chnlPair) {

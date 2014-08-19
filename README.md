@@ -30,9 +30,11 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
             <!-- regular angular templating -->
         </div>
     </div>
-
+    <!--include client side script after angular-->
+    <script type="text/javascript" src="/moonridge-angular-client.js"></script>
 ###JS
-	app.run(function($MR, $q){
+    //define Moonridge angular module as dependency
+	angular.module('app', ['Moonridge']).run(function($MR, $q){
 		var dfd = $q.defer();
         var url = 'http://localhost:8080';	//your moonridge instance
 		//Moonridge backend

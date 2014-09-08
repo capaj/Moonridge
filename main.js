@@ -87,11 +87,11 @@ module.exports = function (mongoose, connString) {
 		}
 
 		app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.js');
+			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.js');	//TODO use sendFile
 		});
 
 		app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.min.js');
+			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.min.js'); //TODO use sendFile
 		});
 
 		var allQueries = [];

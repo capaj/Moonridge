@@ -55,7 +55,7 @@ module.exports = function (model, clientQuery) {
 
                 if (callJustOnce.indexOf(methodName) !== -1) {
                     if (methodName === 'sort' && opts.count) {
-                        throw new Error('Mongoose does not support sort and count in one query');
+                        throw new Error('Mongoose does not support sort and count in one query');	//TODO remove when we update to mongoose 3.9.2
                     }
 
                     if (opts[methodName]) {

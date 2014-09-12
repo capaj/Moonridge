@@ -8,7 +8,7 @@
 		"express": "~4"
     },
     "devDependencies": {
-        "grunt-karma": "~0.8",
+        "grunt-karma": "~0.9",
         "karma-jasmine": "^0.1.5",
         "karma-phantomjs-launcher": "^0.1.4"
     }

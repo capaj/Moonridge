@@ -10,7 +10,8 @@ var auth = require('./authentication');
  *
  * @param {Object} mongoose ORM module
  * @param {String} connString to mongoDB
- * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}}
+ * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}} moonridge
+ * instance which allows to register models and bootstrap itself
  */
 module.exports = function (mongoose, connString) {
 

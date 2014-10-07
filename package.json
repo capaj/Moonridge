@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.5.6",
+  "version": "0.6.0",
   "main": "main.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Bring your Mongoose models straight into angular web app with live Query support, all thanks to the magic of socket.io",
@@ -25,9 +25,9 @@
   "dependencies": {
     "lodash": "~2.4",
     "socket.io": "1.1.0",
-    "socket.io-rpc": "0.5.3",
+    "socket.io-rpc": "0.6.0",
     "bluebird": "~2.3",
-    "winston": "~0.7"
+    "winston": "~0.8"
   },
   "peerDependencies": {
      "mongoose": "~3.8"
@@ -35,7 +35,7 @@
   "devDependencies": {
     "grunt-contrib-concat": "~0.5",
     "grunt-contrib-uglify": "~0.5",
-    "grunt-ng-annotate": "~0.3",
+    "grunt-ng-annotate": "~0.4",
     "grunt": "~0.4",
     "grunt-contrib-less": "~0.11",
     "grunt-angular-templates": "~0.5"

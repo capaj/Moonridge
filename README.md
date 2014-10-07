@@ -9,7 +9,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
     var mongoose = require('mongoose');
     var Moonridge = require('moonridge');
     var MR = moonridge(mongoose, "mongodb://localhost/moonridge_showcase");		//MongoDB address is optional-you can connect as always with mongoose
-    ...
+
     var bookModel = MR.model('book', {  //mongoose schema defintion
             name: String,
             author: String
@@ -20,7 +20,7 @@ Offers killer feature(live queries) of Meteor for MEAN stack. How?
             }
         });
     ...
-    moonridge.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
+    MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
 
 ##On the CLIENT side:
 ###HTML

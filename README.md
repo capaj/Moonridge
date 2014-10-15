@@ -61,7 +61,8 @@ Also you need to connect to your backend-Moonridge uses a promise resolution for
 All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
 
 ##TODO
-Needs implementing E2E testing scenarios as well as unit tests.
+1. publish on jspm so that it can be used without having to write 3 script tags
+2. Needs implementing E2E testing scenarios as well as a lot of unit tests.
 
 ##Supported browsers
 ###Desktop

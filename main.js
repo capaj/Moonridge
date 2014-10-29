@@ -97,13 +97,13 @@ module.exports = function (mongoose, connString) {
 
 		var allQueries = [];
 
-		var socketNamespace = rpc.createServer(io, {expressApp: app});
+		var rpcInstance = rpc(io, {expressApp: app});
 
 		toCallOnCreate.forEach(function (CB) {
-			allQueries.push(CB());   //return object containing modelName and liveQueries Object for that model
+			allQueries.push(CB(rpcInstance));   //return object containing modelName and liveQueries Object for that model
 		});
 
-		rpc.expose('Moonridge_admin', {
+		rpcInstance.expose('Moonridge_admin', {
 			getHealth: function () {
 				var allModels = {};
 				var index = allQueries.length;
@@ -126,7 +126,7 @@ module.exports = function (mongoose, connString) {
 			}
 		});
 
-		return {rpcNsp: socketNamespace, io: io, server: server};
+		return {rpcInstance: rpcInstance, io: io, server: server};
 
 	}
 

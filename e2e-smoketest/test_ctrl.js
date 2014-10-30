@@ -1,3 +1,9 @@
+require('jquery');
+require('angular');
+require('./js/bootstrap.min');
+require('angular-animate');
+require('moonridge-client');
+
 angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log, user) {
 
 	var fighterLQ = fighter.liveQuery;

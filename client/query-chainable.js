@@ -1,3 +1,5 @@
+require('./moonridge-methods-client-validations');
+
 angular.module('Moonridge').factory('QueryChainable', function (MRMethodsClientValidations) {
 
     //Moonridge methods which aren't run against the DB but rather just in memory

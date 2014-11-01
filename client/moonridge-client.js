@@ -1,3 +1,4 @@
-/**
- * Created by capaj on 10/30/2014.
- */
+require('rpc/rpc-client-angular');
+require('./moonridge/moonridge-model');
+require('./moonridge/moonridge-directives');
+require('./moonridge/moonridge-query-dropdown');

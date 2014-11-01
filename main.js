@@ -5,6 +5,7 @@ var userModel;
 var toCallOnCreate = [];
 var logger = require('./logger/logger');
 var auth = require('./authentication');
+var express = require('express');
 
 /**
  *
@@ -87,13 +88,7 @@ module.exports = function (mongoose, connString) {
 			io = iop;
 		}
 
-		app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.js');	//TODO use sendFile
-		});
-
-		app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.min.js'); //TODO use sendFile
-		});
+		app.use(express.static('node_modules/moonridge/client/'));
 
 		var allQueries = [];
 

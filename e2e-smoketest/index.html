@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html ng-app="MRTest">
+<html>
 <head>
     <title>Moonridge browser test suite</title>
     <!--uncomment es5-shim for IE8 support-->
     <!--<script type="text/javascript" src="/es5-shim.js"></script>-->
-    <link rel="stylesheet" href="/moonridge-client.css" type='text/css'>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style type="text/css">
         .left-slide.ng-enter,
@@ -83,15 +82,12 @@
 
 </div>
 
-
-<script src="/socket.io/socket.io.js"></script>
-<script src="/bower_components/jquery/dist/jquery.min.js" type="text/javascript"></script>
-<script src="js/bootstrap.min.js"></script>
-<script src="/bower_components/angular/angular.js" type="text/javascript"></script>
-<script src="/bower_components/angular-animate/angular-animate.js" type="text/javascript"></script>
-<script type="text/javascript" src="/bower_components/angular-moment/angular-moment.min.js"></script>
-<script type="text/javascript" src="/moonridge-angular-client.js"></script>
-<script src="/test_ctrl.js" type="text/javascript"></script>
-
+<script src="jspm_packages/system.js"></script>
+<script src="config.js"></script>
+<script type="text/javascript">
+    System.import('showcase').then(function() {
+        var injector = angular.bootstrap(document, ['MRTest']);
+    });
+</script>
 </body>
 </html>

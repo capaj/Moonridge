@@ -1,7 +1,9 @@
+require('styles/moonridge-query-dropdown.css!');
+
 angular.module('Moonridge').directive('mrQueryDropdown', function ($log) {
     return {
         restrict: 'EA',
-        templateUrl: 'moonridge_query_dropdown.html',
+        template: require('templates/moonridge_query_dropdown.html!text'),
         link: function (scope, elem, attrs) {
             var modelName;
             var LQScopeProp = attrs.query;

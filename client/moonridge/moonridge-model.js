@@ -1,36 +1,38 @@
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rpc, QueryChainable, $q, $log) {
-    var MRs = {}; //stores instances of Moonridge
+var QueryChainable = require('./query-chainable');
+
+angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RPC, $q, $log) {
+    var MRs = {}; //stores instances of Moonridge backend instances
     var defaultBackend;
 
     /**
-     * A moonridge pseudo-constructor(don't call it with new keyword)
+     * A Moonridge pseudo-constructor(don't call it with new keyword)
      * @param {String} name identifying the backend instance
      * @param {Promise} connectPromise should be resolved with an object with following properties:
      *                                  {String} url backend address where you will connect
      *                                  {Object} hs handshake for socket.io which you can access via socket.request._query
      * @param isDefault default if true, this backend will be used for any mr-controller, which does not have it defined
-     * @returns {Object} Moonridge singleton
+     * @returns {Moonridge} a Moonridge backend instance
      */
-    var Moonridge = function (name, connectPromise, isDefault) {
-        var MRSingleton;
+    function Moonridge(name, connectPromise, isDefault) {
+        var self;
 
         if (MRs[name]) {
             return MRs[name];
         } else {
-            MRSingleton = {};
-            MRs[name] = MRSingleton;
+            self = {};
+            MRs[name] = self;
         }
 
         var models = {};
-        MRSingleton.connectPromise = $q.when(connectPromise).then(function (rParams) {
-            var socket = $rpc.connect(rParams.url, rParams.hs);
-            MRSingleton.socket = socket;
+        self.connectPromise = $q.when(connectPromise).then(function (rParams) {
+            self.rpcBackend = $RPC(rParams.url, rParams.hs);
+            self.socket = self.rpcBackend.masterChannel;
 
-            return socket;
+            return self.socket;
         });
 
-        MRSingleton.getAllModels = function () {
-            $rpc.loadChannel('Moonridge').then(function (mrChnl) {
+        self.getAllModels = function () {
+            self.rpcBackend.loadChannel('Moonridge').then(function (mrChnl) {
                 mrChnl.getModels().then(function (models) {
 //                    TODO call getModel for all models
                 });
@@ -82,7 +84,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             };
 
             /**
-             * @returns {Array<String>}
+             * @returns {Array<String>} indicating which properties this model has defined in it's schema
              */
             this.listPaths = function () {
                 return model.rpc.listPaths().catch(onRejection);
@@ -407,11 +409,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                         LQ._invokeListeners('init', res);
 
                         if (!onReconnect) {
-                            MRSingleton.socket.on('disconnect', function () {
+                            self.socket.on('disconnect', function () {
                                 LQ.stopped = true;
                             });
 
-                            MRSingleton.socket.on('reconnect', function () {
+                            self.socket.on('reconnect', function () {
                                 //TODO maybe we have to wait until model.rpc can be called
                                 LQ.docs = [];
                                 LQ.count = 0;
@@ -439,7 +441,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
          * @param {Object} handshake
          * @returns {Promise} which resolves with the model
          */
-		MRSingleton.getModel = function (name, handshake) {
+		self.getModel = function (name, handshake) {
             var model = models[name];
             if (model) {
                 return model.deferred.promise;
@@ -448,11 +450,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
             model = new Model(name);
             models[name] = model;
 
-            MRSingleton.connectPromise.then(function () {
+            self.connectPromise.then(function () {
 				var ccName = 'MR-' + name;
 				var promises = {
-                    client: $rpc.expose(ccName, model.clientRPCMethods),
-                    server: $rpc.loadChannel(ccName, handshake)
+                    client: self.rpcBackend.expose(ccName, model.clientRPCMethods),
+                    server: self.rpcBackend.loadChannel(ccName, handshake)
                 };
 
                 $q.all(promises).then(function (chnlPair) {
@@ -460,17 +462,17 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
                     model.deferred.resolve(model);
                 });
 
-                MRSingleton.socket.on('disconnect', function () {
+                self.socket.on('disconnect', function () {
                     console.log("model disconnect");
                     model.deferred = $q.defer();
                 });
 
-                MRSingleton.socket.on('reconnect', function () {
+                self.socket.on('reconnect', function () {
                     console.log("model reconnect");
 
                     var promises = {
-                        client: $rpc.getClientChannel(ccName).deferred.promise,
-                        server: $rpc.loadChannel(ccName, handshake)
+                        client: self.rpcBackend.getClientChannel(ccName).deferred.promise,
+                        server: self.rpcBackend.loadChannel(ccName, handshake)
                     };
 
                     $q.all(promises).then(function (chnlPair) {
@@ -491,22 +493,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $rp
          * @param handshake
          * @returns {Promise} which resolves with an Object where models are indexed by their names
          */
-        MRSingleton.getModels = function (models, handshake) {
+        self.getModels = function (models, handshake) {
             var promises = {};
             var index = models.length;
             while(index--) {
                 var modelName = models[index];
-                promises[modelName] = MRSingleton.getModel(modelName, handshake);
+                promises[modelName] = self.getModel(modelName, handshake);
             }
             return $q.all(promises);
         };
 
         if (isDefault) {
-            defaultBackend = MRSingleton;
+            defaultBackend = self;
         }
 
-        return MRSingleton;
-    };
+        return self;
+    }
     /**
      * simple getter for MRs stored instances
      * @param {String} name

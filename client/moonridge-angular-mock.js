@@ -1,4 +1,6 @@
-angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log, QueryChainable) {
+var QueryChainable = require('./moonridge/query-chainable');
+
+angular.module('Moonridge').factory('MoonridgeMock', function ($q, $log) {
 
 	var immediatePromise = function(res, success) {
 		var dfd = $q.defer();

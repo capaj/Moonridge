@@ -3,7 +3,9 @@ Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badg
 
 MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
 
-Offers killer feature(live queries) of Meteor for MEAN stack. How?
+Offers killer feature(live queries) from Meteor.js for the MEAN stack. How?
+See examples, if still not sufficent, read source code. Better docs are planned/WIP.
+
 ##Basic usage serverside
 
     var mongoose = require('mongoose');

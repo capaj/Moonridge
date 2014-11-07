@@ -672,9 +672,10 @@ var expose = function (model, schema, opts) {
 
     return function exposeCallback(rpcInstance) {
 		var chnlName = 'MR-' + modelName;
-        var chnlSocket = rpcInstance.expose(chnlName, channel, opts.authFn).getSocketFor(chnlName);
-        chnlSocket.on('connection', function (socket) {
+        rpcInstance.expose(chnlName, channel, opts.authFn);
+        var chnlSocket = rpcInstance.channels[chnlName]._socket;
 
+        chnlSocket.on('connection', function (socket) {
             socket.clientChannelPromise = rpcInstance.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
                 var index = requiredClientMethods.length;
                 while(index--) {

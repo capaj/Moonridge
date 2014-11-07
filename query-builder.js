@@ -1,5 +1,7 @@
 var _ = require('lodash');
-var mongooseMethodValidations = require('./mongoose-method-validations');
+var mongooseMethodValidations = require('./client/moonridge/moonridge-method-validations');
+delete mongooseMethodValidations.count; //we need to lack this on server, because moonridge executes count queries in
+// memory from normal queries
 var maxQueryLength = 70;    //hardcoded max query length
 var qMethodsEnum = [];
 
@@ -18,14 +20,15 @@ var callJustOnce = [
 
 
 /**
- *
  * @param {Mongoose.Model} model
  * @param {Array<Object>} clientQuery received JSON deserialized
- * @returns {Query|Error}
+ * @returns {MRQuery|Error}
  */
-module.exports = function (model, clientQuery) {
+module.exports = function MRQuery(model, clientQuery) {
 	var query = model.find();
-    var opts = {populate:[]};  //where we index by method, not by invocation order
+
+    //query option object,where we index by method, not by invocation order, useful later when we reexecute the query
+    var opts = {populate:[]};
 
     function addToOpts(prop, val) {
         if (opts[prop]) {

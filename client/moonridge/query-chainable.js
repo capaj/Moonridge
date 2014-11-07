@@ -1,4 +1,4 @@
-var MRMethodsClientValidations = require('./moonridge-methods-client-validations');
+var MRMethodsClientValidations = require('./moonridge-method-validations');
 //Moonridge methods which aren't run against the DB but rather just in memory
 var callJustOnce = [
     'findOne',

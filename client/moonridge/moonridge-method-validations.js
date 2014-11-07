@@ -3,7 +3,7 @@ function isInt(n) {
     return typeof n === 'number' && n % 1 == 0;
 }
 
-var noop = function (args) {
+var noop = function () {
     return true;
 };
 
@@ -30,7 +30,7 @@ var qMethodsEnum = {
     centerSphere: noop,
     circle: noop,
     comment: noop,
-    count: noop,    //available on client, but done in server memory
+    count: noop,    //available on client, but done in server memory, not sent to DB queries
     //	distinct: noop,		//must be done in server memory, TODO implement this
     elemMatch: noop,
     equals: noop,

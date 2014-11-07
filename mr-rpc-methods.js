@@ -1,4 +1,3 @@
-var rpc = require('socket.io-rpc');
 var _ = require('lodash');
 var Promise = require('bluebird');
 var eventNames = require('./schema-events').eventNames;
@@ -671,11 +670,13 @@ var expose = function (model, schema, opts) {
 
     var requiredClientMethods = ['update', 'remove', 'create', 'push'];
 
-    return function exposeCallback() {
-        var chnlSockets = rpc.expose('MR-' + modelName, channel, opts.authFn);
-        chnlSockets.on('connection', function (socket) {
+    return function exposeCallback(rpcInstance) {
+		var chnlName = 'MR-' + modelName;
+        rpcInstance.expose(chnlName, channel, opts.authFn);
+        var chnlSocket = rpcInstance.channels[chnlName]._socket;
 
-            socket.clientChannelPromise = rpc.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
+        chnlSocket.on('connection', function (socket) {
+            socket.clientChannelPromise = rpcInstance.loadClientChannel(socket, 'MR-' + modelName).then(function (clFns) {
                 var index = requiredClientMethods.length;
                 while(index--) {
                     var mName = requiredClientMethods[index];

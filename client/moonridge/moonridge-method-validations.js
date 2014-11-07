@@ -1,3 +1,4 @@
+
 function isInt(n) {
     return typeof n === 'number' && n % 1 == 0;
 }
@@ -6,7 +7,7 @@ var noop = function () {
     return true;
 };
 
-var singleNumberValidation = function (args) {
+var singleIntegerValidation = function (args) {
     if (args.length === 1) {
         if (isInt(args[0])) {
             return true;
@@ -17,11 +18,11 @@ var singleNumberValidation = function (args) {
     return new Error('Method must be called with exactly one Number argument');
 };
 
-
 /**
+ * query methods which modifies the collection are not included, those have to be called via RPC methods
  * @type {Object.<string, Function>} name of the method and validation function
  */
-module.exports = {	//query methods which modifies the collection are not included, those have to be called via RPC methods
+var qMethodsEnum = {
     all: noop,
     and: noop,
     box: noop,
@@ -29,7 +30,7 @@ module.exports = {	//query methods which modifies the collection are not include
     centerSphere: noop,
     circle: noop,
     comment: noop,
-    //    count: noop,      //this is query option done in server memory, so you can use it on client
+    count: noop,    //available on client, but done in server memory, not sent to DB queries
     //	distinct: noop,		//must be done in server memory, TODO implement this
     elemMatch: noop,
     equals: noop,
@@ -55,11 +56,11 @@ module.exports = {	//query methods which modifies the collection are not include
     in: noop,
     intersects: noop,
 //		lean: noop, //always enabled
-    limit: singleNumberValidation,  //is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+    limit: singleIntegerValidation,
     lt: noop,
     lte: noop,
     maxDistance: noop,
-    maxScan: singleNumberValidation,
+    maxScan: singleIntegerValidation,
     mod: noop,
     ne: noop,
     near: noop,
@@ -73,9 +74,9 @@ module.exports = {	//query methods which modifies the collection are not include
     regex: noop,
     select: noop,
     size: noop,
-    skip: singleNumberValidation,	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
+    skip: singleIntegerValidation,	//is not sent to the DB, skipping and limiting is done in memory because it would be a problem for liveQueries
     slice: noop,
-    sort: noop,     //must be a string, does not accept an array
+    sort: noop,
     where: function (args) {
         if (args.length > 0 && args.length <= 2) {
             return true;    //TODO check types here
@@ -84,3 +85,5 @@ module.exports = {	//query methods which modifies the collection are not include
     },
     within: noop
 };
+
+module.exports = qMethodsEnum;

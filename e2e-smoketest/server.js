@@ -9,25 +9,10 @@ app.use(require('morgan')('dev'));
 
 app.set('port', 8080);
 
+app.use(express.static('./client/'));//only needed when moonridge is not as npm module
+
 app.use(express.static('./e2e-smoketest/'));
 
-//FOLLOWING is not needed in typical app-it is needed here since we don't have moonridge as npm module
-//only needed for IE8, don't include if you don't want to support IE8
-app.get('/es5-shim.js', function (req, res) {
-    res.sendfile('./node_modules/socket.io-rpc/tests/es5-shim.js');
-});
-app.get('/moonridge-client.css', function (req, res) {
-    res.sendfile('./built/moonridge-client.css');
-});
-//This block is not needed when running normally as npm module
-app.get('/moonridge-angular-client.js', function (req, res) { //expose client file, because since this test does not have moonridge as npm module
-	res.sendfile('./built/moonridge-angular-client.js');
-});
-
-app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
-    res.sendfile('./built/moonridge-angular-client.min.js');
-});
-//END of special block which is only needed when moonridge is not as npm module
 
 mongoose.set('debug', true);
 

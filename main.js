@@ -5,12 +5,14 @@ var userModel;
 var toCallOnCreate = [];
 var logger = require('./logger/logger');
 var auth = require('./authentication');
+var express = require('express');
 
 /**
  *
  * @param {Object} mongoose ORM module
  * @param {String} connString to mongoDB
- * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}}
+ * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}} moonridge
+ * instance which allows to register models and bootstrap itself
  */
 module.exports = function (mongoose, connString) {
 
@@ -86,23 +88,17 @@ module.exports = function (mongoose, connString) {
 			io = iop;
 		}
 
-		app.get('/moonridge-angular-client.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.js');	//TODO use sendFile
-		});
-
-		app.get('/moonridge-angular-client.min.js', function (req, res) { //exposed client file
-			res.sendfile('node_modules/moonridge/built/moonridge-angular-client.min.js'); //TODO use sendFile
-		});
+		app.use(express.static('node_modules/moonridge/client/'));
 
 		var allQueries = [];
 
-		var socketNamespace = rpc.createServer(io, {expressApp: app});
+		var rpcInstance = rpc(io, {expressApp: app});
 
 		toCallOnCreate.forEach(function (CB) {
-			allQueries.push(CB());   //return object containing modelName and liveQueries Object for that model
+			allQueries.push(CB(rpcInstance));   //return object containing modelName and liveQueries Object for that model
 		});
 
-		rpc.expose('Moonridge_admin', {
+		rpcInstance.expose('Moonridge_admin', {
 			getHealth: function () {
 				var allModels = {};
 				var index = allQueries.length;
@@ -125,7 +121,7 @@ module.exports = function (mongoose, connString) {
 			}
 		});
 
-		return {rpcNsp: socketNamespace, io: io, server: server};
+		return {rpcInstance: rpcInstance, io: io, server: server};
 
 	}
 

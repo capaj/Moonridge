@@ -1,3 +1,4 @@
+require('styles/moonridge-spinner.css!');
 /**
  * @ngdoc directive
  * @name Moonridge.directive:mrController

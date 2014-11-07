@@ -62,6 +62,7 @@ Also you need to connect to your backend-Moonridge uses a promise resolution for
 
 All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
 
+Written in commonJS format, so you need to use some module loader like [SystemJS](https://github.com/systemjs/systemjs). Even better is to use [jspm](https://github.com/jspm/jspm-cli).
 ##TODO
 1. publish on jspm so that it can be used without having to write 3 script tags
 2. Needs implementing E2E testing scenarios as well as a lot of unit tests.

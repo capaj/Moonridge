@@ -43,8 +43,9 @@
 </head>
 <body>
 <div ng-controller="loginCtrl">
-    <button ng-click="user()">User</button>
-    <button ng-click="admin()">Admin</button>
+    <button class="btn" ng-click="user()">as User</button>
+    <button class="btn" ng-click="admin()">as Admin</button>
+
 </div>
 <div mr-controller="testCtrl" mr-models="user,fighter"><!--You must use mr-controller instead of ng-controller-->
     <label for="query">Name</label><input type="text" id="query" ng-model='name'>

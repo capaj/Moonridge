@@ -22,21 +22,25 @@ dbInit(MR);
 
 var bootstrapped = MR.bootstrap(app);
 
-bootstrapped.io.use(function(socket, next) {
-	var userName = socket.request._query.nick;
+MR.auth = function(socket, authObj) {
+	var userName = authObj.nick;
 
 	console.log("user wants to authorize: " + userName );
 	console.log("socket.id: " + socket.id);
 	var user = mongoose.model('user');
-	user.findOne({name: userName}).exec().then(function (user) {
-		MR.authUser(socket, user);
+	return user.findOne({name: userName}).exec().then(function (user) {
 		console.log("Authenticated user: " + user.name);
-		next();
+		return user;
 	}, function (err) {
 		console.log("auth error " + err);
-		next(new Error('not authorized'));
+		return new Error('not authorized');
 	})
-});
+};
+
+//use this for global authentication via socket.io
+//bootstrapped.io.use(function(socket, next) {
+//
+//});
 
 app.get('/', function (req, res) {
     res.sendfile('./test/index.html');

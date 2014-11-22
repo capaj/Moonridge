@@ -1,3 +1,8 @@
+#0.6.0 -> 0.6.2
+    Significant changes to the authentication process. I finally realized, that the most common use case is a public
+    access to some of the data, rest of the data is accessible only to authenticated and authorized users-best thing
+    now is that the authentication can happen any time, even after logging in, so there is no need to reload the whole
+    page, like it used to be just to change user's privilige level
 #0.5.1 -> 0.5.2
 	mr-controller now works only with mr-models attribute. use of mr-model attribute is no longer supported
 #0.4.20 -> 0.5.0

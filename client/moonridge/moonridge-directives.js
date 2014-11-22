@@ -45,7 +45,7 @@ angular.module('Moonridge').directive('mrController', function ($controller, $q,
                     };
 
                     if (mrModels === undefined) {
-                        throw new Error('No Moonridge models defined on element: ' + el);
+                        throw new Error('No Moonridge models defined on element: ' + iElement);
                     } else {
                         if (mrModels.indexOf(',') !== -1) {
                             MR.getModels(mrModels.split(',')).then(instantiateAngularCtrl, onError);

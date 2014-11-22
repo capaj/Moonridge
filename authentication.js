@@ -19,12 +19,15 @@ module.exports = {
     /**
      * @param {Socket} socket
      * @param {Object} user
+     * @param {Boolean} dontRegisterDisconnect this is true when user is reauthenticating
      */
-    authUser: function (socket, user) {
+    authUser: function (socket, user, dontRegisterDisconnect) {
         authenticatedUsers[socket.id] = user;
 
-        socket.on('disconnect', function() {
-            delete authenticatedUsers[socket.id]
-        });
+        if (dontRegisterDisconnect !== true) {
+            socket.on('disconnect', function() {
+                delete authenticatedUsers[socket.id]
+            });
+        }
     }
 };

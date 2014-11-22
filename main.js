@@ -1,5 +1,6 @@
 var rpc = require('socket.io-rpc');
 var _ = require('lodash');
+var Promise = require('bluebird');
 var MRModel = require('./mr-server-model');
 var userModel;
 var toCallOnCreate = [];
@@ -92,17 +93,39 @@ module.exports = function (mongoose, connString) {
 
 		var allQueries = [];
 
-		var rpcInstance = rpc(io, {expressApp: app});
+		var rpcInstance = rpc(io, app);
 
 		toCallOnCreate.forEach(function (CB) {
 			allQueries.push(CB(rpcInstance));   //return object containing modelName and liveQueries Object for that model
 		});
 
-		rpcInstance.expose('Moonridge_admin', {
-			getHealth: function () {
+		rpcInstance.masterChannel.on('connection', function(socket) {
+			if (typeof MRInstance.auth === 'function') {
+				socket.on('auth', function(authObj) {
+					MRInstance.auth(socket, authObj).then(function(user) {
+						auth.authUser(socket, user);
+						console.log("authentication successful", authObj);
+						rpcInstance.masterChannel.emit('authSuccess', user);
+					}, function(err) {
+						console.log("authentication failed", authObj);
+						rpcInstance.masterChannel.emit('authFailed', err);
+					});
+				});
+			}
+		});
+
+		io.use(function(socket, next) {
+			auth.authUser(socket, {privilige_level: 1});
+			next();
+		});
+
+		if (app.get('env') === 'development') {
+			// this reveals any data that you use in queries to the public, so it should not be used in production when dealing with sensitive data
+			var debugChnl = {};
+			debugChnl.getHealth = function() {
 				var allModels = {};
 				var index = allQueries.length;
-				while(index--) {
+				while (index--) {
 					var modelQueriesForSerialization = {};
 					var model = allQueries[index];
 					for (var LQ in model.queries) {
@@ -118,18 +141,20 @@ module.exports = function (mongoose, connString) {
 					uptime: process.uptime(),   //in seconds
 					liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
 				};
-			}
-		});
+			};
+			rpcInstance.expose('Moonridge_debug', debugChnl);
+
+		}
 
 		return {rpcInstance: rpcInstance, io: io, server: server};
 
 	}
 
-    var MRInstance = {
-        model: regNewModel,
-        userModel: registerUserModel,
-        bootstrap: bootstrap
-    };
-    _.extend(MRInstance, auth); //adds auth methods
-    return  MRInstance;
+	var MRInstance = {
+		model: regNewModel,
+		userModel: registerUserModel,
+		bootstrap: bootstrap
+	};
+	_.extend(MRInstance, auth); //adds auth methods
+	return MRInstance;
 };

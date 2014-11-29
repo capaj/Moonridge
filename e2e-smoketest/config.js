@@ -14,9 +14,6 @@ System.config({
     "jquery": "github:components/jquery@^2.1.1",
     "socket.io-client": "/socket.io/socket.io",
     "text": "github:systemjs/plugin-text@^0.0.2",
-    "github:angular/bower-angular-animate@1.3.3": {
-      "angular": "github:angular/bower-angular@^1.3.3"
-    },
     "github:angular/bower-angular-animate@1.3.4": {
       "angular": "github:angular/bower-angular@^1.3.4"
     }

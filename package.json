@@ -26,7 +26,7 @@
     "bluebird": "~2.3",
     "express": "^4.10",
     "lodash": "~2.4",
-    "socket.io": "1.2.0",
+    "socket.io": "1.2.1",
     "socket.io-rpc": "0.8.4",
     "winston": "~0.8"
   },

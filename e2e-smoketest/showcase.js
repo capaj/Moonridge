@@ -4,14 +4,10 @@ require('./js/bootstrap.min');
 require('angular-animate');
 require('moonridge-client');
 
-angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log, user) {
+angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log,
+                                                                                      moonridgeBackend, user) {
 
 	var fighterLQ = fighter.liveQuery;
-
-    fighter.create({name: 'Jon Snow', health: 70});
-    fighter.create({name: 'Littlefinger', health: 20});
-    fighter.create({name: 'Roose Bolton', health: 35});
-    fighter.create({name: 'Arya Stark', health: 50});
 
 	angular.extend($scope, {
 		limit: 6,
@@ -70,7 +66,20 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         'version'
     ];
 
-}).controller('loginCtrl', function($scope, $MR, $q) {
+    $scope.admin = function() {
+        moonridgeBackend.auth({nick: 'admin'}).then(function(){
+            fighter.create({name: 'Jon Snow', health: 70});
+            fighter.create({name: 'Littlefinger', health: 20});
+            fighter.create({name: 'Roose Bolton', health: 35});
+            fighter.create({name: 'Arya Stark', health: 50});
+        });
+    };
+
+    $scope.user = function() {
+        moonridgeBackend.auth({nick: 'testUser'});
+    };
+
+}).run(function($rootScope, $MR, $q) {
     var dfd = $q.defer();
 
     //Moonridge backend
@@ -85,12 +94,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     dfd.resolve({url: 'http://localhost:8080'});
     //use an auth prop to be authenticated right from the start
     //dfd.resolve({url: 'http://localhost:8080', auth: {nick: 'admin'}});
-    $scope.admin = function() {
-        MRB.auth({nick: 'admin'});
-    };
+    return MRB;
 
-    $scope.user = function() {
-        MRB.auth({nick: 'testUser'});
-    };
 
 });

@@ -19,11 +19,11 @@ angular.module('Moonridge').directive('mrController', function ($controller, $q,
             return {
                 pre: function (scope, iElement, attr, controller) {
                     var ctrlName = attr.mrController;
-                    var MR;
+                    var MRBackend;
                     if (attr.mrBackend) {
-                        MR = $MR.getBackend(attr.mrBackend);
+                        MRBackend = $MR.getBackend(attr.mrBackend);
                     } else {
-                        MR = $MR.getDefaultBackend();
+                        MRBackend = $MR.getDefaultBackend();
                     }
                     var mrModels = attr.mrModels;
 
@@ -40,6 +40,7 @@ angular.module('Moonridge').directive('mrController', function ($controller, $q,
                             localInj[mrModels] = models;
                         }
 
+                        localInj.moonridgeBackend = MRBackend;
                         var ctrl = $controller(ctrlName, localInj);
                         iElement.children().data('$ngControllerController', ctrl);
                     };
@@ -48,9 +49,9 @@ angular.module('Moonridge').directive('mrController', function ($controller, $q,
                         throw new Error('No Moonridge models defined on element: ' + iElement);
                     } else {
                         if (mrModels.indexOf(',') !== -1) {
-                            MR.getModels(mrModels.split(',')).then(instantiateAngularCtrl, onError);
+                            MRBackend.getModels(mrModels.split(',')).then(instantiateAngularCtrl, onError);
                         } else {
-                            MR.getModel(mrModels).then(instantiateAngularCtrl, onError);
+                            MRBackend.getModel(mrModels).then(instantiateAngularCtrl, onError);
                         }
                     }
                 }

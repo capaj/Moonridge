@@ -42,12 +42,9 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<div ng-controller="loginCtrl">
+<div mr-controller="testCtrl" mr-models="user,fighter"><!--You must use mr-controller instead of ng-controller-->
     <button class="btn" ng-click="user()">as User</button>
     <button class="btn" ng-click="admin()">as Admin</button>
-
-</div>
-<div mr-controller="testCtrl" mr-models="user,fighter"><!--You must use mr-controller instead of ng-controller-->
     <label for="query">Name</label><input type="text" id="query" ng-model='name'>
     <label for="health">health</label><input type="number" id="health" ng-model='health'>
     <button ng-click="create()">create</button>

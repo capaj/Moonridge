@@ -100,7 +100,7 @@ module.exports = function (mongoose, connString) {
 		});
 
 		rpcInstance.masterChannel.on('connection', function(socket) {
-			if (typeof MRInstance.auth === 'function') {
+			if (typeof MRInstance.auth === 'function') {	//if custom auth method exists, we register needed listener
 				socket.on('auth', function(authObj) {
 					MRInstance.auth(socket, authObj).then(function(user) {
 						auth.authUser(socket, user);
@@ -115,7 +115,7 @@ module.exports = function (mongoose, connString) {
 		});
 
 		io.use(function(socket, next) {
-			auth.authUser(socket, {privilige_level: 1});
+			auth.authUser(socket, {privilige_level: 1});	//by default, any connected client had privilige_level: 1
 			next();
 		});
 

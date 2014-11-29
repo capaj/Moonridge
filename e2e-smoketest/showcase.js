@@ -66,8 +66,11 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         'version'
     ];
 
+    console.log("user", moonridgeBackend.user);
+
     $scope.admin = function() {
-        moonridgeBackend.auth({nick: 'admin'}).then(function(){
+        moonridgeBackend.auth({nick: 'admin'}).then(function(user){ //user === moonridgeBackend.user
+            console.log("user", user);
             fighter.create({name: 'Jon Snow', health: 70});
             fighter.create({name: 'Littlefinger', health: 20});
             fighter.create({name: 'Roose Bolton', health: 35});

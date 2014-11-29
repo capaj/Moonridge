@@ -14,25 +14,27 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
    * @returns {Moonridge} a Moonridge backend instance
    */
   function Moonridge(name, connectPromise, isDefault) {
-    var self;
 
     if (MRs[name]) {
       return MRs[name];
-    } else {
-      self = {};
-      MRs[name] = self;
     }
+
+    var self = {user: {privilige_level: 1}}; //by default, users priviliges are always set to 1
+    MRs[name] = self;
 
     var models = {};
 
     /**
-     * later authentication
+     * authentication, can be called at any time when you need to change user's identity/privileges
      * @param {Object} authobj
      * @returns {Promise}
      */
     self.auth = function(authobj) {
       var defer = $q.defer();
-      self.socket.on('authSuccess', defer.resolve);
+      self.socket.on('authSuccess', function (user){
+        self.user = user;
+        defer.resolve(user);
+      });
       self.socket.on('authFailed', defer.reject);
       self.socket.emit('auth', authobj);
       return defer.promise;

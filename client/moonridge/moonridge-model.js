@@ -26,17 +26,22 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
 
     /**
      * authentication, can be called at any time when you need to change user's identity/privileges
-     * @param {Object} authobj
+     * @param {Object} authObj
      * @returns {Promise}
      */
-    self.auth = function(authobj) {
+    self.auth = function(authObj) {
       var defer = $q.defer();
       self.socket.on('authSuccess', function (user){
-        self.user = user;
+        if (!self.authObj) {
+          self.user = user;
+          self.authObj = authObj;
+          //TODO get user from backend and if not matching(server was restarted), reauthenticate
+        }
+
         defer.resolve(user);
       });
       self.socket.on('authFailed', defer.reject);
-      self.socket.emit('auth', authobj);
+      self.socket.emit('auth', authObj);
       return defer.promise;
     };
 
@@ -385,10 +390,10 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
         };
 
         /**
-         * @param {Boolean} onReconnect when true, no events from socket will be subscribed
+         * @param {Boolean} dontSubscribe when true, no events from socket will be subscribed
          * @returns {Object} live query object with docs property which contains realtime result of the query
          */
-        var queryExecFn = function(onReconnect) {
+        var queryExecFn = function(dontSubscribe) {
           if (!LQ._queryStringified) {
             if (LQ.indexedByMethods.hasOwnProperty('count') && LQ.indexedByMethods.hasOwnProperty('sort')) {
               throw new Error('count and sort must NOT be used on the same query');
@@ -422,8 +427,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
 
               var i = res.docs.length;
               LQ.count += i;
-              //TODO here we need to merge the result of the query with changes which occured while the
-              // query ran, so we can't just iterate
+
               while (i--) {
                 LQ.docs[i] = res.docs[i];
               }
@@ -431,19 +435,21 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
             }
             LQ._invokeListeners('init', res);
 
-            if (!onReconnect) {
+            if (!dontSubscribe) {
               self.socket.on('disconnect', function() {
                 LQ.stopped = true;
               });
 
-              self.socket.on('reconnect', function() {
-                //TODO maybe we have to wait until model.rpc can be called
+              var reExecute = function() {
+                console.log("reExecute");
                 LQ.docs = [];
                 LQ.count = 0;
 
                 queryExecFn(true);
 
-              });
+              };
+              self.socket.on('reconnect', reExecute);
+              //self.socket.on('authSuccess', reExecute);
             } else {
               LQ.stopped = false;
             }
@@ -461,7 +467,6 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
     /**
      * loads one model or returns already requested model promise
      * @param {String} name
-     * @param {Object} handshake
      * @returns {Promise} which resolves with the model
      */
     self.getModel = function(name) {

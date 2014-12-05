@@ -19,7 +19,8 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
       return MRs[name];
     }
 
-    var self = {user: {privilige_level: 1}}; //by default, users priviliges are always set to 1
+    var defUser = {privilige_level: 1};
+    var self = {user: defUser}; //by default, users priviliges are always set to 1
     MRs[name] = self;
 
     var models = {};
@@ -32,12 +33,19 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
     self.auth = function(authObj) {
       var defer = $q.defer();
       self.socket.on('authSuccess', function (user){
-        if (!self.authObj) {
-          self.user = user;
-          self.authObj = authObj;
-          //TODO get user from backend and if not matching(server was restarted), reauthenticate
-        }
 
+        self.user = user;
+        self.authObj = authObj;
+          //TODO get user from backend and if not matching(server was restarted), reauthenticate
+        self.socket.on('disconnect', function onDisconn() {
+          self.socket.removeListener('disconnect', onDisconn);
+          self.user = defUser;
+
+          self.socket.on('reconnect', function onReconn() {
+            self.socket.removeListener('disconnect', onReconn);
+            self.socket.emit('auth', self.authObj);//recursively continues to handling authSuccess
+          })
+        });
         defer.resolve(user);
       });
       self.socket.on('authFailed', defer.reject);
@@ -441,15 +449,20 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
               });
 
               var reExecute = function() {
-                console.log("reExecute");
+
                 LQ.docs = [];
                 LQ.count = 0;
 
                 queryExecFn(true);
 
               };
-              self.socket.on('reconnect', reExecute);
-              //self.socket.on('authSuccess', reExecute);
+              if (self.authObj) { //auth obj should be deleted if you need to logout a user
+                //when user is authenticated, we want to reexecute after he is reauthenticated
+                self.socket.on('authSuccess', reExecute);
+              } else {
+                //when he is anonymous, reexecute right after reconnect
+                self.socket.on('reconnect', reExecute);
+              }
             } else {
               LQ.stopped = false;
             }

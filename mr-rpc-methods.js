@@ -554,10 +554,8 @@ var expose = function(model, schema, opts) {
 
       }
 
-      if (!socket.registeredLQs[LQIndex]) {
+      if (!socket.registeredLQs[LQIndex]) { //query can be reexecuted when user authenticates, then we already have
         socket.registeredLQs[LQIndex] = LQ;
-      } else {
-        def.reject(new Error('LQ with this client-server index already exists on socket ' + socket.id));
       }
       return def.promise;
     },

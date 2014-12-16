@@ -5,6 +5,14 @@ MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for e
 
 Offers killer feature(live queries) from Meteor.js for the MEAN stack. How?
 See examples, if still not sufficent, read source code. Better docs are planned/WIP.
+#Prerequisities
+
+Moonridge is written in commonJS format, so you need globally installed [jspm](https://github.com/jspm/jspm-cli) to be able to install it and run it.
+If you don't have jspm, install it before Moonridge:
+
+    npm i jspm -g
+
+Also currently it requires to have socket.io-rpc installed too. This I will get rid of.
 
 ##Basic usage serverside
 
@@ -64,8 +72,9 @@ All server-client communication is done with [socket.io-rpc](https://github.com/
 
 Written in commonJS format, so you need to use some module loader like [SystemJS](https://github.com/systemjs/systemjs). Even better is to use [jspm](https://github.com/jspm/jspm-cli).
 ##TODO
-1. publish on jspm so that it can be used without having to write 3 script tags
+1. make it easier to consume-anyone with plain express app should be able to just install it and run it with 2 additional lines of code.
 2. Needs implementing E2E testing scenarios as well as a lot of unit tests.
+3. Make it run without angular in browser and in node.js
 
 ##Supported browsers
 ###Desktop
@@ -83,7 +92,7 @@ Written in commonJS format, so you need to use some module loader like [SystemJS
 ##How does live querying work in one paragraph
 Every client liveQuery is serialized and sent via socket.io to backend. Backend parses it and constructs real mongoose query, wich is immediately run(if it doesn't exist already in server memory). The return is sent back to client. Any change to a certain document (creation, deletion, update) is checked again for all in-memory queries. MongoDB checks just one recently changed document, not the whole query, so it should be pretty quick. If query is satisfied, the changed document is propagated to listening clients. And that is basically it.
 
-Pull requests are welcome and same goes for new issues!
+Pull requests are welcome and same goes for issues!
 
 [![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/capaj/moonridge/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
 

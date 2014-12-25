@@ -496,21 +496,17 @@ module.exports = function $MR($RPC, $q, $log, extend) {
 
       self.connectPromise.then(function() {
         var ccName = 'MR-' + name;
-        var promises = {
-          client: self.rpcBackend.expose(ccName, model.clientRPCMethods),
-          server: self.rpcBackend.loadChannel(ccName)
-        };
+        var promises = [
+          self.rpcBackend.expose(ccName, model.clientRPCMethods),
+          self.rpcBackend.loadChannel(ccName)
+        ];
 
         var resolvePromises = function(chnlPair) {
-          model.rpc = chnlPair.server;
+          model.rpc = chnlPair[1];
           model.deferred.resolve(model);
         };
 
-        if (typeof process !== 'undefined') {
-          $q.props(promises).then(resolvePromises);
-        } else {
-          $q.all(promises).then(resolvePromises);
-        }
+        $q.all(promises).then(resolvePromises);
 
         self.socket.on('disconnect', function() {
           console.log("model disconnect");
@@ -520,10 +516,10 @@ module.exports = function $MR($RPC, $q, $log, extend) {
         self.socket.on('reconnect', function() {
           console.log("model reconnect");
 
-          var promises = {
-            client: self.rpcBackend.getClientChannel(ccName).deferred.promise,
-            server: self.rpcBackend.loadChannel(ccName)
-          };
+          var promises = [
+            self.rpcBackend.getClientChannel(ccName).deferred.promise,
+            self.rpcBackend.loadChannel(ccName)
+          ];
 
           $q.all(promises).then(resolvePromises);
         });

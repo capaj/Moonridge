@@ -1,13 +1,14 @@
 Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badge.fury.io/js/moonridge)
 =========
 
-MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser for your JS app.
+MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser in angular app or in node.js.
 
 Offers killer feature(live queries) from Meteor.js for the MEAN stack. How?
 See examples, if still not sufficent, read source code. Better docs are planned/WIP.
+
 #Prerequisities
 
-Moonridge is written in commonJS format, so you need globally installed [jspm](https://github.com/jspm/jspm-cli) to be able to install it and run it.
+Moonridge is written in commonJS format(client works in node and browser without much hassle), so you need globally installed [jspm](https://github.com/jspm/jspm-cli) to be able to install it and run it.
 If you don't have jspm, install it with this command:
 
     npm i jspm -g

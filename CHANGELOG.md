@@ -1,3 +1,5 @@
+#0.6.5 -> 0.6.6
+    Now has a node.js client.
 #0.6.0 -> 0.6.2
     Significant changes to the authentication process. I finally realized, that the most common use case is a public
     access to some of the data, rest of the data is accessible only to authenticated and authorized users-best thing

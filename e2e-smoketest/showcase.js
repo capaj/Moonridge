@@ -2,7 +2,7 @@ require('jquery');
 require('angular');
 require('./js/bootstrap.min');
 require('angular-animate');
-require('moonridge-client');
+require('moonridge-angular');
 
 angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log,
                                                                                       moonridgeBackend, user) {

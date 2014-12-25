@@ -1,6 +1,9 @@
 var QueryChainable = require('./query-chainable');
+var isNumber = function(val) {
+  return typeof val === 'number';
+};
 
-angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RPC, $q, $log) {
+module.exports = function $MR($RPC, $q, $log, extend) {
   var MRs = {}; //stores instances of Moonridge backend instances
   var defaultBackend;
 
@@ -36,7 +39,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
 
         self.user = user;
         self.authObj = authObj;
-          //TODO get user from backend and if not matching(server was restarted), reauthenticate
+        //TODO get user from backend and if not matching(server was restarted), reauthenticate
         self.socket.on('disconnect', function onDisconn() {
           self.socket.removeListener('disconnect', onDisconn);
           self.user = defUser;
@@ -59,9 +62,9 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
       self.rpcBackend = $RPC(rParams.url, rParams.hs);
       self.socket = self.rpcBackend.masterChannel;
       if (rParams.auth) {
-         self.auth(rParams.auth).then(function() {
-           connDfd.resolve(self.socket);
-         });
+        self.auth(rParams.auth).then(function() {
+          connDfd.resolve(self.socket);
+        });
       } else {
         connDfd.resolve(self.socket);
       }
@@ -237,7 +240,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
           }
         };
 
-        if (angular.isObject(previousLQ)) {
+        if (typeof previousLQ === 'object') {
           LQ.query = previousLQ.query;
           LQ.indexedByMethods = previousLQ.indexedByMethods;
         } else {
@@ -268,7 +271,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
               return;
             }
 
-            if (angular.isNumber(index)) {
+            if (isNumber(index)) {
               LQ.docs.splice(index, 0, doc);
             } else {
               LQ.docs.push(doc);
@@ -289,7 +292,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
         LQ.on_update = function(doc, isInResult) {
           LQ.promise.then(function() {
             if (LQ.indexedByMethods.count) {	// when this is a count query
-              if (angular.isNumber(isInResult)) {
+              if (isNumber(isInResult)) {
                 LQ.count += 1;
               } else {
                 if (isInResult === false) {
@@ -311,7 +314,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
                   return;
                 } else {
                   // if a number, then doc should be moved
-                  if (angular.isNumber(isInResult)) {	//LQ with sorting
+                  if (isNumber(isInResult)) {	//LQ with sorting
                     if (isInResult !== i) {
                       if (i < isInResult) {
                         LQ.docs.splice(i, 1);
@@ -323,12 +326,12 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
 
                     } else {
                       updated = LQ.docs[i];
-                      angular.extend(updated, doc);
+                      extend(updated, doc);
                     }
 
                   } else {
                     updated = LQ.docs[i];
-                    angular.extend(updated, doc);
+                    extend(updated, doc);
                   }
 
                 }
@@ -338,7 +341,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
             }
             //when not found
             if (isInResult) {
-              if (angular.isNumber(isInResult)) {	//LQ with sorting
+              if (isNumber(isInResult)) {	//LQ with sorting
                 LQ.docs.splice(isInResult, 0, doc);
               } else {
                 LQ.docs.push(doc); // pushing into docs if it was not found by loop
@@ -376,7 +379,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
         };
         //notify the server we don't want to receive any more updates
         LQ.stop = function() {
-          if (angular.isNumber(LQ.index) && model._LQs[LQ.index]) {
+          if (isNumber(LQ.index) && model._LQs[LQ.index]) {
             LQ.stopped = true;
             model.rpc.unsubLQ(LQ.index).then(function(succes) {
               if (succes) {
@@ -423,7 +426,7 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
 
           LQ.promise = model.rpc.liveQuery(LQ.query, LQ.index).then(function(res) {
 
-            if (angular.isNumber(res.count)) {  // this is a count query when servers sends number
+            if (isNumber(res.count)) {  // this is a count query when servers sends number
               //$log.debug('Count we got back from the server is ' + res.count);
 
               // this is not assignment but addition on purpose-if we create/remove docs before the initial
@@ -503,7 +506,11 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
           model.deferred.resolve(model);
         };
 
-        $q.all(promises).then(resolvePromises);
+        if (typeof process !== 'undefined') {
+          $q.props(promises).then(resolvePromises);
+        } else {
+          $q.all(promises).then(resolvePromises);
+        }
 
         self.socket.on('disconnect', function() {
           console.log("model disconnect");
@@ -566,4 +573,4 @@ angular.module('Moonridge', ['RPC']).factory('$MR', function $MR($rootScope, $RP
   };
 
   return Moonridge;
-});
+}

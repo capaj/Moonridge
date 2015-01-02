@@ -204,13 +204,15 @@ module.exports = function $MR($RPC, $q, $log, extend) {
           any: []
         };
         LQ._invokeListeners = function(which, params) {
-          if (which !== 'any') {
-            this._invokeListeners('any', params);
-          }
 
           var index = eventListeners[which].length;
           while (index--) {
-            eventListeners[which][index].call(LQ, params);
+            eventListeners[which][index].call(LQ, which, params);
+          }
+
+          index = eventListeners.any.length;
+          while(index--){
+          	eventListeners.any[index].call(LQ, which, params);
           }
         };
 

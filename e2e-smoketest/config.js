@@ -1,7 +1,8 @@
 System.config({
   "paths": {
     "*": "*.js",
-    "github:*": "jspm_packages/github/*.js"
+    "github:*": "jspm_packages/github/*.js",
+    "Moonridge-test/*": "lib/*.js"
   }
 });
 

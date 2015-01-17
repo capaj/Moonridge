@@ -11,7 +11,7 @@ app.set('port', 8080);
 
 app.use(express.static('./client/'));//only needed when moonridge is not as npm module
 
-app.use(express.static('./e2e-smoketest/'));
+app.use(express.static('./test/e2e-smoketest/'));
 
 
 mongoose.set('debug', true);
@@ -43,5 +43,5 @@ MR.auth = function(socket, authObj) {
 //});
 
 app.get('/', function (req, res) {
-    res.sendfile('./test/index.html');
+    res.sendfile('./test/e2e-smoketest/index.html');
 });

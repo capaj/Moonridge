@@ -1,6 +1,6 @@
 require('jquery');
 require('angular');
-require('./js/bootstrap.min.js');
+require('./js/bootstrap.min');
 require('angular-animate');
 require('moonridge-angular');
 

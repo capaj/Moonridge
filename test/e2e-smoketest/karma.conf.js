@@ -12,7 +12,7 @@ module.exports = function(config) {
 			'e2e-smoketest/bower_components/angular/angular.js',
 			'e2e-smoketest/bower_components/angular-animate/angular-animate.js',
 			'e2e-smoketest/bower_components/angular-mocks/angular-mocks.js',
-			'e2e-smoketest/js/bootstrap.min.js',
+			'js/bootstrap.min.js',
 			'e2e-smoketest/test_ctrl.js',
 			'built/moonridge-angular-client.js',
 			'client/moonridge-angular-mock.js',

@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var _ = require('lodash');
 var locals = require('./localVariables.json');
 
-var Moonridge = require('../main');
+var Moonridge = require('../../main');
 var express = require('express');
 var app = module.exports = express();
 app.use(require('morgan')('dev'));

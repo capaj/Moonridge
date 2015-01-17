@@ -2,7 +2,7 @@ require('chai').should();
 
 var cp = require('child_process');
 
-var n = cp.fork('./e2e-smoketest/server.js');
+var server = cp.fork('./test/e2e-smoketest/server.js');
 
 var $MR = require('../client/moonridge-node');
 var Promise = require('bluebird');
@@ -80,7 +80,14 @@ describe("basic CRUD",function(){
 
 	after(function(done) {
 		console.log("_id", fighterId);
-		fighter.remove({_id: fighterId}).then(done);
+		fighter.remove({_id: fighterId}).then(function() {
+
+			setTimeout(function(){
+				server.kill();
+				done();
+			}, 1000);
+		});
+
 	});
 
 

@@ -1,9 +1,9 @@
 Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badge.fury.io/js/moonridge)
 =========
-[![Build Status](https://travis-ci.org/capaj/moonridge.svg?tag=1.0.3)](https://travis-ci.org/capaj/moonridge)
-[![Dependency Status](https://david-dm.org/capaj/moonridge.svg)](https://david-dm.org/capaj/moonridge)
+[![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.3)](https://travis-ci.org/capaj/Moonridge)
+[![Dependency Status](https://david-dm.org/capaj/Moonridge.svg)](https://david-dm.org/capaj/Moonridge)
 
-MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser in angular app or in node.js.
+Allows to call Mongoose remotely through socket.io-rpc. Usable in browser with angular and in node.
 
 Offers killer feature(live queries) from Meteor.js for the MEAN stack. How?
 See examples, if still not sufficent, read source code. Better docs are planned/WIP.

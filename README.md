@@ -1,5 +1,7 @@
 Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badge.fury.io/js/moonridge)
 =========
+[![Build Status](https://travis-ci.org/capaj/moonridge.svg?tag=1.0.3)](https://travis-ci.org/capaj/moonridge)
+[![Dependency Status](https://david-dm.org/capaj/moonridge.svg)](https://david-dm.org/capaj/moonridge)
 
 MONgOose bRIDGE to angular.js. Takes your mongoose models and exposes them for easy consumption in the browser in angular app or in node.js.
 

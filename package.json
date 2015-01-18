@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.6.7",
+  "version": "0.6.8",
   "main": "main.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Bring your Mongoose models straight into angular web app with live Query support, all thanks to the magic of socket.io",
@@ -32,7 +32,7 @@
     "express": "^4.11",
     "lodash": "~2.4",
     "socket.io": "1.2.1",
-    "socket.io-rpc": "0.8.6",
+    "socket.io-rpc": "0.8.9",
     "winston": "~0.8"
   },
   "peerDependencies": {

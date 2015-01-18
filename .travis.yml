@@ -4,6 +4,8 @@ node_js:
 - '0.11'
 services:
   - mongodb
+before_script:
+  - sleep 1
 before_install:
   - npm install jspm -g && cd test/e2e-smoketest && npm install && cd ../..
 deploy:

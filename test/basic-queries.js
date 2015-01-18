@@ -4,7 +4,7 @@ var cp = require('child_process');
 
 var server = cp.fork('./test/e2e-smoketest/server.js');
 
-var $MR = require('../client/moonridge-node');
+var $MR = require('moonridge-client');
 var Promise = require('bluebird');
 
 var dfd = Promise.defer();

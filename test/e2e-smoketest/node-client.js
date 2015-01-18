@@ -1,4 +1,4 @@
-var $MR = require('../client/moonridge-node');
+var $MR = require('moonridge-client');
 var Promise = require('bluebird');
 
 var dfd = Promise.defer();

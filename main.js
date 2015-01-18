@@ -89,7 +89,7 @@ module.exports = function (mongoose, connString) {
 			io = iop;
 		}
 
-		app.use(express.static('node_modules/moonridge/client/'));
+		app.use(express.static('node_modules/moonridge-client/'));
 
 		var allQueries = [];
 

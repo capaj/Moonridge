@@ -1,5 +1,5 @@
 var _ = require('lodash');
-var mongooseMethodValidations = require('./client/moonridge/moonridge-method-validations');
+var mongooseMethodValidations = require('./node_modules/moonridge-client/moonridge/moonridge-method-validations');
 delete mongooseMethodValidations.count; //we need to lack this on server, because moonridge executes count queries in
 // memory from normal queries
 var maxQueryLength = 70;    //hardcoded max query length

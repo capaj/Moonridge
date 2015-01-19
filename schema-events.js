@@ -6,7 +6,7 @@ var _ = require('lodash');
  * @type {Array}
  */
 var eventNames = ['create', 'preupdate', 'update', 'remove'];
-
+//TODO rewrite with var EventEmitter = require('events').EventEmitter;
 function EventBus() {
     var self = this;
     self.subscribers = {};  //TODO use node-hashtable here for better perf

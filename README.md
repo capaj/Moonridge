@@ -18,7 +18,7 @@ If you don't have jspm, install it with this command:
 Also currently it requires to have socket.io-rpc installed too. This I will get rid of.
 
 ##Basic usage serverside
-
+```javascript
     var mongoose = require('mongoose');
     var Moonridge = require('moonridge');
     var MR = moonridge(mongoose, "mongodb://localhost/moonridge_showcase");		//MongoDB address is optional-you can connect as always with mongoose
@@ -34,9 +34,10 @@ Also currently it requires to have socket.io-rpc installed too. This I will get 
         });
     ...
     MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
-
+```
 ##On the CLIENT side:
 ###HTML
+```html
 	<!--You need to use mr-controller instead of ng-controller-->
     <div mr-controller="bookCtrl" mr-models="book"><!--You can load any number of models you like, separate them by commas-->
         <div ng-repeat="book in LQ.docs">
@@ -45,7 +46,9 @@ Also currently it requires to have socket.io-rpc installed too. This I will get 
     </div>
     <!--include client side script after angular-->
     <script type="text/javascript" src="/moonridge-angular-client.js"></script>
+```    
 ###JS
+```javascript
     //define Moonridge angular module as dependency
 	angular.module('app', ['Moonridge']).run(function($MR, $q){
 		var dfd = $q.defer();
@@ -66,7 +69,7 @@ Also currently it requires to have socket.io-rpc installed too. This I will get 
         //$scope.LQ.docs will contain up to date synced collection of documents that satisfy the query. You can
         //before exec() you can use any mongoose query method except distinct, remove, update
     })
-    
+```    
 Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)
 
 ##Errorhandling

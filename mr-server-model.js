@@ -90,9 +90,9 @@ module.exports = function MRModel(name, schema, opts) {
     // Hook `save` post method called after creation/update
     mgSchema.post('save', function postSave(doc) {
         if (doc._wasNew) {
-            fireEvent.call(this, 'create');
+            fireEvent.call(doc, 'create');
         } else {
-            fireEvent.call(this, 'update');
+            fireEvent.call(doc, 'update');
         }
         return true;
     });
@@ -102,7 +102,7 @@ module.exports = function MRModel(name, schema, opts) {
     });
 
 	mgSchema.post('remove', function postRemove(doc) {
-        fireEvent.call(this, 'remove');
+        fireEvent.call(doc, 'remove');
 //        console.log('%s has been removed', doc._id);
     });
 

@@ -21,6 +21,7 @@ MRB.connectPromise.then(function(socket) {
 dfd.resolve({url: 'http://localhost:8080'});
 
 describe("basic CRUD",function(){
+	this.timeout(15000);
 
 	var fighter;
 	var fighterEntity;
@@ -34,7 +35,6 @@ describe("basic CRUD",function(){
 	});
 
 	beforeEach(function(done) {
-		this.timeout(10000);
 		MRB.getModel('fighter').then(function(model) {
 			fighter = model;
 			done();
@@ -42,8 +42,6 @@ describe("basic CRUD",function(){
 	});
 
 	it('should allow to create an entity of a model',function(done){
-		this.timeout(10000);
-
 		fighter.create({name: 'Arya', health: 50}).then(function(created){
 			created.should.have.property('_id');
 			fighterId = created._id;
@@ -53,7 +51,6 @@ describe("basic CRUD",function(){
 	});
 
 	it('should allow to query model', function(done){
-		this.timeout(10000);
 
 		LQ = fighter.liveQuery().sort('health').exec();
 		LQ.on('any', function(evName, params) {
@@ -67,7 +64,6 @@ describe("basic CRUD",function(){
 				throw new Error('was expecting an init event only');
 			}
 		});
-		this.timeout(5000);
 
 	});
 
@@ -80,20 +76,19 @@ describe("basic CRUD",function(){
 
 	after(function(done) {
 		console.log("_id", fighterId);
+		var finish = function() {
+			server.kill();
+			done();
+		};
 		fighter.remove({_id: fighterId}).then(function() {
-
-			setTimeout(function(){
-				server.kill();
-				done();
-			}, 1000);
+			setTimeout(finish, 1000);
 		});
 
 	});
 
 
-	//
-	//it('should be able to delete an entity of a model', function(){
-	//    ;
-	//});
+	it('should be able to delete an entity of a model', function(){
+	    //TODO implement
+	});
 
 });

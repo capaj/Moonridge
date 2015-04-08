@@ -27,10 +27,10 @@ module.exports = function (MR) {
 	});
 
 
-	fighter.model.on('preupdate', function (doc, evName, previous) {
+	fighter.schema.on('preupdate', function (doc, previousDocVersion) {
 		console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic
 		console.dir(doc);
-		console.dir(previous);
+		console.dir(previousDocVersion);
 	});
 
 	var battleM = MR.model('battle', {

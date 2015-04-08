@@ -1,6 +1,6 @@
 var _ = require('lodash');
 var Promise = require('bluebird');
-var eventNames = require('./schema-events').eventNames;
+var eventNames = ['create', 'preupdate', 'update', 'remove'];
 var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
@@ -50,10 +50,9 @@ var expose = function(model, schema, opts) {
     }
   }
 
-
   var getIndexInSorted = require('./utils/indexInSortedArray');
 
-  model.onCUD(function(mDoc, evName) {   // will be called by schema's event firing
+  schema.on('CUD', function(evName, mDoc) {   // will be called by schema's event firing
     var doc = mDoc.toObject();
     Object.keys(liveQueries).forEach(function(LQString) {
       var LQ = liveQueries[LQString];
@@ -643,7 +642,7 @@ var expose = function(model, schema, opts) {
               }
               _.extend(doc, toUpdate);
               doc.__v += 1;
-              schema.eventBus.fire.call(doc, 'preupdate', previousVersion);
+              schema.emit('preupdate', doc, previousVersion);
 
               doc.save(function(err) {
                 if (err) {

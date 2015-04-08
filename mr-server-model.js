@@ -1,5 +1,5 @@
 var exposeMethods = require('./mr-rpc-methods');
-var EventBus = require('./schema-events');
+var EventEmitter = require("events").EventEmitter;
 var _ = require('lodash');
 var logger = require('./logger/logger');
 
@@ -16,7 +16,6 @@ var logger = require('./logger/logger');
 			U: 5,
 			D: 5
 		}
- * @param {Object} opts.pres will extend the mongoose schema.pres calling respective methods before an event occurs with next as first param
  * @param {Object} opts.statics will extend the mongoose schema.statics so that you can call this function on your model
  * @param {Function} opts.authFn will be passed to socket.io-rpc as authorization function for the whole model channel
  * @param {Function} opts.schemaInit gives you opportunity to use schema before mongoose model is instantiated
@@ -26,30 +25,14 @@ var logger = require('./logger/logger');
 module.exports = function MRModel(name, schema, opts) {
     opts = opts || {};
 
-    /**
-     * is overriden for liveQueries
-     * @param next
-     * @param doc
-     */
-    var callNext = function (next, doc) {
-        next();
-    };
     _.extend(schema, {owner: { type: this.Schema.Types.ObjectId, ref: 'user' }});   //user model should have owner field also
     //mongoose schema
     var mgSchema = new this.Schema(schema);
 
-    mgSchema.pres = {
-        preCreate: callNext,
-        preUpdate: callNext,
-        preRemove: callNext
-    };
-
     if (opts.statics) {
         _.extend(mgSchema.statics, opts.statics);
     }
-    if (opts.pres) {
-        _.extend(mgSchema.pres, opts.pres);
-    }
+
 	var schemaInit = function() {
 		if (opts.schemaInit) {
 			logger.debug('schemaInit for ' + name);
@@ -71,48 +54,26 @@ module.exports = function MRModel(name, schema, opts) {
     }
     mgSchema.pathPermissions = pathPermissions; // prepared object for handling access controll
 
-    var schemaEvS = new EventBus();
-    mgSchema.eventBus = schemaEvS;
-    // Create subscribers hashtable, holds reference to all registered event handlers
-    var fireEvent = schemaEvS.fire;
-	var unsubscribe = schemaEvS.unsubscribe;
-
-
-    mgSchema.pre('save', function preSave(next) {
-        this._wasNew = this.isNew;
-		if (this.isNew) {
-			mgSchema.pres.preCreate(next, this);
-		} else {
-			mgSchema.pres.preUpdate(next, this)
-		}
-    });
+    var invokeCUDEvent = function(evName, doc) {
+        mgSchema.emit(evName, doc);
+        mgSchema.emit('CUD', evName, doc);
+    };
 
     // Hook `save` post method called after creation/update
     mgSchema.post('save', function postSave(doc) {
         if (doc._wasNew) {
-            fireEvent.call(doc, 'create');
+            invokeCUDEvent('create', doc)
         } else {
-            fireEvent.call(doc, 'update');
+            invokeCUDEvent('update', doc);
         }
         return true;
     });
 
-    mgSchema.pre('remove', function preRemove(next) {
-        mgSchema.pres.preRemove(next, this);
-    });
 
 	mgSchema.post('remove', function postRemove(doc) {
-        fireEvent.call(doc, 'remove');
+        invokeCUDEvent('remove', doc);
 //        console.log('%s has been removed', doc._id);
     });
-
-	mgSchema.static('on', schemaEvS.subscribe);
-    mgSchema.static('onCUD', function (callback) {
-        schemaEvS.subscribe(['create', 'update', 'remove'], callback);
-	});
-
-    mgSchema.static('off', unsubscribe);
-    // Create model from schema
 
     var model = this.model(name, mgSchema);
 

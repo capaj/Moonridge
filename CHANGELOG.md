@@ -1,3 +1,4 @@
+This file is deprecated. To see the summarized changelogs, refer to github release descriptions.
 #0.6.5 -> 0.6.6
     Now has a node.js client.
 #0.6.0 -> 0.6.2

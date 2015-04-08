@@ -103,5 +103,3 @@ Every client liveQuery is serialized and sent via socket.io to backend. Backend 
 
 Pull requests are welcome and same goes for issues!
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/capaj/moonridge/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-

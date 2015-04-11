@@ -36,27 +36,15 @@ describe("basic CRUD including working liveQueries",function(){
 		});
 	});
 
-
-	it('should allow to create an entity of a model',function(done){
-		fighterModel.create({name: 'Arya', health: 50, isNew: false, _wasNew: false}).then(function(created){
-			created.should.have.property('_id');
-			created.should.not.have.property('isNew');	//this is reserved by Mongoose
-			created.should.not.have.property('_wasNew');
-			created.health.should.equal(50);
-			fighterId = created._id;
-			done();
-		});
-	});
-
 	it('should allow to query model', function(done){
 
 		LQ = fighterModel.liveQuery().sort('health').exec();
-		LQ.on('any', function(evName, params) {
+		var subId = LQ.on('init', function(evName, params) {
 			if (evName === 'init') {
-				params.docs.length.should.equal(1);
-				fighterEntity = params.docs[0];
+				console.log("params", params);
+
+				params.docs.length.should.equal(0);
 				done();
-				LQ.stop();
 
 			} else {
 				throw new Error('was expecting an init event only');
@@ -64,6 +52,26 @@ describe("basic CRUD including working liveQueries",function(){
 		});
 
 	});
+
+	it('should allow to create an entity of a model',function(done){
+		LQ.on('any', function (evName, params){
+			evName.should.be.equal('create');
+			fighterEntity = params[1];
+			fighterEntity.name.should.equal('Arya');
+			LQ.stop();
+			done();
+		});
+
+		fighterModel.create({name: 'Arya', health: 50, isNew: false, _wasNew: false}).then(function(created){
+			created.should.have.property('_id');
+			created.should.not.have.property('isNew');	//this is reserved by Mongoose
+			created.should.not.have.property('_wasNew');
+			created.health.should.equal(50);
+			fighterId = created._id;
+		});
+
+	});
+
 
 	it('should be able to update an entity of a model', function(done){
 		fighterEntity.health += 10;

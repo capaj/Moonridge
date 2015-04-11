@@ -64,17 +64,17 @@
     </div>
     <p mr-repeat="fighter in LQ" class="left-slide">
         {{ fighter }}
-        <button ng-click="hit(fighter)">Hit</button>
-        <button ng-click="heal(fighter)">Heal</button>
-        <button ng-click="remove(fighter)">Del</button>
+        <button class="btn btn-warning" ng-click="hit(fighter)">Hit</button>
+        <button class="btn btn-success" ng-click="heal(fighter)">Heal</button>
+        <button class="btn btn-danger" ng-click="remove(fighter)">Del</button>
     </p>
-    <h1>Find One query</h1>
 
+    <h1>Find One query</h1>
     <p>
         {{ oneLQ.doc }}
-        <button ng-click="hit(oneLQ.doc)">Hit</button>
-        <button ng-click="heal(oneLQ.doc)">Heal</button>
-        <button ng-click="remove(oneLQ.doc)">Del</button>
+        <button class="btn btn-warning" ng-click="hit(oneLQ.doc)">Hit</button>
+        <button class="btn btn-success" ng-click="heal(oneLQ.doc)">Heal</button>
+        <button class="btn btn-danger" ng-click="remove(oneLQ.doc)">Del</button>
     </p>
     <h4>Admin: {{admin.doc}}</h4>
 

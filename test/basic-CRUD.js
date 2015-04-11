@@ -14,45 +14,43 @@ var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend 
 MRB.connectPromise.then(function(socket) {
 	//you can hook up more events here
 	socket.on('disconnect', function() {
-		console.log("Ha disconnected!");
+		throw new Error('Disconnection should not occurr.');
 	});
 });
 
-dfd.resolve({url: 'http://localhost:8080'});
+describe("basic CRUD including working liveQueries",function(){
+	this.timeout(10000);
 
-describe("basic CRUD",function(){
-	this.timeout(15000);
-
-	var fighter;
+	var fighterModel;
 	var fighterEntity;
 	var fighterId;
 	var LQ;
+	dfd.resolve({url: 'http://localhost:8080'});
 	before(function(done) {
 		MRB.auth({nick: 'admin'}).then(function(user){ //user === moonridgeBackend.user
 			console.log("user", user);
-			done();
+			MRB.getModel('fighter').then(function(model) {
+				fighterModel = model;
+				done();
+			});
 		});
 	});
 
-	beforeEach(function(done) {
-		MRB.getModel('fighter').then(function(model) {
-			fighter = model;
-			done();
-		});
-	});
 
 	it('should allow to create an entity of a model',function(done){
-		fighter.create({name: 'Arya', health: 50}).then(function(created){
+		fighterModel.create({name: 'Arya', health: 50, isNew: false, _wasNew: false}).then(function(created){
 			created.should.have.property('_id');
+			created.should.not.have.property('isNew');	//this is reserved by Mongoose
+			created.should.not.have.property('_wasNew');
+			created.health.should.equal(50);
 			fighterId = created._id;
 			done();
 		});
-
 	});
 
 	it('should allow to query model', function(done){
 
-		LQ = fighter.liveQuery().sort('health').exec();
+		LQ = fighterModel.liveQuery().sort('health').exec();
 		LQ.on('any', function(evName, params) {
 			if (evName === 'init') {
 				params.docs.length.should.equal(1);
@@ -69,26 +67,35 @@ describe("basic CRUD",function(){
 
 	it('should be able to update an entity of a model', function(done){
 		fighterEntity.health += 10;
-		fighter.update(fighterEntity).then(function() {
+		fighterModel.update(fighterEntity).then(function() {
 			done();
+		});
+	});
+
+	it('should fail when we try to update nonexistent entity', function(done){
+		fighterEntity.health += 10;
+		fighterModel.update({_id: 'fakeID'}).then(function() {
+			throw 'Entity should not have been updated';
+		}, function (err){
+			done();
+		});
+	});
+
+	it('should be able to delete an entity of a model', function(done){
+		fighterModel.remove({_id: fighterId}).then(function(){
+		    done()
+		}, function (err){
+		    throw err;
 		});
 	});
 
 	after(function(done) {
 		console.log("_id", fighterId);
-		var finish = function() {
-			server.kill();
-			done();
-		};
-		fighter.remove({_id: fighterId}).then(function() {
-			setTimeout(finish, 1000);
-		});
-
+		server.kill();
+		done();
 	});
 
 
-	it('should be able to delete an entity of a model', function(){
-	    //TODO implement
-	});
+
 
 });

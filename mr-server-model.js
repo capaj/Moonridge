@@ -59,10 +59,17 @@ module.exports = function MRModel(name, schema, opts) {
         mgSchema.emit('CUD', evName, doc);
     };
 
+    mgSchema.pre('save', function (next) {
+        this._wasNew = this.isNew;
+        next();
+    });
+
     // Hook `save` post method called after creation/update
     mgSchema.post('save', function postSave(doc) {
+        console.log("doc.wasNew", doc._wasNew);
         if (doc._wasNew) {
-            invokeCUDEvent('create', doc)
+            delete doc._wasNew;
+            invokeCUDEvent('create', doc);
         } else {
             invokeCUDEvent('update', doc);
         }

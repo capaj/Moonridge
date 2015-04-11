@@ -599,7 +599,7 @@ var expose = function(model, schema, opts) {
         var socket = this;
         model.findById(id, function(err, doc) {
           if (err) {
-            def.reject(new Error('Error occured on the findById query'));
+            return def.reject(err);
           }
           if (doc) {
             if (opts.checkPermission(socket, 'D', doc)) {

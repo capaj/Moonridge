@@ -35,7 +35,7 @@ Also currently it requires to have socket.io-rpc installed too. This I will get 
     ...
     MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
 ```
-##On the CLIENT side:
+##On the CLIENT side with AngularJS:
 ###HTML
 ```html
 	<!--You need to use mr-controller instead of ng-controller-->

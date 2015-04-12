@@ -3,7 +3,7 @@
   "version": "0.7.2",
   "main": "main.js",
   "author": "Capaj <capajj@gmail.com>",
-  "description": "Bring your Mongoose models straight into angular web app with live Query support, all thanks to the magic of socket.io",
+  "description": "Isomorphic library, which allows you to call Mongoose.js remotely from your frontend in a framework agnostic fashion",
   "scripts": {
     "test": "mocha"
   },

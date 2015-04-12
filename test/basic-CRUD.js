@@ -62,10 +62,9 @@ describe("basic CRUD including working liveQueries",function(){
 			done();
 		});
 
-		fighterModel.create({name: 'Arya', health: 50, isNew: false, _wasNew: false}).then(function(created){
+		fighterModel.create({name: 'Arya', health: 50, isNew: false}).then(function(created){
 			created.should.have.property('_id');
 			created.should.not.have.property('isNew');	//this is reserved by Mongoose
-			created.should.not.have.property('_wasNew');
 			created.health.should.equal(50);
 			fighterId = created._id;
 		});

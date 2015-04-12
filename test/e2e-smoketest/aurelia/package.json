@@ -8,7 +8,6 @@
       "aurelia-framework": "github:aurelia/framework@^0.10.0",
       "bootstrap": "github:twbs/bootstrap@^3.3.4",
       "css": "github:systemjs/plugin-css@^0.1.0",
-      "github:urish/angular-moment": "github:urish/angular-moment@^0.8.2",
       "jquery": "github:components/jquery@^2.1.1",
       "socket.io-rpc-client": "github:capaj/socket.io-rpc-client@^0.8.12",
       "text": "github:systemjs/plugin-text@^0.0.2",

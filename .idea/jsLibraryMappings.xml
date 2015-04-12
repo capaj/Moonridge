@@ -3,5 +3,6 @@
   <component name="JavaScriptLibraryMappings">
     <file url="file://$PROJECT_DIR$" libraries="{Node.js Dependencies for Moonridge}" />
     <file url="file://$PROJECT_DIR$/test/basic-CRUD.js" libraries="{mocha-DefinitelyTyped}" />
+    <includedPredefinedLibrary name="ECMAScript 6" />
   </component>
 </project>

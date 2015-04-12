@@ -3,10 +3,10 @@ Moonridge   [![NPM version](https://badge.fury.io/js/moonridge.png)](http://badg
 [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.3)](https://travis-ci.org/capaj/Moonridge)
 [![Dependency Status](https://david-dm.org/capaj/Moonridge.svg)](https://david-dm.org/capaj/Moonridge)
 
-Allows to call Mongoose remotely through socket.io-rpc. Usable in browser with angular and in node.
-
-Offers killer feature(live queries) from Meteor.js for the MEAN stack. How?
-See examples, if still not sufficent, read source code. Better docs are planned/WIP.
+Allows to call Mongoose remotely through socket.io-rpc. Usable in browser with any framework-let it be Angular, Aurelia, React or any other.
+It is also isomorphic, so your client can be another node.js process(nice for midway testing).
+Offers killer feature(live queries) from Meteor.js for your frontend in a framework agnostic fashion. How?
+See examples([Angular](test/e2e-smoketest/angular)|[Aurelia]((test/e2e-smoketest/aurelia))), if still not sufficent, read source code. Better docs are planned/WIP.
 
 #Prerequisities
 
@@ -77,10 +77,10 @@ Also you need to connect to your backend-Moonridge uses a promise resolution for
 All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
 
 Written in commonJS format, so you need to use some module loader like [SystemJS](https://github.com/systemjs/systemjs). Even better is to use [jspm](https://github.com/jspm/jspm-cli).
+
 ##TODO
 1. make it easier to consume-anyone with plain express app should be able to just install it and run it with 2 additional lines of code.
 2. Needs implementing E2E testing scenarios as well as a lot of unit tests.
-3. Make it run without angular in browser and in node.js
 
 ##Supported browsers
 ###Desktop
@@ -96,7 +96,7 @@ Written in commonJS format, so you need to use some module loader like [SystemJS
     WebOs WebKit
 
 ### Why not just mongoosejs on the client side?
-One could ask why not just port mongoosejs to the client side and let clients talk to mongo directly. While this would surely be an interesting project, Moonridge has features which would not be possible without a server instance(live querying, custom authorization/authentication). I think these features are worth it introducing a new framework to the stack.
+One could ask why not just port mongoosejs to the client side and let clients talk to mongo directly. While this would surely be an interesting project, Moonridge has features which would not be possible without a server instance(live querying, custom authorization/authentication). I think these features are worth it introducing a new framework to the backend.
     
 ##How does live querying work in one paragraph
 Every client liveQuery is serialized and sent via socket.io to backend. Backend parses it and constructs real mongoose query, wich is immediately run(if it doesn't exist already in server memory). The return is sent back to client. Any change to a certain document (creation, deletion, update) is checked again for all in-memory queries. MongoDB checks just one recently changed document, not the whole query, so it should be pretty quick. If query is satisfied, the changed document is propagated to listening clients. And that is basically it.

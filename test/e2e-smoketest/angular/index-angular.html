@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Moonridge browser test suite</title>
+    <title>Moonridge angular example</title>
     <!--uncomment es5-shim for IE8 support-->
     <!--<script type="text/javascript" src="/es5-shim.js"></script>-->
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,11 +48,10 @@
     <label for="query">Name</label><input type="text" id="query" ng-model='name'>
     <label for="health">health</label><input type="number" id="health" ng-model='health'>
     <button ng-click="create()">create</button>
-    <button ng-click="changeQuery()">limit +1</button>
     <br/>
 
     <br/>
-    Total documents: <span ng-bind="cLQ.count"></span> || Limit: <input type="number" ng-model="LQ.query.limit[0]">
+    Total documents: <span ng-bind="cLQ.count"></span> || Limit: <input type="number" ng-model="limit">
 
     <div class="row query-header">
         <div class="col-md-8">
@@ -81,9 +80,9 @@
 </div>
 
 <script src="jspm_packages/system.js"></script>
-<script src="config.js"></script>
+<script src="config-angular.js"></script>
 <script type="text/javascript">
-    System.import('showcase').then(function() {
+    System.import('app-angular').then(function() {
         var injector = angular.bootstrap(document, ['MRTest']);
     });
 </script>

@@ -14,8 +14,18 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 		oneLQ: fighterLQ().findOne().exec(),
 		cLQ: fighterLQ().count().exec()
 	});
-//    $scope.LQ = fighterLQ().sort('health').limit(limit).skip(1).exec();
-    $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
+
+    var runQuery = function () {
+        $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
+    };
+
+    $scope.$watch('limit', function(newValue, oldValue) {
+        if (angular.isNumber(newValue)) {
+            runQuery();
+        }
+    });
+
+    runQuery();
 
     $scope.LQ.promise.then(function (LQ) {
         console.log(LQ);    //LiveQuery
@@ -35,10 +45,6 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
 
     $scope.admin = user.query().findOne().exec();
 
-    $scope.changeQuery = function () {
-        $scope.limit += 1;
-        $scope.LQ = fighterLQ().sort('health').limit($scope.limit).exec();
-    };
 
     $scope.hit = function (afighter) {
         afighter.health -= 1;

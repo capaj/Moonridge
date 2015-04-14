@@ -98,7 +98,7 @@ Written in commonJS format, so you need to use some module loader like [SystemJS
 ### Why not just mongoosejs on the client side?
 One could ask why not just port mongoosejs to the client side and let clients talk to mongo directly. While this would surely be an interesting project, Moonridge has features which would not be possible without a server instance(live querying, custom authorization/authentication). I think these features are worth it introducing a new framework to the backend.
     
-##How does live querying work in one paragraph
+## How does live querying work in one paragraph
 Every client liveQuery is serialized and sent via socket.io to backend. Backend parses it and constructs real mongoose query, wich is immediately run(if it doesn't exist already in server memory). The return is sent back to client. Any change to a certain document (creation, deletion, update) is checked again for all in-memory queries. MongoDB checks just one recently changed document, not the whole query, so it should be pretty quick. If query is satisfied, the changed document is propagated to listening clients. And that is basically it.
 
 Pull requests are welcome and same goes for issues!

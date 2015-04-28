@@ -19,6 +19,8 @@
     "mean",
     "meteor",
     "angular",
+    "aurelia",
+    "orm",
     "mongoose",
     "mongoosejs"
   ],

@@ -7,7 +7,7 @@ Moonridge    [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.
 Allows to call Mongoose remotely through socket.io-rpc. Usable in browser with any framework-let it be Angular, Aurelia, React or any other.
 It is also isomorphic, so your client can be another node.js process(nice for midway testing).
 Offers killer feature(live queries) from Meteor.js for your frontend in a framework agnostic fashion. How?
-See examples([Angular](test/e2e-smoketest/angular)|[Aurelia]((test/e2e-smoketest/aurelia))), if still not sufficent, read source code. Better docs are planned/WIP.
+See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
 
 #Prerequisities
 

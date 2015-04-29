@@ -72,20 +72,26 @@ var expose = function(model, schema, opts) {
             }
             skip += LQ.indexedByMethods.limit[0] - 1;
             model.find(LQ.mQuery).lean().skip(skip).limit(1)
-              .exec(function(err, docArr) {
-                if (docArr.length === 1) {
-                  var toFillIn = docArr[0];   //first and only document
-                  if (toFillIn) {
-                    LQ.docs.push(toFillIn);
-                    LQ._distributeChange(toFillIn, 'push');
+                .exec(function(err, docArr) {
+                  if (err) {
+                    throw err;
                   }
-                }
+                  if (docArr.length === 1) {
+                    var toFillIn = docArr[0];   //first and only document
+                    if (toFillIn) {
+                      LQ.docs.push(toFillIn);
+                      LQ._distributeChange(toFillIn, 'push');
+                    }
+                  }
 
-              }
+                }
             );
 
           } else if (LQ.indexedByMethods.findOne) {
             LQ.mQuery.exec(function(err, doc) {
+              if (err) {
+                throw err;
+              }
               if (doc) {
                 LQ.docs.push(doc);
                 LQ._distributeChange(doc, 'push');
@@ -99,7 +105,7 @@ var expose = function(model, schema, opts) {
           logger.debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
           checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
               if (err) {
-                logger.error(err);
+                throw err;
               }
               if (checkedDoc) {   //doc satisfies the query
 
@@ -631,6 +637,9 @@ var expose = function(model, schema, opts) {
         delete toUpdate._id;
 
         model.findById(id, function(err, doc) {
+          if (err) {
+            return def.reject(err);
+          }
           if (doc) {
             if (opts.checkPermission(socket, 'U', doc)) {
               opts.dataTransform(toUpdate, 'W', socket);

@@ -7,9 +7,6 @@ var maxLQsPerClient = 100;
 var logger = require('./logger/logger');
 var getUser = require('./authentication').getUser;
 
-function isInt(n) {
-  return typeof n === 'number' && n % 1 == 0;
-}
 /**
  *
  * @param {Model} model Moonridge model
@@ -157,10 +154,7 @@ var expose = function(model, schema, opts) {
                     }
 
                   }
-                  if (isInt(index)) {
-                    LQ._distributeChange(doc, evName, index);
-                  }
-
+                  LQ._distributeChange(doc, evName, index);
                 } else {
                   if (evName === 'create') {
                     if (cQindex === -1) {

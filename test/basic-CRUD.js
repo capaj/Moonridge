@@ -55,7 +55,7 @@ describe("basic CRUD including working liveQueries",function(){
 
 	it('should allow to create an entity of a model',function(done){
 		LQ.on('any', function (evName, params){
-			evName.should.be.equal('create');
+			evName.should.be.equal('add');
 			fighterEntity = params[1];
 			fighterEntity.name.should.equal('Arya');
 			LQ.stop();

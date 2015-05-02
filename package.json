@@ -41,7 +41,7 @@
     "mongoose": "^4"
   },
   "devDependencies": {
-    "moonridge-client": "^0.6.13",
+    "moonridge-client": "^0.6.14",
     "chai": "^2.2.0",
     "grunt": "~0.4",
     "grunt-angular-templates": "~0.5",

@@ -63,7 +63,7 @@ var expose = function(model, schema, opts) {
         if (evName === 'remove' && LQ.docs[cQindex]) {
 
           LQ.docs.splice(cQindex, 1);
-          LQ._distributeChange(doc, evName, false);
+          LQ._distributeChange(doc, evName, cQindex);
 
           if (LQ.indexedByMethods.limit) {
             var skip = 0;
@@ -80,7 +80,7 @@ var expose = function(model, schema, opts) {
                     var toFillIn = docArr[0];   //first and only document
                     if (toFillIn) {
                       LQ.docs.push(toFillIn);
-                      LQ._distributeChange(toFillIn, 'push');
+                      LQ._distributeChange(toFillIn, 'add', cQindex);
                     }
                   }
 
@@ -94,7 +94,7 @@ var expose = function(model, schema, opts) {
               }
               if (doc) {
                 LQ.docs.push(doc);
-                LQ._distributeChange(doc, 'push');
+                LQ._distributeChange(doc, 'add', cQindex);
               }
 
             });
@@ -103,7 +103,10 @@ var expose = function(model, schema, opts) {
         } else {
           var checkQuery = model.findOne(LQ.mQuery);
           logger.debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
-          checkQuery.where('_id').equals(doc._id).select('_id').exec(function(err, checkedDoc) {
+          if (!LQ.indexedByMethods.findOne) {
+            checkQuery = checkQuery.where('_id').equals(doc._id).select('_id');
+          }
+          checkQuery.exec(function(err, checkedDoc) {
               if (err) {
                 throw err;
               }
@@ -112,10 +115,15 @@ var expose = function(model, schema, opts) {
                 if (LQ.indexedByMethods.populate.length !== 0) {    //needs to populate before send
                   doc = mDoc;
                 }
+                if (LQ.indexedByMethods.findOne) {
+                  LQ.docs[0] = checkedDoc;
+                  return LQ._distributeChange(checkedDoc, 'add', 0);
+                }
                 if (LQ.indexedByMethods.sort) {
                   var sortBy = LQ.indexedByMethods.sort[0].split(' ');	//check for string is performed on query initialization
                   var index;
                   if (evName === 'create') {
+                    evName = 'add';
                     if (cQindex === -1) {
                       index = getIndexInSorted(doc, LQ.docs, sortBy);
                       LQ.docs.splice(index, 0, doc);
@@ -157,17 +165,13 @@ var expose = function(model, schema, opts) {
                   if (evName === 'create') {
                     if (cQindex === -1) {
                       LQ.docs.push(doc);
-                      LQ._distributeChange(doc, evName, null);
+                      LQ._distributeChange(doc, 'add', cQindex);
                     }
                   }
                   if (evName === 'update') {
                     if (cQindex === -1) {
-                      LQ.docs.push(doc);
-                      LQ._distributeChange(doc, evName, true);	//doc wasn't in the result, but after update is
-
-                    } else {
-                      LQ._distributeChange(doc, evName, null);	//doc is still in the query result on the same index
-
+                      var newIndex = LQ.docs.push(doc);
+                      LQ._distributeChange(doc, evName, newIndex);	//doc wasn't in the result, but after update is
                     }
                   }
 
@@ -176,7 +180,7 @@ var expose = function(model, schema, opts) {
                 logger.debug('Checked doc ' + doc._id + ' in a query ' + LQString + ' was not found');
                 if (evName === 'update' && cQindex !== -1) {
                   LQ.docs.splice(cQindex, 1);
-                  LQ._distributeChange(doc, evName, false);		//doc was in the result, but after update is no longer
+                  LQ._distributeChange(doc, evName, cQindex);		//doc was in the result, but after update is no longer
                 }
               }
             }
@@ -380,9 +384,10 @@ var expose = function(model, schema, opts) {
      *
      * @param {Object|Mongoose.Document} doc
      * @param {String} evName
-     * @param {Boolean|Number|null} isInResult when number, indicates an index where the doc should be inserted
+     * @param {Number} resultIndex number, indicates an index where the doc should be inserted, -1 for a document which
+     *                 is no longer in the result of the query
      */
-    _distributeChange: function(doc, evName, isInResult) {
+    _distributeChange: function(doc, evName, resultIndex) {
       var self = this;
       var actuallySend = function() {
         for (var socketId in self.listeners) {
@@ -398,9 +403,9 @@ var expose = function(model, schema, opts) {
             }
           }
 
-          logger.info('calling doc %s event %s, pos param %s', doc._id, evName, isInResult);
+          logger.info('calling doc %s event %s, pos param %s', doc._id, evName, resultIndex);
 
-          listener.rpcChannel[evName](listener.clIndex, toSend, isInResult);
+          listener.rpcChannel[evName](listener.clIndex, toSend, resultIndex);
         }
       };
 
@@ -673,7 +678,7 @@ var expose = function(model, schema, opts) {
     });
   }
 
-  var requiredClientMethods = ['update', 'remove', 'create', 'push'];
+  var requiredClientMethods = ['update', 'remove', 'add'];
 
   return function exposeCallback(rpcInstance) {
     var chnlName = 'MR-' + modelName; //prefix MR stands for Moonridge

@@ -35,12 +35,16 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         console.log(paths);
     });
 
-    $scope.LQ.on('create', function (LQ) {
-        console.log('create event handler called');    //
+    $scope.oneLQ.on('add', function (LQ) {
+        console.log('add event handler called');    //
     });
 
-    $scope.LQ.on('remove', function (LQ) {
+    $scope.oneLQ.on('remove', function (LQ) {
         console.log('remove event handler called');    //
+    });
+
+    $scope.oneLQ.on('any', function (LQ) {
+        console.log('oneLQ.docs', $scope.oneLQ.docs);    //
     });
 
     $scope.admin = user.query().findOne().exec();

@@ -1,0 +1,3 @@
+[submodule "Moonridge-client"]
+	path = Moonridge-client
+	url = https://github.com/capaj/Moonridge-client.git

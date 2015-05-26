@@ -1,10 +1,10 @@
-var rpc = require('socket.io-rpc');
+var RPC = require('socket.io-rpc');
 var _ = require('lodash');
-var Promise = require('bluebird');
+var debug = require('debug')('moonridge:server');
 var MRModel = require('./mr-server-model');
 var userModel;
 var toCallOnCreate = [];
-var logger = require('./logger/logger');
+
 var auth = require('./authentication');
 var express = require('express');
 
@@ -23,11 +23,11 @@ module.exports = function (mongoose, connString) {
 			if (err) {
 				throw err;
 			} else {
-				logger.log("DB connected succesfully");
+				debug.log("DB connected succesfully");
 			}
 		});
 		mongoose.connection.on('error', function(err) {
-			logger.error('MongoDB error: %s', err);
+			debug.error('MongoDB error: %s', err);
 		});
 	}
 
@@ -71,44 +71,29 @@ module.exports = function (mongoose, connString) {
 
 	/**
 	 *
-	 * @param {Object} app Express.js app object
-	 * @param {Manager} [iop] socket.io manager
+	 * @param {Number} port Express.js app object
 	 * @returns {{rpcNsp: (Emitter), io: {Object}, server: http.Server}}
 	 */
-	function bootstrap(app, iop) {
-		var io;
-		if (!iop) {
-			var server = app.listen(app.get('port'));
-
-            server.on('listening', function() {
-                logger.info('Express server started on port %s at %s', server.address().port, server.address().address);
-            });
-
-			io = require('socket.io').listen(server);
-		} else {
-			io = iop;
-		}
-
-		app.use(express.static('node_modules/moonridge-client/'));
+	function bootstrap(port) {
+		var server = new RPC(port);
+		var io = server.io;
 
 		var allQueries = [];
 
-		var rpcInstance = rpc(io, app);
-
 		toCallOnCreate.forEach(function (CB) {
-			allQueries.push(CB(rpcInstance));   //return object containing modelName and liveQueries Object for that model
+			allQueries.push(CB(server));   //return object containing modelName and liveQueries Object for that model
 		});
 
-		rpcInstance.masterChannel.on('connection', function(socket) {
+		server.io.on('connection', function(socket) {
 			if (typeof MRInstance.auth === 'function') {	//if custom auth method exists, we register needed listener
 				socket.on('auth', function(authObj) {
 					MRInstance.auth(socket, authObj).then(function(user) {
 						auth.authUser(socket, user);
-						console.log("authentication successful", authObj);
-						rpcInstance.masterChannel.emit('authSuccess', user);
+						debug("authentication successful for ", user._id);
+						server.io.emit('authSuccess', user);
 					}, function(err) {
-						console.log("authentication failed", authObj);
-						rpcInstance.masterChannel.emit('authFailed', err);
+						debug("authentication failed with err", err);
+						server.io.emit('authFailed', err);
 					});
 				});
 			}
@@ -119,7 +104,7 @@ module.exports = function (mongoose, connString) {
 			next();
 		});
 
-		if (app.get('env') === 'development') {
+		if (server.expressApp.get('env') === 'development') {
 			// this reveals any data that you use in queries to the public, so it should not be used in production when dealing with sensitive data
 			var debugChnl = {};
 			debugChnl.getHealth = function() {
@@ -142,12 +127,11 @@ module.exports = function (mongoose, connString) {
 					liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
 				};
 			};
-			rpcInstance.expose('Moonridge_debug', debugChnl);
+			server.expose('Moonridge_debug', debugChnl);
 
 		}
 
-		return {rpcInstance: rpcInstance, io: io, server: server};
-
+		return server;
 	}
 
 	var MRInstance = {
@@ -155,6 +139,6 @@ module.exports = function (mongoose, connString) {
 		userModel: registerUserModel,
 		bootstrap: bootstrap
 	};
-	_.extend(MRInstance, auth); //adds auth methods
+	_.assign(MRInstance, auth); //adds auth methods
 	return MRInstance;
 };

@@ -30,18 +30,17 @@
   },
   "homepage": "http://capaj.github.io/Moonridge/",
   "dependencies": {
-    "bluebird": "~2.9",
     "express": "^4.11",
-    "lodash": "~2.4",
+    "lodash": "^3.9",
     "socket.io": "~1.3",
-    "socket.io-rpc": "~0.8",
+    "socket.io-rpc": "^0.9.7",
     "winston": "~1"
   },
   "peerDependencies": {
     "mongoose": "^4"
   },
   "devDependencies": {
-    "moonridge-client": "^0.6.14",
+    "socket.io-rpc-client": "0.9.9",
     "chai": "^2.2.0",
     "mocha": "^2.2.0"
   },

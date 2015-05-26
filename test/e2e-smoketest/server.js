@@ -3,18 +3,7 @@ var _ = require('lodash');
 var locals = require('./localVariables.json');
 
 var Moonridge = require('../../main');
-var express = require('express');
-var app = module.exports = express();
-app.use(require('morgan')('dev'));
-
-app.set('port', 8080);
-
-app.use(express.static('./client/'));//only needed when moonridge is not as npm module
-
-app.use(express.static('./test/e2e-smoketest/'));
-app.use(express.static('./test/e2e-smoketest/angular'));
-app.use(express.static('./test/e2e-smoketest/aurelia'));
-
+var staticMW = require('express').static;
 
 mongoose.set('debug', true);
 
@@ -22,7 +11,15 @@ var MR = Moonridge(mongoose, locals.connString);
 var dbInit = require('./db-init');
 dbInit(MR);
 
-var bootstrapped = MR.bootstrap(app);
+var server = MR.bootstrap(8080);
+var app = server.expressApp;
+app.use(require('morgan')('dev'));
+
+app.use(staticMW('./client/'));//only needed when moonridge is not as npm module
+
+app.use(staticMW('./test/e2e-smoketest/'));
+app.use(staticMW('./test/e2e-smoketest/angular'));
+app.use(staticMW('./test/e2e-smoketest/aurelia'));
 
 MR.auth = function(socket, authObj) {
 	var userName = authObj.nick;

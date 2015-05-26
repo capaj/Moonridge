@@ -399,7 +399,7 @@ var expose = function(model, schema, opts) {
 
           logger.info('calling doc %s event %s, pos param %s', doc._id, evName, resultIndex);
 
-          listener.rpcChannel[evName](listener.clIndex, toSend, resultIndex);
+          listener.socket.rpc('MR.'+ modelName + '.' + evName)(listener.clIndex, toSend, resultIndex);
         }
       };
 
@@ -492,37 +492,32 @@ var expose = function(model, schema, opts) {
       var def;
 
       var pushListeners = function(LQOpts) {
-        socket.clientChannelPromise.then(function(clFns) {
-          var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
 
-          if (activeClientQueryIndexes.length > maxLQsPerClient) {
-            def.reject(new Error('Limit for queries per client reached. Try stopping some live queries.'));
-            return;
-          }
+        var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
 
-          var resolveFn = function() {
-            var retVal;
-            if (LQOpts.hasOwnProperty('count')) {
-              retVal = {count: LQ.docs.length, index: LQIndex};
-            } else {
-              retVal = {docs: LQ.docs, index: LQIndex};
-            }
+        if (activeClientQueryIndexes.length > maxLQsPerClient) {
+          def.reject(new Error('Limit for queries per client reached. Try stopping some live queries.'));
+          return;
+        }
 
-            def.resolve(retVal);
-
-            LQ.listeners[socket.id] = {rpcChannel: clFns, socket: socket, clIndex: LQIndex, qOpts: LQOpts};
-          };
-
-          if (LQ.firstExecDone) {
-            resolveFn();
+        var resolveFn = function() {
+          var retVal;
+          if (LQOpts.hasOwnProperty('count')) {
+            retVal = {count: LQ.docs.length, index: LQIndex};
           } else {
-            LQ.firstExecPromise.then(resolveFn);
+            retVal = {docs: LQ.docs, index: LQIndex};
           }
 
-        }, function(err) {
-          def.reject(err);
-        });
+          def.resolve(retVal);
 
+          LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts};
+        };
+
+        if (LQ.firstExecDone) {
+          resolveFn();
+        } else {
+          LQ.firstExecPromise.then(resolveFn);
+        }
       };
       if (LQ) {
         pushListeners(queryOptions);
@@ -672,26 +667,12 @@ var expose = function(model, schema, opts) {
     });
   }
 
-  var requiredClientMethods = ['update', 'remove', 'add'];
-
   return function exposeCallback(rpcInstance) {
-    var chnlName = 'MR-' + modelName; //prefix MR stands for Moonridge
-    rpcInstance.expose(chnlName, channel, opts.authFn);
-    var chnlSocket = rpcInstance.channels[chnlName]._socket;
+    var toExpose = {MR: {}};
+    toExpose.MR[modelName] = channel;
+    rpcInstance.expose(toExpose);
 
-    chnlSocket.on('connection', function(socket) {
-      socket.clientChannelPromise = rpcInstance.loadClientChannel(socket, 'MR-' + modelName).then(function(clFns) {
-        var index = requiredClientMethods.length;
-        while (index--) {
-          var mName = requiredClientMethods[index];
-          if (!_.isFunction(clFns[mName])) {
-            socket.disconnect();    // forcibly disconnect, rather than having one bad client crash it
-            throw new Error('Client ' + socket.id + ' does not have necessary liveQuery method ' + mName);
-          }
-        }
-        socket.cRpcChnl = clFns;	// client RPC channel
-        return clFns;
-      });
+    rpcInstance.io.on('connection', function(socket) {
       socket.registeredLQs = [];
       socket.on('disconnect', function() {
         //clearing out liveQueries listeners

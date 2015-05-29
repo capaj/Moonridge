@@ -26,7 +26,7 @@ describe("basic CRUD including working liveQueries",function(){
 		fighterModel = mr.model('fighter');
 	});
 
-	it('should allow to query model', function(done){
+	it.only('should allow to query model', function(done){
 
 		LQ = fighterModel.liveQuery().sort('health').exec();
 		var subId = LQ.on('init', function(evName, params) {

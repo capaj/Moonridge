@@ -6,11 +6,9 @@ var server = cp.fork('./test/e2e-smoketest/server.js');
 
 var $MR = require('../Moonridge-client/moonridge-client');
 
-var dfd = Promise.defer();
-
 //Moonridge backend
-var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
-MRB.connectPromise.then(function(socket) {
+var mr = $MR({url: 'http://localhost:8080', hs: {nick: 'admin'}});
+mr.connectPromise.then(function(socket) {
 	//you can hook up more events here
 	socket.on('disconnect', function() {
 		throw new Error('Disconnection should not occurr.');
@@ -24,15 +22,8 @@ describe("basic CRUD including working liveQueries",function(){
 	var fighterEntity;
 	var fighterId;
 	var LQ;
-	dfd.resolve({url: 'http://localhost:8080'});
-	before(function(done) {
-		MRB.auth({nick: 'admin'}).then(function(user){ //user === moonridgeBackend.user
-			console.log("user", user);
-			MRB.getModel('fighter').then(function(model) {
-				fighterModel = model;
-				done();
-			});
-		});
+	before(function() {
+		fighterModel = mr.model('fighter');
 	});
 
 	it('should allow to query model', function(done){
@@ -93,6 +84,10 @@ describe("basic CRUD including working liveQueries",function(){
 		}, function (err){
 		    throw err;
 		});
+	});
+
+	it('should be able to send a different handshake and be authenticated again', function (){
+
 	});
 
 	after(function(done) {

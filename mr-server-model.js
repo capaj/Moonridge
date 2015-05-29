@@ -1,8 +1,7 @@
 var exposeMethods = require('./mr-rpc-methods');
 var EventEmitter = require("events").EventEmitter;
+var debug = require('debug')('moonridge:server');
 var _ = require('lodash');
-var logger = require('./logger/logger');
-
 /**
  * @param {String} name
  * @param {Schema} schema NOTE: don't use these properties on your schemas: '$$hashKey', '__id', '__v', those names are
@@ -25,7 +24,7 @@ var logger = require('./logger/logger');
 module.exports = function MRModel(name, schema, opts) {
     opts = opts || {};
 
-    _.extend(schema, {owner: { type: this.Schema.Types.ObjectId, ref: 'user' }});   //user model should have owner field also
+    _.assign(schema, {owner: { type: this.Schema.Types.ObjectId, ref: 'user' }});   //user model should have owner field also
     //mongoose schema
     var mgSchema = new this.Schema(schema);
 
@@ -35,7 +34,7 @@ module.exports = function MRModel(name, schema, opts) {
 
 	var schemaInit = function() {
 		if (opts.schemaInit) {
-			logger.debug('schemaInit for ' + name);
+			debug('schemaInit for ' + name);
 			opts.schemaInit(mgSchema);
 		}
 	};

@@ -23,11 +23,11 @@ module.exports = function (mongoose, connString) {
 			if (err) {
 				throw err;
 			} else {
-				debug.log("DB connected succesfully");
+				debug("DB connected succesfully");
 			}
 		});
 		mongoose.connection.on('error', function(err) {
-			debug.error('MongoDB error: %s', err);
+			console.error('MongoDB error: %s', err);
 		});
 	}
 

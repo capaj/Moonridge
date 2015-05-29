@@ -7,5 +7,6 @@
     <file url="file://$PROJECT_DIR$/mr-server-model.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/query-builder.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/test/basic-CRUD.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/test/e2e-smoketest/localVariables.json" charset="UTF-8" />
   </component>
 </project>

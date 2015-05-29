@@ -22,8 +22,11 @@ describe("basic CRUD including working liveQueries",function(){
 	var fighterEntity;
 	var fighterId;
 	var LQ;
-	before(function() {
-		fighterModel = mr.model('fighter');
+	before(function(done) {
+		setTimeout(function(){
+			fighterModel = mr.model('fighter');
+			done();
+		}, 2000);
 	});
 
 	it.only('should allow to query model', function(done){

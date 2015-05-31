@@ -1,5 +1,4 @@
 var mongoose = require('mongoose');
-var Promise = require('bluebird');
 
 module.exports = function (MR) {
 

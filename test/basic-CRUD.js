@@ -7,7 +7,7 @@ var server = cp.fork('./test/e2e-smoketest/server.js');
 var $MR = require('../Moonridge-client/moonridge-client');
 
 //Moonridge backend
-var mr = $MR({url: 'http://localhost:8080', hs: {nick: 'admin'}});
+var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=admin'}});
 mr.connectPromise.then(function(socket) {
 	//you can hook up more events here
 	socket.on('disconnect', function() {
@@ -22,14 +22,11 @@ describe("basic CRUD including working liveQueries",function(){
 	var fighterEntity;
 	var fighterId;
 	var LQ;
-	before(function(done) {
-		setTimeout(function(){
-			fighterModel = mr.model('fighter');
-			done();
-		}, 2000);
+	before(function() {
+		fighterModel = mr.model('fighter');
 	});
 
-	it.only('should allow to query model', function(done){
+	it('should allow to query model', function(done){
 
 		LQ = fighterModel.liveQuery().sort('health').exec();
 		var subId = LQ.on('init', function(evName, params) {
@@ -64,7 +61,6 @@ describe("basic CRUD including working liveQueries",function(){
 
 	});
 
-
 	it('should be able to update an entity of a model', function(done){
 		fighterEntity.health += 10;
 		fighterModel.update(fighterEntity).then(function() {
@@ -74,7 +70,8 @@ describe("basic CRUD including working liveQueries",function(){
 
 	it('should fail when we try to update nonexistent entity', function(done){
 		fighterEntity.health += 10;
-		fighterModel.update({_id: 'fakeID'}).then(function() {
+		var fakeId = 'fake6c5c6983ef1828ec7af4';
+		fighterModel.update({_id: fakeId}).then(function() {
 			throw 'Entity should not have been updated';
 		}, function (err){
 			done();
@@ -89,7 +86,7 @@ describe("basic CRUD including working liveQueries",function(){
 		});
 	});
 
-	it('should be able to send a different handshake and be authenticated again', function (){
+	it('should be able to call MR.authenticate and be authenticated with a new user', function (){
 
 	});
 
@@ -98,8 +95,6 @@ describe("basic CRUD including working liveQueries",function(){
 		server.kill();
 		done();
 	});
-
-
 
 
 });

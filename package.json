@@ -1,11 +1,14 @@
 {
   "name": "moonridge",
-  "version": "0.7.3",
+  "version": "0.8.0",
   "main": "main.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to call Mongoose.js remotely from your frontend in a framework agnostic fashion",
   "scripts": {
     "test": "mocha"
+  },
+  "engines": {
+	"node": "^0.12.0"
   },
   "keywords": [
     "socket.io",
@@ -33,15 +36,13 @@
     "debug": "^2.2.0",
     "express": "^4.11",
     "lodash": "^3.9",
+    "mongoose": "^4",
     "socket.io": "~1.3",
-    "socket.io-rpc": "^0.9.7",
+    "socket.io-rpc": "^0.9.8",
     "winston": "~1"
   },
-  "peerDependencies": {
-    "mongoose": "^4"
-  },
   "devDependencies": {
-    "socket.io-rpc-client": "0.9.9",
+    "socket.io-rpc-client": "0.9.11",
     "chai": "^2.2.0",
     "mocha": "^2.2.0"
   },

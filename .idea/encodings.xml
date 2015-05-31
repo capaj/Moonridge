@@ -3,10 +3,21 @@
   <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false">
     <file url="file://$PROJECT_DIR$/.editorconfig" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Moonridge-client/moonridge-client.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/Moonridge-client/moonridge-client.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/main.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/mr-rpc-methods.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/mr-server-model.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/node_modules/socket.io-rpc/socket.io-rpc-event-handlers/socket-event-handlers.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/package.json" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/query-builder.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/test/basic-CRUD.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/test/e2e-smoketest/localVariables.json" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/test/e2e-smoketest/server.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc-client/node_modules/socket.io-rpc/test/socket.io-rpc-server.spec.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc-client/package.json" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc-client/test-utils/sample-server.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc/main.js" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc/package.json" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/../socket.io-rpc/test/socket.io-rpc-server.spec.js" charset="UTF-8" />
   </component>
 </project>

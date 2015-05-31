@@ -5,7 +5,6 @@ var MRModel = require('./mr-server-model');
 var userModel;
 var toCallOnCreate = [];
 
-var auth = require('./authentication');
 var express = require('express');
 
 /**
@@ -84,61 +83,46 @@ module.exports = function (mongoose, connString) {
 			allQueries.push(CB(server));   //return object containing modelName and liveQueries Object for that model
 		});
 
-		server.io.on('connection', function(socket) {
-			if (typeof MRInstance.auth === 'function') {	//if custom auth method exists, we register needed listener
-				socket.on('auth', function(authObj) {
-					MRInstance.auth(socket, authObj).then(function(user) {
-						auth.authUser(socket, user);
-						debug("authentication successful for ", user._id);
-						server.io.emit('authSuccess', user);
-					}, function(err) {
-						debug("authentication failed with err", err);
-						server.io.emit('authFailed', err);
-					});
-				});
-			}
-		});
-
 		io.use(function(socket, next) {
-			auth.authUser(socket, {privilige_level: 1});	//by default, any connected client had privilige_level: 1
+			socket.moonridge = {privilige_level: 0}; //default privilige level for any connected client
 			next();
 		});
 
 		if (server.expressApp.get('env') === 'development') {
 			// this reveals any data that you use in queries to the public, so it should not be used in production when dealing with sensitive data
-			var debugChnl = {};
-			debugChnl.getHealth = function() {
-				var allModels = {};
-				var index = allQueries.length;
-				while (index--) {
-					var modelQueriesForSerialization = {};
-					var model = allQueries[index];
-					for (var LQ in model.queries) {
-						var listenerCount = Object.keys(model.queries[LQ].listeners).length;
-						modelQueriesForSerialization[LQ] = listenerCount;
-					}
-					allModels[model.modelName] = modelQueriesForSerialization;
 
+			server.expose({
+				MR: {
+					getHealth: function() {
+						var allModels = {};
+						var index = allQueries.length;
+						while (index--) {
+							var modelQueriesForSerialization = {};
+							var model = allQueries[index];
+							for (var LQ in model.queries) {
+								modelQueriesForSerialization[LQ] = Object.keys(model.queries[LQ].listeners).length;
+							}
+							allModels[model.modelName] = modelQueriesForSerialization;
+
+						}
+						return {
+							pid: process.pid,
+							memory: process.memoryUsage(),
+							uptime: process.uptime(),   //in seconds
+							liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
+						};
+					}
 				}
-				return {
-					pid: process.pid,
-					memory: process.memoryUsage(),
-					uptime: process.uptime(),   //in seconds
-					liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
-				};
-			};
-			server.expose('Moonridge_debug', debugChnl);
+			});
 
 		}
 
 		return server;
 	}
 
-	var MRInstance = {
+	return {
 		model: regNewModel,
 		userModel: registerUserModel,
 		bootstrap: bootstrap
 	};
-	_.assign(MRInstance, auth); //adds auth methods
-	return MRInstance;
 };

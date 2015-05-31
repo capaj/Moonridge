@@ -21,22 +21,21 @@ app.use(staticMW('./test/e2e-smoketest/'));
 app.use(staticMW('./test/e2e-smoketest/angular'));
 app.use(staticMW('./test/e2e-smoketest/aurelia'));
 
-MR.auth = function(socket, authObj) {
+server.io.use(function(socket, next) {
+	var authObj = socket.handshake.query;
 	var userName = authObj.nick;
 
 	console.log("user wants to authorize: " + userName );
+	console.log("socket: ", socket.handshake.query);
 	console.log("socket.id: " + socket.id);
 	var user = mongoose.model('user');
-	return user.findOne({name: userName}).exec().then(function (user) {
-		console.log("Authenticated user: " + user.name);
-		return user;
+	user.findOne({name: userName}).exec().then(function (user) {
+		console.log("Authenticated user: ", user);
+		socket.moonridge.user = user;
+		next();
 	}, function (err) {
 		console.log("auth error " + err);
-		return new Error('not authorized');
-	})
-};
+		next(err);
+	});
 
-//use this for global authentication via socket.io
-//bootstrapped.io.use(function(socket, next) {
-//
-//});
+});

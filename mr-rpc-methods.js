@@ -1,11 +1,9 @@
 var _ = require('lodash');
-var Promise = require('bluebird');
 var eventNames = ['create', 'preupdate', 'update', 'remove'];
 var queryBuilder = require('./query-builder');
 var populateWithClientQuery = require('./utils/populate-doc-util');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
-var getUser = require('./authentication').getUser;
 
 /**
  *
@@ -30,7 +28,7 @@ var expose = function(model, schema, opts) {
 		 * @returns {*}
 		 */
 		opts.dataTransform = function deleteUnpermittedProps(doc, op, socket) {
-			var userPL = getUser(socket).privilige_level;
+			var userPL = socket.moonridge.privilige_level;
 
 			var pathPs = schema.pathPermissions;
 			var docClone = _.clone(doc);
@@ -264,12 +262,8 @@ var expose = function(model, schema, opts) {
 		 * @returns {bool} true when user has permission, false when not
 		 */
 		opts.checkPermission = function(socket, op, doc) {
-			var PL = 0; //privilige level
-			var user = getUser(socket);
-
-			if (user) {
-				PL = user.privilige_level;
-			}
+			var user = socket.moonridge.user;
+      var PL = user.privilige_level || 0; //privilige level
 
 			if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
 				if (doc.owner && doc.owner.toString() === user.id) {
@@ -444,7 +438,7 @@ var expose = function(model, schema, opts) {
 			if (!opts.checkPermission(this, 'R')) {
 				return new Error('You lack a privilege to read this document');
 			}
-			accessControlQueryModifier(clientQuery, schema, getUser(this).privilige_level, 'R');
+			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilige_level, 'R');
 
 			var queryAndOpts = queryBuilder(model, clientQuery);
 
@@ -472,9 +466,9 @@ var expose = function(model, schema, opts) {
 			if (!opts.checkPermission(this, 'R')) {
 				return new Error('You lack a privilege to read this collection');
 			}
-			def = Promise.defer();
+
 			if (!clientQuery.count) {
-				accessControlQueryModifier(clientQuery, schema, getUser(this).privilige_level, 'R');
+				accessControlQueryModifier(clientQuery, schema, this.moonridge.privilige_level, 'R');
 			}
 
 			var builtQuery = queryBuilder(model, clientQuery);
@@ -489,74 +483,75 @@ var expose = function(model, schema, opts) {
 
 			var qKey = JSON.stringify(clientQuery);
 			var LQ = liveQueries[qKey];
-			var def;
 
-			var pushListeners = function(LQOpts) {
+			return new Promise(function (resolve, reject){
+				var pushListeners = function(LQOpts) {
 
-				var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
+					var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
 
-				if (activeClientQueryIndexes.length > maxLQsPerClient) {
-					def.reject(new Error('Limit for queries per client reached. Try stopping some live queries.'));
-					return;
-				}
-
-				var resolveFn = function() {
-					var retVal;
-					if (LQOpts.hasOwnProperty('count')) {
-						retVal = {count: LQ.docs.length, index: LQIndex};
-					} else {
-						retVal = {docs: LQ.docs, index: LQIndex};
+					if (activeClientQueryIndexes.length > maxLQsPerClient) {
+						reject(new Error('Limit for queries per client reached. Try stopping some live queries.'));
+						return;
 					}
 
-					def.resolve(retVal);
-
-					LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts};
-				};
-
-				if (LQ.firstExecDone) {
-					resolveFn();
-				} else {
-					LQ.firstExecPromise.then(resolveFn);
-				}
-			};
-			if (LQ) {
-				pushListeners(queryOptions);
-			} else {
-				LQ = new LiveQuery(qKey, mQuery, queryOptions);
-				liveQueries[qKey] = LQ;
-
-				pushListeners(queryOptions);
-
-				LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
-					LQ.firstExecDone = true;
-
-					if (mQuery.op === 'findOne') {
-						if (rDocs) {
-							LQ.docs = [rDocs];  //rDocs is actually just one document
+					var resolveFn = function() {
+						var retVal;
+						if (LQOpts.hasOwnProperty('count')) {
+							retVal = {count: LQ.docs.length, index: LQIndex};
 						} else {
-							LQ.docs = [];
+							retVal = {docs: LQ.docs, index: LQIndex};
 						}
+
+						resolve(retVal);
+
+						LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts};
+					};
+
+					if (LQ.firstExecDone) {
+						resolveFn();
 					} else {
-						var i = rDocs.length;
-						while (i--) {
-							LQ.docs[i] = rDocs[i];
-						}
+						LQ.firstExecPromise.then(resolveFn);
 					}
+				};
+				if (LQ) {
+					pushListeners(queryOptions);
+				} else {
+					LQ = new LiveQuery(qKey, mQuery, queryOptions);
+					liveQueries[qKey] = LQ;
 
-					return rDocs;
+					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
+						LQ.firstExecDone = true;
 
-				}, function(err) {
-					debug("First LiveQuery exec failed with err " + err);
-					def.reject(err);
-					LQ.destroy();
-				});
+						if (mQuery.op === 'findOne') {
+							if (rDocs) {
+								LQ.docs = [rDocs];  //rDocs is actually just one document
+							} else {
+								LQ.docs = [];
+							}
+						} else {
+							var i = rDocs.length;
+							while (i--) {
+								LQ.docs[i] = rDocs[i];
+							}
+						}
 
-			}
+						return rDocs;
 
-			if (!socket.registeredLQs[LQIndex]) { //query can be reexecuted when user authenticates, then we already have
-				socket.registeredLQs[LQIndex] = LQ;
-			}
-			return def.promise;
+					}, function(err) {
+						debug("First LiveQuery exec failed with err " + err);
+						reject(err);
+						LQ.destroy();
+					});
+
+					pushListeners(queryOptions);
+
+				}
+
+				if (!socket.registeredLQs[LQIndex]) { //query can be reexecuted when user authenticates, then we already have
+					socket.registeredLQs[LQIndex] = LQ;
+				}
+			});
+
 		},
 		//TODO have a method to stop and resume liveQuery
 		//subscribe
@@ -578,12 +573,12 @@ var expose = function(model, schema, opts) {
 			 */
 			create: function(newDoc) {
 				if (!opts.checkPermission(this, 'C')) {
-					return new Error('You lack a privilege to create this document');
+					throw new Error('You lack a privilege to create this document');
 				}
 				opts.dataTransform(newDoc, 'W', this);
 				if (schema.paths.owner) {
 					//we should set the owner field if it is present
-					newDoc.owner = getUser(this)._id;
+					newDoc.owner = this.moonridge.user._id;
 				}
 				return model.create(newDoc);
 
@@ -595,28 +590,29 @@ var expose = function(model, schema, opts) {
 			 */
 			remove: function(id) {
 
-				var def = Promise.defer();
 				var socket = this;
-				model.findById(id, function(err, doc) {
-					if (err) {
-						return def.reject(err);
-					}
-					if (doc) {
-						if (opts.checkPermission(socket, 'D', doc)) {
-							doc.remove(function(err) {
-								if (err) {
-									def.reject(err);
-								}
-								def.resolve();
-							});
-						} else {
-							def.reject(new Error('You lack a privilege to delete this document'));
+				return new Promise(function (resolve, reject){
+					model.findById(id, function(err, doc) {
+						if (err) {
+							return reject(err);
 						}
-					} else {
-						def.reject(new Error('no document to remove found with _id: ' + id));
-					}
+						if (doc) {
+							if (opts.checkPermission(socket, 'D', doc)) {
+								doc.remove(function(err) {
+									if (err) {
+										reject(err);
+									}
+									resolve();
+								});
+							} else {
+								reject(new Error('You lack a privilege to delete this document'));
+							}
+						} else {
+							reject(new Error('no document to remove found with _id: ' + id));
+						}
+					});
 				});
-				return def.promise;
+
 			},
 			/**
 			 * finds a document by _id and then updates it
@@ -624,45 +620,49 @@ var expose = function(model, schema, opts) {
 			 * @returns {Promise}
 			 */
 			update: function(toUpdate) {
-
-				var def = Promise.defer();
 				var socket = this;
-				var id = toUpdate._id;
-				delete toUpdate._id;
+				return new Promise(function (resolve, reject){
+					var id = toUpdate._id;
+					delete toUpdate._id;
 
-				model.findById(id, function(err, doc) {
-					if (err) {
-						return def.reject(err);
-					}
-					if (doc) {
-						if (opts.checkPermission(socket, 'U', doc)) {
-							opts.dataTransform(toUpdate, 'W', socket);
-							var previousVersion = doc.toObject();
-							if (toUpdate.__v !== doc.__v) {
-								def.reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v));
-							} else {
-								delete toUpdate.__v; //save a bit of unnecesary work when we are extending doc on the next line
-							}
-							_.extend(doc, toUpdate);
-							doc.__v += 1;
-							schema.emit('preupdate', doc, previousVersion);
-
-							doc.save(function(err) {
-								if (err) {
-									def.reject(err);
-								}
-								def.resolve();	//we don't resolve with new document because when you want to display
-								// current version of document, just use liveQuery
-							});
-						} else {
-							def.reject(new Error('You lack a privilege to update this document'));
+					model.findById(id, function(err, doc) {
+						if (err) {
+							debug('rejecting an update because: ', err);
+							return reject(err);
 						}
+						if (doc) {
+							if (opts.checkPermission(socket, 'U', doc)) {
+								opts.dataTransform(toUpdate, 'W', socket);
+								var previousVersion = doc.toObject();
+								if (toUpdate.__v !== doc.__v) {
+									reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v));
+								} else {
+									delete toUpdate.__v; //save a bit of unnecesary work when we are extending doc on the next line
+								}
+								_.merge(doc, toUpdate);
+								doc.__v += 1;
+								schema.emit('preupdate', doc, previousVersion);
 
-					} else {
-						def.reject(new Error('no document to update found with _id: ' + id));
-					}
+								doc.save(function(err) {
+									if (err) {
+										debug('rejecting an update because: ', err);
+										reject(err);
+									} else {
+										debug('document ' , id, ' updated to v ', doc.__v);
+										resolve();	//we don't resolve with new document because when you want to display
+										// current version of document, just use liveQuery
+									}
+								});
+							} else {
+								reject(new Error('You lack a privilege to update this document'));
+							}
+
+						} else {
+							reject(new Error('no document to update found with _id: ' + id));
+						}
+					});
 				});
-				return def.promise;
+
 			}
 		});
 	}

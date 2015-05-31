@@ -13,5 +13,5 @@ deploy:
   email: capajj@gmail.com
   on:
     tags: true
-    repo: capaj/moonridge
+    repo: capaj/Moonridge
     all_branches: true

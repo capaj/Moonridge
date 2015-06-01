@@ -2,10 +2,11 @@
 <project version="4">
   <component name="Encoding" useUTFGuessing="true" native2AsciiForPropertiesFiles="false">
     <file url="file://$PROJECT_DIR$/.editorconfig" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/.gitignore" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/.travis.yml" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Moonridge-client/moonridge-client.js" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/Moonridge-client/moonridge-client.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Moonridge-client/package.json" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/docs/flow.md" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/main.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/mr-rpc-methods.js" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/mr-server-model.js" charset="UTF-8" />

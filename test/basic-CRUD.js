@@ -7,7 +7,7 @@ var server = cp.fork('./test/e2e-smoketest/server.js');
 var $MR = require('../Moonridge-client/moonridge-client');
 
 //Moonridge backend
-var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=admin'}});
+var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
 mr.connectPromise.then(function(socket) {
 	//you can hook up more events here
 	socket.on('disconnect', function() {
@@ -27,7 +27,6 @@ describe("basic CRUD including working liveQueries",function(){
 	});
 
 	it('should allow to query model', function(done){
-
 		LQ = fighterModel.liveQuery().sort('health').exec();
 		var subId = LQ.on('init', function(evName, params) {
 			if (evName === 'init') {
@@ -41,6 +40,12 @@ describe("basic CRUD including working liveQueries",function(){
 			}
 		});
 
+	});
+
+	it('should be able to call authorize and be authenticated with a new user', function (){
+		return mr.authorize('admin').then(function(user) {
+			mr.user.privilige_level.should.equal(50);
+		});
 	});
 
 	it('should allow to create an entity of a model',function(done){
@@ -84,10 +89,6 @@ describe("basic CRUD including working liveQueries",function(){
 		}, function (err){
 		    throw err;
 		});
-	});
-
-	it('should be able to call MR.authenticate and be authenticated with a new user', function (){
-
 	});
 
 	after(function(done) {

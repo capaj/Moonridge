@@ -21,7 +21,8 @@ app.use(staticMW('./test/e2e-smoketest/'));
 app.use(staticMW('./test/e2e-smoketest/angular'));
 app.use(staticMW('./test/e2e-smoketest/aurelia'));
 
-server.io.use(function(socket, next) {
+server.io.use(function(socket, next) {	//example of initial authorization
+	//it is useful only for apps which require user authentication by default
 	var authObj = socket.handshake.query;
 	var userName = authObj.nick;
 
@@ -38,4 +39,20 @@ server.io.use(function(socket, next) {
 		next(err);
 	});
 
+});
+
+server.expose({
+	MR: {
+		authorize: function(userName) {	//example of a later authorization, typical for any public facing apps
+			var socket = this;
+			var user = mongoose.model('user');
+			return user.findOne({name: userName}).exec().then(function (user) {
+				console.log("Authenticated user: ", user);
+				socket.moonridge.user = user;
+				return user;
+			}, function (err) {
+				console.log("auth error " + err);
+			});
+		}
+	}
 });

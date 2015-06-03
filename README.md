@@ -10,15 +10,6 @@ isomorphic library, which brings Mongoose mongoose model to the browser(or over 
 Offers killer feature(live queries) from Meteor.js. How?
 See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
 
-#Prerequisities
-
-Moonridge is written in commonJS format(client works in node and browser without much hassle), so you need globally installed [jspm](https://github.com/jspm/jspm-cli) to be able to install it and run it.
-If you don't have jspm, install it with this command:
-
-    npm i jspm -g
-
-Also currently it requires to have socket.io-rpc installed too. This I will get rid of.
-
 ##Basic usage serverside
 ```javascript
     var mongoose = require('mongoose');
@@ -37,52 +28,25 @@ Also currently it requires to have socket.io-rpc installed too. This I will get 
     ...
     MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
 ```
-##On the CLIENT side with AngularJS:
-###HTML
-```html
-	<!--You need to use mr-controller instead of ng-controller-->
-    <div mr-controller="bookCtrl" mr-models="book"><!--You can load any number of models you like, separate them by commas-->
-        <div ng-repeat="book in LQ.docs">
-            <!-- regular angular templating -->
-        </div>
-    </div>
-    <!--include client side script after angular-->
-    <script type="text/javascript" src="/moonridge-angular-client.js"></script>
-```    
-###JS
+##On the CLIENT:
 ```javascript
-    //define Moonridge angular module as dependency
-	angular.module('app', ['Moonridge']).run(function($MR, $q){
-		var dfd = $q.defer();
-        var url = 'http://localhost:8080';	//your moonridge instance
-		//Moonridge backend
-		var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
-		dfd.resolve({url: url, hs: { query: "nick=admin" } } );	//resolve connects you to the Moonridge backend
-	})
-    .controller('bookCtrl', function($scope, book){
-        // create a book
-        book.create({name: 'A Game of Thrones', author: 'George R. R. Martin'});
-        // query for it
-        var query = book.query().findOne().exec();
-        // delete it
-        book.remove(query.doc);
-        //best for last- liveQuery
-        $scope.LQ = book.liveQuery().find().exec();
-        //$scope.LQ.docs will contain up to date synced collection of documents that satisfy the query. You can
-        //before exec() you can use any mongoose query method except distinct, remove, update
-    })
+   	var $MR = require('moonridge-client');
+	//Moonridge backend
+	var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
+	var fighterModel = mr.model('fighter');
+	//live query
+	var LQ = fighterModel.liveQuery().sort('health').exec();	
+	//create a new entity
+	fighterModel.create({name: 'Arya', health: 50}).then(function(created){
+		console.log('created a fighter: ', created);
+		//LQ.docs now also contains Arya
+	});
 ```    
 Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)
 
 ##Errorhandling
 
-All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise).
-
-Written in commonJS format, so you need to use some module loader like [SystemJS](https://github.com/systemjs/systemjs). Even better is to use [jspm](https://github.com/jspm/jspm-cli).
-
-##TODO
-1. make it easier to consume-anyone with plain express app should be able to just install it and run it with 2 additional lines of code.
-2. Needs implementing E2E testing scenarios as well as a lot of unit tests.
+All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise). This is especially helpful with schema validation errors.
 
 ##Supported browsers
 ###Desktop

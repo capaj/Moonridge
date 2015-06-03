@@ -8,11 +8,9 @@ var $MR = require('../Moonridge-client/moonridge-client');
 
 //Moonridge backend
 var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
-mr.connectPromise.then(function(socket) {
-	//you can hook up more events here
-	socket.on('disconnect', function() {
-		throw new Error('Disconnection should not occurr.');
-	});
+
+mr.socket.on('disconnect', function() {
+	throw new Error('Disconnection should not occurr.');
 });
 
 describe("basic CRUD including working liveQueries",function(){

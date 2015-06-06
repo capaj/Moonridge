@@ -263,7 +263,7 @@ var expose = function(model, schema, opts) {
 		 */
 		opts.checkPermission = function(socket, op, doc) {
 			var user = socket.moonridge.user;
-      var PL = user.privilige_level || 0; //privilige level
+			var PL = user.privilige_level || 0; //privilige level
 
 			if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
 				if (doc.owner && doc.owner.toString() === user.id) {
@@ -484,7 +484,7 @@ var expose = function(model, schema, opts) {
 			var qKey = JSON.stringify(clientQuery);
 			var LQ = liveQueries[qKey];
 
-			return new Promise(function (resolve, reject){
+			return new Promise(function(resolve, reject) {
 				var pushListeners = function(LQOpts) {
 
 					var activeClientQueryIndexes = Object.keys(socket.registeredLQs);
@@ -591,7 +591,7 @@ var expose = function(model, schema, opts) {
 			remove: function(id) {
 
 				var socket = this;
-				return new Promise(function (resolve, reject){
+				return new Promise(function(resolve, reject) {
 					model.findById(id, function(err, doc) {
 						if (err) {
 							return reject(err);
@@ -621,7 +621,7 @@ var expose = function(model, schema, opts) {
 			 */
 			update: function(toUpdate) {
 				var socket = this;
-				return new Promise(function (resolve, reject){
+				return new Promise(function(resolve, reject) {
 					var id = toUpdate._id;
 					delete toUpdate._id;
 
@@ -648,7 +648,7 @@ var expose = function(model, schema, opts) {
 										debug('rejecting an update because: ', err);
 										reject(err);
 									} else {
-										debug('document ' , id, ' updated to v ', doc.__v);
+										debug('document ', id, ' updated to v ', doc.__v);
 										resolve();	//we don't resolve with new document because when you want to display
 										// current version of document, just use liveQuery
 									}

@@ -3,6 +3,12 @@ require('chai').should();
 var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
 
+after(function() {
+	console.log("killing the server");
+	mrPair.server.kill();
+
+});
+
 describe("basic CRUD including working liveQueries",function(){
 	this.timeout(10000);
 
@@ -14,7 +20,7 @@ describe("basic CRUD including working liveQueries",function(){
 		fighterModel = mr.model('fighter');
 	});
 
-	it('should allow to query model', function(done){
+	it('should allow to live query model', function(done){
 		LQ = fighterModel.liveQuery().sort('health').exec();
 		var subId = LQ.on('init', function(evName, params) {
 			if (evName === 'init') {
@@ -54,6 +60,13 @@ describe("basic CRUD including working liveQueries",function(){
 
 	});
 
+	it('should allow to query the model', function(){
+		fighterModel.query().find({name: 'Arya'}).exec().promise.then(function(arya){
+			arya.health.should.eql(50);
+		});
+	});
+
+
 	it('should be able to update an entity of a model', function(done){
 		fighterEntity.health += 10;
 		fighterModel.update(fighterEntity).then(function() {
@@ -78,12 +91,5 @@ describe("basic CRUD including working liveQueries",function(){
 		    throw err;
 		});
 	});
-
-	after(function(done) {
-		console.log("_id", fighterId);
-		mrPair.server.kill();
-		done();
-	});
-
 
 });

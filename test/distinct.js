@@ -1,8 +1,27 @@
-var mrPair = require('./run_server_client');
+require('chai').should();
+var mrPair = require('./utils/run_server_client');
+var mr = mrPair.client;
 
 describe('distinct queries', function() {
-	it('should yield all the distinct values for a field in a database', function() {
+	this.timeout(10000);
+	var fighterModel;
+	before(function() {
+		fighterModel = mr.model('fighter');
+		return mr.authorize('admin').then(function() {
+			return Promise.all([
+				fighterModel.create({name: 'Arya', health: 50}),
+				fighterModel.create({name: 'Bran', health: 20}),
+				fighterModel.create({name: 'Rickon', health: 10})
+			]);
+		});
 
+
+	});
+
+	it('should yield all the distinct values for a field in a database', function() {
+		return fighterModel.query().distinct('health').exec().promise.then(function(healths){
+		    healths.length.should.eql(3);
+		});
 	});
 
 	describe('livequerying', function() {

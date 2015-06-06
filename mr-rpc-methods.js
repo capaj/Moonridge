@@ -521,7 +521,7 @@ var expose = function(model, schema, opts) {
 
 					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
 						LQ.firstExecDone = true;
-
+						debug('mQuery.op', mQuery.op);
 						if (mQuery.op === 'findOne') {
 							if (rDocs) {
 								LQ.docs = [rDocs];  //rDocs is actually just one document

@@ -179,11 +179,8 @@ var expose = function(model, schema, opts) {
 					);
 				}
 			};
-			if (LQ.firstExecDone) {
-				syncLogic();
-			} else {
-				LQ.firstExecPromise.then(syncLogic);
-			}
+
+			LQ.firstExecPromise.then(syncLogic);
 
 		});
 
@@ -495,11 +492,14 @@ var expose = function(model, schema, opts) {
 					}
 
 					var resolveFn = function() {
-						var retVal;
+						var retVal = {index: LQIndex};
+
 						if (LQOpts.hasOwnProperty('count')) {
-							retVal = {count: LQ.docs.length, index: LQIndex};
+							retVal.count = LQ.docs.length;
+						} else if (mQuery.op === 'distinct') {
+							retVal.values = LQ.values;
 						} else {
-							retVal = {docs: LQ.docs, index: LQIndex};
+							retVal.docs = LQ.docs;
 						}
 
 						resolve(retVal);
@@ -507,11 +507,7 @@ var expose = function(model, schema, opts) {
 						LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts};
 					};
 
-					if (LQ.firstExecDone) {
-						resolveFn();
-					} else {
-						LQ.firstExecPromise.then(resolveFn);
-					}
+					LQ.firstExecPromise.then(resolveFn);
 				};
 				if (LQ) {
 					pushListeners(queryOptions);
@@ -520,7 +516,7 @@ var expose = function(model, schema, opts) {
 					liveQueries[qKey] = LQ;
 
 					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
-						LQ.firstExecDone = true;
+
 						debug('mQuery.op', mQuery.op);
 						if (mQuery.op === 'findOne') {
 							if (rDocs) {
@@ -528,6 +524,8 @@ var expose = function(model, schema, opts) {
 							} else {
 								LQ.docs = [];
 							}
+						} else if (mQuery.op === 'distinct') {
+							LQ.values = rDocs;
 						} else {
 							var i = rDocs.length;
 							while (i--) {

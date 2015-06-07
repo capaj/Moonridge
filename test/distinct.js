@@ -5,6 +5,7 @@ var mr = mrPair.client;
 describe('distinct queries', function() {
 	this.timeout(10000);
 	var fighterModel;
+	var LQ;
 	before(function() {
 		fighterModel = mr.model('fighter');
 		return mr.authorize('admin').then(function() {
@@ -18,14 +19,27 @@ describe('distinct queries', function() {
 
 	});
 
-	it('should yield all the distinct values for a field in a database', function() {
+	it('should yield all the distinct values for a field in a database when querying', function() {
 		return fighterModel.query().distinct('health').exec().promise.then(function(healths){
 		    healths.length.should.eql(3);
+		    healths[0].should.eql(50);
+		    healths[1].should.eql(20);
+		    healths[2].should.eql(10);
 		});
 	});
 
-	describe('livequerying', function() {
+	describe('livequerying', function(done) {
 
+		it('should yield all the distinct values for a field in a database when liveQuerying', function(done){
+			LQ = fighterModel.liveQuery().distinct('health').exec();
+
+			LQ.on('init', function(evName, params) {
+					console.log("params", params);
+
+					params.values.length.should.eql(3);
+					done();
+			});
+		});
 
 		describe('when adding', function() {
 			it('new entity with a distinct value, this value should be pushed on the client', function() {

@@ -22,16 +22,13 @@ describe("basic CRUD including working liveQueries",function(){
 
 	it('should allow to live query model', function(done){
 		LQ = fighterModel.liveQuery().sort('health').exec();
-		var subId = LQ.on('init', function(evName, params) {
-			if (evName === 'init') {
-				console.log("params", params);
+		LQ.on('init', function(evName, params) {
 
-				params.docs.length.should.equal(0);
-				done();
+			console.log("params", params);
 
-			} else {
-				throw new Error('was expecting an init event only');
-			}
+			params.docs.length.should.equal(0);
+			done();
+
 		});
 
 	});

@@ -28,7 +28,7 @@ describe('distinct queries', function() {
 		});
 	});
 
-	describe('livequerying', function(done) {
+	describe('livequerying', function() {
 
 		it('should yield all the distinct values for a field in a database when liveQuerying', function(done){
 			LQ = fighterModel.liveQuery().distinct('health').exec();

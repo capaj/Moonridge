@@ -15,3 +15,8 @@ module.exports = {
 	server: server,
 	client: mr
 };
+
+after(function() {
+	console.log("killing the server");
+	server.kill();
+});

@@ -3,11 +3,7 @@ require('chai').should();
 var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
 
-after(function() {
-	console.log("killing the server");
-	mrPair.server.kill();
 
-});
 
 describe("basic CRUD including working liveQueries",function(){
 	this.timeout(10000);

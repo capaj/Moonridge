@@ -28,7 +28,7 @@ var expose = function(model, schema, opts) {
 		 * @returns {*}
 		 */
 		opts.dataTransform = function deleteUnpermittedProps(doc, op, socket) {
-			var userPL = socket.moonridge.privilige_level;
+			var userPL = socket.moonridge.privilige_level || 0;
 
 			var pathPs = schema.pathPermissions;
 			var docClone = _.clone(doc);

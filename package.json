@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "socket.io-rpc-client": "0.9.11",
+    "mongoose": "^4.0.5",
     "chai": "^3.0.0",
     "mocha": "^2.2.0"
   },

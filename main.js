@@ -84,7 +84,7 @@ module.exports = function (mongoose, connString) {
 		});
 
 		io.use(function(socket, next) {
-			socket.moonridge = {privilige_level: 0}; //default privilige level for any connected client
+			socket.moonridge = {user: {privilige_level: 0}}; //default privilige level for any connected client
 			next();
 		});
 

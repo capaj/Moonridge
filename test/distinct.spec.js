@@ -1,22 +1,16 @@
 require('chai').should();
 var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
+var fightersCreation = require('./utils/create_figters_and_delete_after');
 
 describe('distinct queries', function() {
 	this.timeout(10000);
 	var fighterModel;
 	var LQ;
+
 	before(function() {
 		fighterModel = mr.model('fighter');
-		return mr.authorize('admin').then(function() {
-			return Promise.all([
-				fighterModel.create({name: 'Arya', health: 50}),
-				fighterModel.create({name: 'Bran', health: 20}),
-				fighterModel.create({name: 'Rickon', health: 10})
-			]);
-		});
-
-
+    return fightersCreation.before(fighterModel);
 	});
 
 	it('should yield all the distinct values for a field in a database when querying', function() {
@@ -73,5 +67,8 @@ describe('distinct queries', function() {
 
 	});
 
+	after(function() {
+		return fightersCreation.after();
+	});
 
 });

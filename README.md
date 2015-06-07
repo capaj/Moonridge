@@ -4,7 +4,7 @@ Moonridge    [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.
 
 
 
-isomorphic library, which brings Mongoose mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with any framework-let it be Angular, Aurelia, React or any other.
+isomorphic [client side library](https://github.com/capaj/Moonridge-client) and server framework, which brings Mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with any framework-let it be Angular, Aurelia, React or any other.
 
 
 Offers killer feature(live queries) from Meteor.js. How?

@@ -1,10 +1,10 @@
 var _ = require('lodash');
 var eventNames = ['create', 'preupdate', 'update', 'remove'];
 var queryBuilder = require('./query-builder');
-var populateWithClientQuery = require('./utils/populate-doc-util');
+var LiveQuery = require('./utils/live-query');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
-
+var liveQueriesStore = require('./utils/live-queries-store');
 /**
  *
  * @param {Model} model Moonridge model
@@ -12,9 +12,10 @@ var debug = require('debug')('moonridge:server');
  * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function(model, schema, opts) {
-
-	var liveQueries = {};
+	var liveQueries;
 	var modelName = model.modelName;
+	liveQueriesStore[modelName] = liveQueries = {};
+
 	debug('expose model ', modelName);
 	if (opts.dataTransform) {
 		debug('dataTransform method is overridden for model "%s"', modelName);
@@ -45,142 +46,16 @@ var expose = function(model, schema, opts) {
 		}
 	}
 
-	var getIndexInSorted = require('./utils/indexInSortedArray');
-
 	schema.on('CUD', function(evName, mDoc) {   // will be called by schema's event firing
-		var doc = mDoc.toObject();
+
 		Object.keys(liveQueries).forEach(function(LQString) {
 			var LQ = liveQueries[LQString];
 
-			var syncLogic = function() {
-				var cQindex = LQ.getIndexById(doc._id); //index of current doc in the query
-
-				if (evName === 'remove' && LQ.docs[cQindex]) {
-
-					LQ.docs.splice(cQindex, 1);
-					LQ._distributeChange(doc, evName, cQindex);
-
-					if (LQ.indexedByMethods.limit) {
-						var skip = 0;
-						if (LQ.indexedByMethods.skip) {
-							skip = LQ.indexedByMethods.skip[0];
-						}
-						skip += LQ.indexedByMethods.limit[0] - 1;
-						model.find(LQ.mQuery).lean().skip(skip).limit(1)
-							.exec(function(err, docArr) {
-								if (err) {
-									throw err;
-								}
-								if (docArr.length === 1) {
-									var toFillIn = docArr[0];   //first and only document
-									if (toFillIn) {
-										LQ.docs.push(toFillIn);
-										LQ._distributeChange(toFillIn, 'add', cQindex);
-									}
-								}
-
-							}
-						);
-
-					} else if (LQ.indexedByMethods.findOne) {
-						LQ.mQuery.exec(function(err, doc) {
-							if (err) {
-								throw err;
-							}
-							if (doc) {
-								LQ.docs.push(doc);
-								LQ._distributeChange(doc, 'add', cQindex);
-							}
-
-						});
-					}
-
-				} else {
-					var checkQuery = model.findOne(LQ.mQuery);
-					debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + LQString);
-					if (!LQ.indexedByMethods.findOne) {
-						checkQuery = checkQuery.where('_id').equals(doc._id).select('_id');
-					}
-					checkQuery.exec(function(err, checkedDoc) {
-							if (err) {
-								throw err;
-							}
-							if (checkedDoc) {   //doc satisfies the query
-
-								if (LQ.indexedByMethods.populate.length !== 0) {    //needs to populate before send
-									doc = mDoc;
-								}
-								if (LQ.indexedByMethods.findOne) {
-									LQ.docs[0] = checkedDoc;
-									return LQ._distributeChange(checkedDoc, 'add', 0);
-								}
-								if (LQ.indexedByMethods.sort) {
-									var sortBy = LQ.indexedByMethods.sort[0].split(' ');	//check for string is performed on query initialization
-									var index;
-									if (evName === 'create') {
-										evName = 'add';
-										if (cQindex === -1) {
-											index = getIndexInSorted(doc, LQ.docs, sortBy);
-											LQ.docs.splice(index, 0, doc);
-											if (LQ.indexedByMethods.limit) {
-												if (LQ.docs.length > LQ.indexedByMethods.limit[0]) {
-													LQ.docs.splice(LQ.docs.length - 1, 1);
-
-												}
-											}
-
-										}
-									}
-									if (evName === 'update') {
-										index = getIndexInSorted(doc, LQ.docs, sortBy);
-
-										if (cQindex === -1) {
-											LQ.docs.splice(index, 0, doc);    //insert the document
-										} else {
-											if (cQindex !== index) {
-												if (cQindex < index) {  // if we remove item before, the whole array shifts, so we have to compensate index by 1.
-													LQ.docs.splice(cQindex, 1);
-													LQ.docs.splice(index - 1, 0, doc);
-												} else {
-													LQ.docs.splice(cQindex, 1);
-													LQ.docs.splice(index, 0, doc);
-												}
-
-											} else {
-												LQ.docs[index] = doc;
-											}
-										}
-
-									}
-									LQ._distributeChange(doc, evName, index);
-								} else {
-									if (evName === 'create') {
-										if (cQindex === -1) {
-											LQ.docs.push(doc);
-											LQ._distributeChange(doc, 'add', cQindex);
-										}
-									}
-									if (evName === 'update') {
-										if (cQindex === -1) {
-											var newIndex = LQ.docs.push(doc);
-											LQ._distributeChange(doc, evName, newIndex);	//doc wasn't in the result, but after update is
-										}
-									}
-
-								}
-							} else {
-								debug('Checked doc ' + doc._id + ' in a query ' + LQString + ' was not found');
-								if (evName === 'update' && cQindex !== -1) {
-									LQ.docs.splice(cQindex, 1);
-									LQ._distributeChange(doc, evName, cQindex);		//doc was in the result, but after update is no longer
-								}
-							}
-						}
-					);
-				}
-			};
-
-			LQ.firstExecPromise.then(syncLogic);
+			LQ.firstExecPromise.then(function() {
+				setImmediate(function(){	//we want to break out of promise error catching
+					LQ.sync({evName: evName, mongooseDoc: mDoc, model: model});
+				});
+			});
 
 		});
 
@@ -256,7 +131,7 @@ var expose = function(model, schema, opts) {
 		 * @param {String} op operation to check, can be 'C','R', 'U', 'D'
 		 * @param socket
 		 * @param {Document} [doc]
-		 * @returns {bool} true when user has permission, false when not
+		 * @returns {Boolean} true when user has permission, false when not
 		 */
 		opts.checkPermission = function(socket, op, doc) {
 			var user = socket.moonridge.user;
@@ -325,105 +200,6 @@ var expose = function(model, schema, opts) {
 		clQuery.select = [select]; //after modifying the query, we just put it back as array so that we can call it with apply
 		return clQuery;
 	}
-
-	/**
-	 * @param {String} qKey
-	 * @param {Mongoose.Query} mQuery
-	 * @param {Object} queryMethodsHandledByMoonridge are query methods which are important for branching in the LQ
-	 *                  syncing logic, we need their arguments accessible on separated object to be able to run
-	 *                  liveQuerying effectively
-	 * @returns {Object}
-	 * @constructor
-	 */
-	function LiveQuery(qKey, mQuery, queryMethodsHandledByMoonridge) {
-		this.docs = [];
-		this.listeners = {};
-		this.mQuery = mQuery;   //mongoose query
-
-		this.qKey = qKey;
-		this.indexedByMethods = queryMethodsHandledByMoonridge; //serializable client query object
-		return this;
-	}
-
-	LiveQuery.prototype = {
-		destroy: function() {
-			delete liveQueries[this.qKey];
-		},
-		/**
-		 *
-		 * @param {Document.Id} id
-		 * @returns {Number} -1 when not found
-		 */
-		getIndexById: function(id) {
-			id = id.id;
-			var i = this.docs.length;
-			while (i--) {
-				var doc = this.docs[i];
-				if (doc && doc._id.id === id) {
-					return i;
-				}
-			}
-			return i;
-		},
-		/**
-		 *
-		 * @param {Object|Mongoose.Document} doc
-		 * @param {String} evName
-		 * @param {Number} resultIndex number, indicates an index where the doc should be inserted, -1 for a document which
-		 *                 is no longer in the result of the query
-		 */
-		_distributeChange: function(doc, evName, resultIndex) {
-			var self = this;
-			var actuallySend = function() {
-				for (var socketId in self.listeners) {
-					var listener = self.listeners[socketId];
-					var toSend = null;
-					if (listener.qOpts.count) {
-						// we don't need to send a doc when query is a count query
-					} else {
-						if (evName === 'remove') {
-							toSend = doc._id.toString();	//remove needs only _id, which should be always defined
-						} else {
-							toSend = opts.dataTransform(doc, 'R', listener.socket);
-						}
-					}
-
-					debug('calling doc %s event %s, pos param %s', doc._id, evName, resultIndex);
-
-					listener.socket.rpc('MR.' + modelName + '.' + evName)(listener.clIndex, toSend, resultIndex);
-				}
-			};
-
-			if (typeof doc.populate === 'function') {
-				populateWithClientQuery(doc, this.indexedByMethods.populate, function(err, populated) {
-					if (err) {
-						throw err;
-					}
-					doc = populated.toObject();
-					actuallySend();
-				});
-			} else {
-				actuallySend();
-			}
-
-
-		},
-		/**
-		 * removes a socket listener from liveQuery and also destroys the whole liveQuery if no more listeners are present
-		 * @param socket
-		 */
-		removeListener: function(socket) {
-			if (this.listeners[socket.id]) {
-				delete this.listeners[socket.id];
-				if (Object.keys(this.listeners).length === 0) {
-					this.destroy(); // this will delete a liveQuery from liveQueries
-				}
-			} else {
-				return new Error('no listener present on LQ ' + this.qKey);
-			}
-		}
-	};
-
 
 	var channel = {
 		/**
@@ -512,8 +288,7 @@ var expose = function(model, schema, opts) {
 				if (LQ) {
 					pushListeners(queryOptions);
 				} else {
-					LQ = new LiveQuery(qKey, mQuery, queryOptions);
-					liveQueries[qKey] = LQ;
+					LQ = new LiveQuery(qKey, mQuery, queryOptions, model);
 
 					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
 
@@ -664,6 +439,8 @@ var expose = function(model, schema, opts) {
 
 			}
 		});
+
+		model.moonridgeOpts = opts;
 	}
 
 	return function exposeCallback(rpcInstance) {

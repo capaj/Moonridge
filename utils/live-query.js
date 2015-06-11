@@ -2,7 +2,7 @@ var getIndexInSorted = require('./indexInSortedArray');
 var populateWithClientQuery = require('./populate-doc-util');
 var liveQueriesStore = require('./live-queries-store');
 var debug = require('debug')('moonridge:server');
-
+var _ = require('lodash');
 /**
  * @param {String} qKey
  * @param {Mongoose.Query} mQuery
@@ -59,8 +59,11 @@ LiveQuery.prototype = {
 			for (var socketId in self.listeners) {
 				var listener = self.listeners[socketId];
 				var toSend = null;
+
 				if (listener.qOpts.count) {
 					// we don't need to send a doc when query is a count query
+				} else if(self.mQuery.op === 'distinct'){
+					toSend = doc;
 				} else {
 					if (evName === 'remove') {
 						toSend = doc._id.toString();	//remove needs only _id, which should be always defined
@@ -69,7 +72,7 @@ LiveQuery.prototype = {
 					}
 				}
 
-				debug('calling doc %s event %s, pos param %s', doc._id, evName, resultIndex);
+				debug('sending ', toSend,' event ', evName,', pos param ', resultIndex);
 
 				listener.socket.rpc('MR.' + self.modelName + '.' + evName)(listener.clIndex, toSend, resultIndex);
 			}
@@ -103,11 +106,30 @@ LiveQuery.prototype = {
 			return new Error('no listener present on LQ ' + this.qKey);
 		}
 	},
+	syncDistinct: function(opts) {
+		var self = this;
+
+		return this.mQuery.exec(function(err, values) {
+			if (err) {
+				console.error("err", err);
+				throw err;
+			}
+			var syncObj = {};
+			syncObj.add = _.difference(values, self.values);
+			syncObj.remove = _.difference(self.values, values);
+			self.values = values;
+			debug('reran distinct query with a result: ', values, syncObj);
+			self._distributeChange(syncObj, 'distinctSync');
+		});
+	},
 	sync: function(opts) {
+		if (this.mQuery.op === 'distinct') {
+			return this.syncDistinct(opts);
+		}
+		var self = this;
 		var evName = opts.evName;
 		var mDoc = opts.mongooseDoc;
 		var doc = mDoc.toObject();
-		var self = this;
 		var cQindex = this.getIndexById(doc._id); //index of current doc in the query
 
 		if (evName === 'remove' && this.docs[cQindex]) {

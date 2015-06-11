@@ -40,7 +40,6 @@ describe("basic CRUD including working liveQueries",function(){
 			evName.should.be.equal('add');
 			fighterEntity = params[1];
 			fighterEntity.name.should.equal('Arya');
-			LQ.stop();
 			done();
 		});
 
@@ -51,6 +50,17 @@ describe("basic CRUD including working liveQueries",function(){
 			fighterId = created._id;
 		});
 
+	});
+
+	it('should allow to stop the liveQuery-unsubscribe from client', function() {
+		LQ.on('any', function (evName, params){
+			throw new Error('there should not be any event coming');
+		});
+		return LQ.stop().then(function(succes){
+			return fighterModel.create({name: 'Theon', health: 25}).then(function(theon){
+			    return fighterModel.remove(theon);
+			});
+		});
 	});
 
 	it('should allow to query the model', function(){

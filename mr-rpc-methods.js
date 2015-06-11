@@ -49,12 +49,9 @@ var expose = function(model, schema, opts) {
 	schema.on('CUD', function(evName, mDoc) {   // will be called by schema's event firing
 
 		Object.keys(liveQueries).forEach(function(LQString) {
-			var LQ = liveQueries[LQString];
 
-			LQ.firstExecPromise.then(function() {
-				setImmediate(function(){	//we want to break out of promise error catching
-					LQ.sync({evName: evName, mongooseDoc: mDoc, model: model});
-				});
+			setImmediate(function(){	//we want to break out of promise error catching
+				liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
 			});
 
 		});
@@ -65,7 +62,6 @@ var expose = function(model, schema, opts) {
 		return function(doc, evName) {   // will be called by schema's event firing
 			clientPubMethod(doc, evName);
 		}
-
 	};
 
 	function unsubscribe(id, event) {  //accepts same args as findFn
@@ -290,6 +286,11 @@ var expose = function(model, schema, opts) {
 				} else {
 					LQ = new LiveQuery(qKey, mQuery, queryOptions, model);
 
+					var onRejectionOfFirstQuery = function(err) {
+						debug("First LiveQuery exec failed with err " + err);
+						reject(err);
+						LQ.destroy();
+					};
 					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
 
 						debug('mQuery.op', mQuery.op);
@@ -310,11 +311,7 @@ var expose = function(model, schema, opts) {
 
 						return rDocs;
 
-					}, function(err) {
-						debug("First LiveQuery exec failed with err " + err);
-						reject(err);
-						LQ.destroy();
-					});
+					}, onRejectionOfFirstQuery);
 
 					pushListeners(queryOptions);
 

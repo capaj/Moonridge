@@ -5,7 +5,8 @@
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to call Mongoose.js remotely from your frontend in a framework agnostic fashion",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+	"smoke": "node test/e2e-smoketest/server.js"
   },
   "engines": {
 	"node": "^0.12.0"

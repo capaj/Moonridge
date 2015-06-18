@@ -15,11 +15,12 @@ var server = MR.bootstrap(8080);
 var app = server.expressApp;
 app.use(require('morgan')('dev'));
 
-app.use(staticMW('./client/'));//only needed when moonridge is not as npm module
+app.use(staticMW('./Moonridge-client/'));//only needed when moonridge is not as npm module
 
 app.use(staticMW('./test/e2e-smoketest/'));
 app.use(staticMW('./test/e2e-smoketest/angular'));
 app.use(staticMW('./test/e2e-smoketest/aurelia'));
+app.use(staticMW('./test/e2e-smoketest/react'));
 
 server.io.use(function(socket, next) {	//example of initial authorization
 	//it is useful only for apps which require user authentication by default
@@ -31,8 +32,10 @@ server.io.use(function(socket, next) {	//example of initial authorization
 	console.log("socket.id: " + socket.id);
 	var user = mongoose.model('user');
 	user.findOne({name: userName}).exec().then(function (user) {
-		console.log("Authenticated user: ", user);
-		socket.moonridge.user = user;
+		if (user) {
+			console.log("Authenticated user: ", user);
+			socket.moonridge.user = user;
+		}
 		next();
 	}, function (err) {
 		console.log("auth error " + err);

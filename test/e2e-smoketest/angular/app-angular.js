@@ -2,11 +2,20 @@ require('jquery');
 require('angular');
 require('./js/bootstrap.min');
 require('angular-animate');
-require('moonridge-angular');
+var $MR = require('moonridge-client');
+var MRB = $MR({url: 'http://localhost:8080'});  //true indicates, that this backend should be used by default
+MRB.socket.on('disconnect', function() {
+	console.log("Ha disconnected!");
+});
 
-angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', function ($scope, fighter, $log,
-                                                                                      moonridgeBackend, user) {
 
+angular.module('MRTest', ['ngAnimate']).controller('fighterCtrl', function ($scope, $log) {
+	MRB.rpc.events.batchEnds = function() {
+		console.log('applies');
+		$scope.$apply();
+	};
+	var fighter = MRB.model('fighter');
+	var user = MRB.model('user');
 	var fighterLQ = fighter.liveQuery;
 
 	angular.extend($scope, {
@@ -76,10 +85,10 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
         'version'
     ];
 
-    console.log("user", moonridgeBackend.user);
+    console.log("user", MRB.user);
 
     $scope.admin = function() {
-        moonridgeBackend.auth({nick: 'admin'}).then(function(user){ //user === moonridgeBackend.user
+        MRB.authorize({nick: 'admin'}).then(function(user){ //user === moonridgeBackend.user
             console.log("user", user);
             fighter.create({name: 'Jon Snow', health: 70});
             fighter.create({name: 'Littlefinger', health: 20});
@@ -89,25 +98,7 @@ angular.module('MRTest', ['Moonridge', 'ngAnimate']).controller('testCtrl', func
     };
 
     $scope.user = function() {
-        moonridgeBackend.auth({nick: 'testUser'});
+        MRB.authorize({nick: 'testUser'});
     };
-
-}).run(function($rootScope, $MR, $q) {
-    var dfd = $q.defer();
-
-    //Moonridge backend
-    var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
-    MRB.connectPromise.then(function(socket) {
-        //you can hook up more events here
-        socket.on('disconnect', function() {
-            console.log("Ha disconnected!");
-        });
-    });
-
-    dfd.resolve({url: 'http://localhost:8080'});
-    //use an auth prop to be authenticated right from the start
-    //dfd.resolve({url: 'http://localhost:8080', auth: {nick: 'admin'}});
-    return MRB;
-
 
 });

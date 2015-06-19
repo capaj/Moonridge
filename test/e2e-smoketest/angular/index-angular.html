@@ -42,7 +42,7 @@
     <link href="css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-<div mr-controller="testCtrl" mr-models="user,fighter"><!--You must use mr-controller instead of ng-controller-->
+<div ng-controller="fighterCtrl">
     <button class="btn" ng-click="user()">as User</button>
     <button class="btn" ng-click="admin()">as Admin</button>
     <label for="query">Name</label><input type="text" id="query" ng-model='name'>
@@ -61,7 +61,7 @@
             <mr-query-dropdown query="LQ" gui-path-texts="dropdownTexts"></mr-query-dropdown>
         </div>
     </div>
-    <p mr-repeat="fighter in LQ" class="left-slide">
+    <p ng-repeat="fighter in LQ.docs" class="left-slide">
         {{ fighter }}
         <button class="btn btn-warning" ng-click="hit(fighter)">Hit</button>
         <button class="btn btn-success" ng-click="heal(fighter)">Heal</button>

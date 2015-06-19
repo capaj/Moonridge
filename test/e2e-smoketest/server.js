@@ -22,6 +22,18 @@ app.use(staticMW('./test/e2e-smoketest/angular'));
 app.use(staticMW('./test/e2e-smoketest/aurelia'));
 app.use(staticMW('./test/e2e-smoketest/react'));
 
+var assignUserToASocket = function(socket) {
+	return function(user) {
+		if (user) {
+			console.log("Authenticated user: ", user);
+			socket.moonridge.user = user;
+		} else {
+			console.warn('did not find such user');
+		}
+		return user;
+	};
+};
+
 server.io.use(function(socket, next) {	//example of initial authorization
 	//it is useful only for apps which require user authentication by default
 	var authObj = socket.handshake.query;
@@ -30,12 +42,9 @@ server.io.use(function(socket, next) {	//example of initial authorization
 	console.log("user wants to authorize: " + userName );
 	console.log("socket: ", socket.handshake.query);
 	console.log("socket.id: " + socket.id);
-	var user = mongoose.model('user');
-	user.findOne({name: userName}).exec().then(function (user) {
-		if (user) {
-			console.log("Authenticated user: ", user);
-			socket.moonridge.user = user;
-		}
+	var userModel = mongoose.model('user');
+	userModel.findOne({name: userName}).exec().then(function(user) {
+		assignUserToASocket(socket)(user);
 		next();
 	}, function (err) {
 		console.log("auth error " + err);
@@ -46,14 +55,12 @@ server.io.use(function(socket, next) {	//example of initial authorization
 
 server.expose({
 	MR: {
-		authorize: function(userName) {	//example of a later authorization, typical for any public facing apps
+		authorize: function(data) {	//example of a later authorization, typical for any public facing apps
 			var socket = this;
-			var user = mongoose.model('user');
-			return user.findOne({name: userName}).exec().then(function (user) {
-				console.log("Authenticated user: ", user);
-				socket.moonridge.user = user;
-				return user;
-			}, function (err) {
+			var userModel = mongoose.model('user');
+			console.log('data', data);
+
+			return userModel.findOne({name: data.nick}).exec().then(assignUserToASocket(socket), function (err) {
 				console.log("auth error " + err);
 			});
 		}

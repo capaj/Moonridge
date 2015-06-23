@@ -1,7 +1,7 @@
 import React from 'react';
 
 var {Component} = React;
-
+import {default as moonridgeUtils} from 'capaj/moonridge-react-utils';
 import {default as $MR} from 'moonridge-client';
 
 var MRB = $MR({url: 'http://localhost:8080'});  //true indicates, that this backend should be used by default
@@ -14,15 +14,13 @@ export default class Fighters extends Component {
 	constructor(...props) {
 		super(...props);
 		var fighter = MRB.model('fighter');
-		this.state = {docs: []};
-		var LQ = fighter.liveQuery().sort('health').exec();
-		LQ.on('any', () => {
-			this.setState({docs: LQ.docs});
-		});
+
+		this.LQs = {fighters: fighter.liveQuery().sort('health').exec()};
+		moonridgeUtils.liveQueryComponent(this);
 	}
 
 	render() {
-		var fighters = this.state.docs.map(function(item) {
+		var fighters = this.state.fighters.map(function(item) {
 			return <div key={item._id}>{item.name}</div>;
 		});
 

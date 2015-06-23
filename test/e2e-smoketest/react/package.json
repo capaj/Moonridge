@@ -5,6 +5,7 @@
     "configFile": "config-react.js",
     "dependencies": {
       "bootstrap": "github:twbs/bootstrap@3.3.5",
+      "capaj/moonridge-react-utils": "github:capaj/moonridge-react-utils@master",
       "jsx": "github:floatdrop/plugin-jsx@^1.1.0",
       "react": "npm:react@^0.14.0-alpha3"
     },

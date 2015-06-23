@@ -2,7 +2,7 @@ require('chai').should();
 var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
 
-var fightersCreation = require('./utils/create_figters_and_delete_after');
+var fightersCreation = require('./utils/create_fighters_and_delete_after');
 
 describe('count queries', function() {
 	this.timeout(5000);

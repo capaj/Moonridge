@@ -6,7 +6,7 @@ var locationsModel;
 module.exports = {
 	before:  function(model) {
 		locationsModel = model;
-		return mr.authorize('admin').then(function() {
+		return mr.authorize({nick: 'admin'}).then(function() {
 			all = Promise.all([
 				locationsModel.create({loc: [1, 2]}),
 				locationsModel.create({loc: [2, 3]}),

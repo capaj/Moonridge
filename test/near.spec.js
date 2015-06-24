@@ -3,7 +3,7 @@ var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
 var locationsDbCreation = require('./utils/create_locations_and_delete_after');
 
-describe('distinct queries', function() {
+describe.skip('near queries', function() {
 	this.timeout(7000);
 	var fighterModel;
 	var LQ;

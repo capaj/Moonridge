@@ -6,7 +6,7 @@ var fighterModel;
 module.exports = {
 	before: function(model) {
 		fighterModel = model;
-		return mr.authorize('admin').then(function() {
+		return mr.authorize({nick: 'admin'}).then(function() {
 			all = Promise.all([
 				fighterModel.create({name: 'Arya', health: 50}),
 				fighterModel.create({name: 'Bran', health: 20}),

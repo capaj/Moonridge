@@ -9,11 +9,13 @@ MRB.socket.on('disconnect', function() {
 	console.log("Ha disconnected!");
 });
 
+import allModels from '/MR/models';
+var models = allModels(MRB);
 
 export default class Fighters extends Component {
 	constructor(...props) {
 		super(...props);
-		var fighter = MRB.model('fighter');
+		var fighter = models.fighter;
 		this.state = {docs: []};
 		var LQ = fighter.liveQuery().sort('health').exec();
 		LQ.on('any', () => {

@@ -4,7 +4,7 @@ var debug = require('debug')('moonridge:server');
 var MRModel = require('./mr-server-model');
 var userModel;
 var toCallOnCreate = [];
-
+var modelNames = [];
 var express = require('express');
 
 /**
@@ -44,7 +44,7 @@ module.exports = function (mongoose, connString) {
 
 		var model = MRModel.apply(mongoose, arguments);
 		toCallOnCreate.push(model._exposeCallback);
-
+		modelNames.push(name);
 		return model;
 	}
 
@@ -58,11 +58,12 @@ module.exports = function (mongoose, connString) {
 	function registerUserModel(schemaExtend, opts) {
 
 		if (userModel) {    //if it was already assigned, we throw
-			throw new Error('There can only be one user model');
+			throw new Error('There can only be one user model and it was already registered');
 		}
 		var userSchema = require('./utils/user-model-base');
 		_.extend(userSchema, schemaExtend);
 		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
+		modelNames.push('user');
 		toCallOnCreate.push(userModel._exposeCallback);
 
 		return userModel;
@@ -86,6 +87,21 @@ module.exports = function (mongoose, connString) {
 		io.use(function(socket, next) {
 			socket.moonridge = {user: {privilige_level: 0}}; //default privilige level for any connected client
 			next();
+		});
+
+		server.expressApp.get('/MR/models.js', function (req, res){
+			res.type('application/javascript; charset=utf-8');
+
+			var fullUrl = "'" + req.protocol + '://' + req.get('host') + "'";
+
+			var clSideScript = 'module.exports = function(MR) {' +
+					'var modelsHash = {};' +
+					'var models = ' + JSON.stringify(modelNames) + ';' +
+					'models.forEach(function(modelName) {modelsHash[modelName] = MR.model(modelName);});' +
+					'return modelsHash;' +
+				'};';
+			res.send(clSideScript);
+			res.end();
 		});
 
 		if (server.expressApp.get('env') === 'development') {

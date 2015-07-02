@@ -2,7 +2,7 @@
   "name": "Moonridge-test",
   "version": "1.0.0",
   "scripts": {
-    "installjspm": "cd angular && jspm install && cd .. && cd aurelia && jspm install"
+    "installjspm": "cd angular && jspm install && cd .. && cd aurelia && jspm install && cd .. && cd react && jspm install"
   },
   "dependencies": {
     "lodash": "~2.4",

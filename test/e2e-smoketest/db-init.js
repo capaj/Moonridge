@@ -3,6 +3,11 @@ var mongoose = require('mongoose');
 module.exports = function (MR) {
 
 	var user = MR.userModel({name: String, age: Number});
+	var location = MR.model('location', {loc: {type:[Number], index: '2dsphere'}}, {
+		schemaInit: function(schema) {
+
+		}
+	});	//for testing near queries
 	var fighter = MR.model('fighter', {
 		name: String,
 		health: Number,

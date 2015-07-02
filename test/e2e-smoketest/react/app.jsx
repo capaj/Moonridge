@@ -1,6 +1,6 @@
 'use strict';
 
 import React from 'react';
-import Fighters from './Fighters.js!jsx';
+import Fighters from './Fighters.jsx!';
 
-React.render(<Fighters />, document.getElementById('app'));
+React.render(<Fighters/>, document.getElementById('app'));

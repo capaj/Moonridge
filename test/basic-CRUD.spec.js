@@ -30,7 +30,7 @@ describe("basic CRUD including working liveQueries",function(){
 	});
 
 	it('should be able to call authorize and be authenticated with a new user', function (){
-		return mr.authorize('admin').then(function(user) {
+		return mr.authorize({nick: 'admin'}).then(function(user) {
 			mr.user.privilige_level.should.equal(50);
 		});
 	});

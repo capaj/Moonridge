@@ -17,6 +17,7 @@ System.config({
     "babel": "npm:babel-core@5.5.8",
     "babel-runtime": "npm:babel-runtime@5.5.8",
     "bootstrap": "github:twbs/bootstrap@3.3.5",
+    "capaj/moonridge-react-utils": "github:capaj/moonridge-react-utils@master",
     "core-js": "npm:core-js@0.9.18",
     "jsx": "github:floatdrop/plugin-jsx@1.1.0",
     "react": "npm:react@0.14.0-alpha3",

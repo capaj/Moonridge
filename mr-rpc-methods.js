@@ -221,9 +221,8 @@ var expose = function(model, schema, opts) {
 			if (LQ) {
 				delete this.registeredLQs[index];
 				LQ.removeListener(this);
-				return true;
 			} else {
-				return new Error('Index param in LQ unsubscribe is not valid!');
+				throw new Error('Index param in LQ unsubscribe is not valid!');
 			}
 		},
 		/**

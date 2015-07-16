@@ -7,10 +7,12 @@ Moonridge    [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.
 isomorphic [client side library](https://github.com/capaj/Moonridge-client) and server framework, which brings Mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with any framework-let it be Angular, Aurelia, React or any other.
 
 
-On top of that, it features live queries. These are performance hungry, but we can get around it by caching live queries in memory. How to use it?
+On top of that, it features live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If one user runs the same query as another, they are hitting the DB only once. 
+
+### How to use it?
 See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
 
-##Basic usage serverside
+## Basic usage serverside
 ```javascript
     var mongoose = require('mongoose');
     var Moonridge = require('moonridge');
@@ -28,7 +30,7 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia
     ...
     MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
 ```
-##On the CLIENT:
+## On the CLIENT:
 ```javascript
    	var $MR = require('moonridge-client');
 	//Moonridge backend
@@ -44,18 +46,18 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia
 ```    
 Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)
 
-##Errorhandling
+## Errorhandling
 
 All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise). This is especially helpful with schema validation errors.
 
-##Supported browsers
-###Desktop
+## Supported browsers
+### Desktop
     Internet Explorer 8+ - though it needs es5shim
     Safari 4+
     Google Chrome 4+
     Firefox 4+
     Opera 10.61+
-###Mobile
+### Mobile
     iPhone Safari
     iPad Safari
     Android WebKit

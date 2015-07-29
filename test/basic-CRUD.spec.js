@@ -3,17 +3,18 @@ require('chai').should();
 var mrPair = require('./utils/run_server_client');
 var mr = mrPair.client;
 
-
-
 describe("basic CRUD including working liveQueries",function(){
-	this.timeout(10000);
+	this.timeout(4000);
 
 	var fighterModel;
+	var battleModel;
 	var fighterEntity;
 	var fighterId;
+	var battleId;
 	var LQ;
 	before(function() {
 		fighterModel = mr.model('fighter');
+		battleModel = mr.model('battle');
 	});
 
 	it('should allow to live query model', function(done){
@@ -72,15 +73,33 @@ describe("basic CRUD including working liveQueries",function(){
 
 	it('should be able to update an entity of a model', function(done){
 		fighterEntity.health += 10;
-		fighterModel.update(fighterEntity).then(function() {
+		fighterModel.save(fighterEntity).then(function() {
 			done();
 		});
 	});
 
-	it('should fail when we try to update nonexistent entity', function(done){
+	it('should add into a nested array in the model utilizing addToSet', function(done){
+		battleModel.create({name: 'Battle of the Trident', year: 281}).then(function(battle){
+			battle.fighters.length.should.equal(0);
+			battleId = battle._id;
+			battleModel.update({year: 281}, { $addToSet: { fighters: fighterId } }).then(function(rawRes){
+				rawRes.n.should.eql(1);
+				battleModel.query().findOne({_id: battleId}).exec().promise.then(function(battle){
+					battle.fighters[0].should.eql(fighterId);
+					done();
+				}, function(err) {
+					console.log('err', err);
+					done(err);
+				});
+			});
+		});
+
+	});
+
+	it('should fail when we try to save nonexistent entity', function(done){
 		fighterEntity.health += 10;
 		var fakeId = 'fake6c5c6983ef1828ec7af4';
-		fighterModel.update({_id: fakeId}).then(function() {
+		fighterModel.save({_id: fakeId}).then(function() {
 			throw 'Entity should not have been updated';
 		}, function (err){
 			done();
@@ -93,6 +112,10 @@ describe("basic CRUD including working liveQueries",function(){
 		}, function (err){
 		    throw err;
 		});
+	});
+
+	after(function(done) {
+		battleModel.remove({_id: battleId}).then(done);
 	});
 
 });

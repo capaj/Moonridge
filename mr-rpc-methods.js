@@ -5,6 +5,7 @@ var LiveQuery = require('./utils/live-query');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
 var liveQueriesStore = require('./utils/live-queries-store');
+var traverse = require('traverse');
 /**
  *
  * @param {Model} model Moonridge model
@@ -127,13 +128,14 @@ var expose = function(model, schema, opts) {
 		 * @param {String} op operation to check, can be 'C','R', 'U', 'D'
 		 * @param socket
 		 * @param {Document} [doc]
+		 * @param {Document} [doc]
 		 * @returns {Boolean} true when user has permission, false when not
 		 */
 		opts.checkPermission = function(socket, op, doc) {
 			var user = socket.moonridge.user;
 			var PL = user.privilige_level; //privilige level
 
-			if (doc && op !== 'C') {   //if not creation, with creation only priviliges apply
+			if (doc && op !== 'C') {   //if not creation, with creation only privileges apply
 				if (doc.owner && doc.owner.toString() === user.id) {
 					return true;    // owner does not need any permissions
 				}
@@ -205,7 +207,7 @@ var expose = function(model, schema, opts) {
 		 */
 		query: function(clientQuery) {
 			if (!opts.checkPermission(this, 'R')) {
-				return new Error('You lack a privilege to read this document');
+				throw new Error('You lack a privilege to read this document');
 			}
 			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilige_level, 'R');
 			//debug('clientQuery', clientQuery);
@@ -232,7 +234,7 @@ var expose = function(model, schema, opts) {
 		 */
 		liveQuery: function(clientQuery, LQIndex) {
 			if (!opts.checkPermission(this, 'R')) {
-				return new Error('You lack a privilege to read this collection');
+				throw new Error('You lack a privilege to read this collection');
 			}
 
 			if (!clientQuery.count) {
@@ -245,7 +247,7 @@ var expose = function(model, schema, opts) {
 			var mQuery = builtQuery.mQuery;
 
 			if (!mQuery.exec) {
-				return new Error('query builder has returned invalid query');
+				throw new Error('query builder has returned invalid query');
 			}
 			var socket = this;
 
@@ -385,15 +387,15 @@ var expose = function(model, schema, opts) {
 
 			},
 			/**
-			 * finds a document by _id and then updates it
-			 * @param toUpdate
+			 * finds a document by _id and then saves it
+			 * @param {Object} toSave a document which will be saved, must have an existing _id
 			 * @returns {Promise}
 			 */
-			update: function(toUpdate) {
+			save: function(toSave) {
 				var socket = this;
 				return new Promise(function(resolve, reject) {
-					var id = toUpdate._id;
-					delete toUpdate._id;
+					var id = toSave._id;
+					delete toSave._id;
 
 					model.findById(id, function(err, doc) {
 						if (err) {
@@ -402,24 +404,63 @@ var expose = function(model, schema, opts) {
 						}
 						if (doc) {
 							if (opts.checkPermission(socket, 'U', doc)) {
-								opts.dataTransform(toUpdate, 'W', socket);
+								opts.dataTransform(toSave, 'W', socket);
 								var previousVersion = doc.toObject();
-								if (toUpdate.__v !== doc.__v) {
-									reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v));
+								if (toSave.__v !== doc.__v) {
+									reject(new Error('Document version mismatch-your copy is version ' + toSave.__v + ', but server has ' + doc.__v));
 								} else {
-									delete toUpdate.__v; //save a bit of unnecesary work when we are extending doc on the next line
+									delete toSave.__v; //save a bit of unnecessary work when we are extending doc on the next line
 								}
-								_.merge(doc, toUpdate);
+								_.merge(doc, toSave);
 								doc.__v += 1;
 								schema.emit('preupdate', doc, previousVersion);
 
 								doc.save(function(err) {
 									if (err) {
+										debug('rejecting a save because: ', err);
+										reject(err);
+									} else {
+										debug('document ', id, ' saved, version now ', doc.__v);
+										resolve();	//we don't resolve with new document because when you want to display
+										// current version of document, just use liveQuery
+									}
+								});
+							} else {
+								reject(new Error('You lack a privilege to update this document'));
+							}
+
+						} else {
+							reject(new Error('no document to save found with _id: ' + id));
+						}
+					});
+				});
+
+			},
+			/**
+			 * finds one document with a supplied query and then updates it utilizing a provided mongoDB expression
+			 * @param query
+			 * @param expression
+			 * @param item
+			 * @returns {Promise} is resolved when item is pushed, is rejected when path is not found or item
+			 */
+			update: function(query, expression) {
+				var socket = this;
+				return new Promise(function(resolve, reject) {
+					model.findOne(query, function(err, doc) {
+						if (err) {
+							debug('rejecting an update because: ', err);
+							return reject(err);
+						}
+						if (doc) {
+							if (opts.checkPermission(socket, 'U', doc, expression)) {
+
+								model.update(query, expression, function(err, rawRes) {
+									if (err) {
 										debug('rejecting an update because: ', err);
 										reject(err);
 									} else {
-										debug('document ', id, ' updated to v ', doc.__v);
-										resolve();	//we don't resolve with new document because when you want to display
+										debug('document ', doc._id, ' updated to v ', doc.__v);
+										resolve(rawRes);	//we don't resolve with new document because when you want to display
 										// current version of document, just use liveQuery
 									}
 								});

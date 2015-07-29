@@ -10,7 +10,7 @@ isomorphic [client side library](https://github.com/capaj/Moonridge-client) and 
 On top of that, it features live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If one user runs the same query as another, they are hitting the DB only once. 
 
 ### How to use it?
-See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
+See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](test/e2e-smoketest/react)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
 
 ## Basic usage serverside
 ```javascript

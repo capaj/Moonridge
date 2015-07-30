@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.8.7",
+  "version": "0.8.8",
   "main": "main.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to call Mongoose.js remotely from your frontend in a framework agnostic fashion",
@@ -38,8 +38,7 @@
     "express": "^4.11",
     "lodash": "^3.9",
     "socket.io": "~1.3",
-    "socket.io-rpc": "^0.9.8",
-    "traverse": "^0.6.6"
+    "socket.io-rpc": "^0.9.8"
   },
   "devDependencies": {
     "socket.io-rpc-client": "0.9.11",

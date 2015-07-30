@@ -32,15 +32,21 @@ module.exports = function (MR) {
 
 
 	fighter.schema.on('preupdate', function (doc, previousDocVersion) {
-		console.log("special preupdate callback triggered " + doc.isModified()); // a good place to put custom save logic
-		console.dir(doc);
-		console.dir(previousDocVersion);
+		console.log("fighter preupdate callback triggered, is modified ", doc.isModified()); // a good place to put custom save logic
+		console.log('doc', doc);
+		console.log('previousDocVersion', previousDocVersion);
 	});
 
 	var battleM = MR.model('battle', {
 		name: String,
 		year: Number,
 		fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
+	});
+
+	battleM.schema.on('update', function (doc, previousDocVersion) {
+		console.log("battle update callback triggered, is modified ", doc.isModified()); // a good place to put custom save logic
+		console.log(doc);
+		console.log(previousDocVersion);
 	});
 
     var cleaningPromises = [fighter, user].map(function (mrModel) {

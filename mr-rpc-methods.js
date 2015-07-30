@@ -5,7 +5,7 @@ var LiveQuery = require('./utils/live-query');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
 var liveQueriesStore = require('./utils/live-queries-store');
-var traverse = require('traverse');
+
 /**
  *
  * @param {Model} model Moonridge model
@@ -412,7 +412,7 @@ var expose = function(model, schema, opts) {
 									delete toSave.__v; //save a bit of unnecessary work when we are extending doc on the next line
 								}
 								_.merge(doc, toSave);
-								doc.__v += 1;
+								doc.increment();
 								schema.emit('preupdate', doc, previousVersion);
 
 								doc.save(function(err) {
@@ -453,14 +453,18 @@ var expose = function(model, schema, opts) {
 						}
 						if (doc) {
 							if (opts.checkPermission(socket, 'U', doc, expression)) {
-
-								model.update(query, expression, function(err, rawRes) {
+								schema.emit('preupdate', doc);	//mongoose does not trigger middleware for update
+								expression.$inc = {__v: 1};		//always increment version of the document by one
+								model.findOneAndUpdate(query, expression, {new: true}, function(err, modifiedDoc) {
 									if (err) {
 										debug('rejecting an update because: ', err);
 										reject(err);
 									} else {
-										debug('document ', doc._id, ' updated to v ', doc.__v);
-										resolve(rawRes);	//we don't resolve with new document because when you want to display
+										schema.emit('update', modifiedDoc, doc);	//mongoose does not trigger middleware for update
+										schema.emit('CUD', 'update', modifiedDoc, doc); //so we are doing it by hand
+
+										debug('document ', doc._id, ' updated to v ', modifiedDoc.__v);
+										resolve(modifiedDoc.__v);	//we don't resolve with new document because when you want to display
 										// current version of document, just use liveQuery
 									}
 								});

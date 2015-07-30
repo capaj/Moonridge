@@ -82,8 +82,8 @@ describe("basic CRUD including working liveQueries",function(){
 		battleModel.create({name: 'Battle of the Trident', year: 281}).then(function(battle){
 			battle.fighters.length.should.equal(0);
 			battleId = battle._id;
-			battleModel.update({year: 281}, { $addToSet: { fighters: fighterId } }).then(function(rawRes){
-				rawRes.n.should.eql(1);
+			battleModel.update({year: 281}, { $addToSet: { fighters: fighterId } }).then(function(version){
+				version.should.eql(1);
 				battleModel.query().findOne({_id: battleId}).exec().promise.then(function(battle){
 					battle.fighters[0].should.eql(fighterId);
 					done();

@@ -5,7 +5,7 @@ var LiveQuery = require('./utils/live-query');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
 var liveQueriesStore = require('./utils/live-queries-store');
-
+var objectResolvePath = require('./utils/object-resolve-path');
 /**
  *
  * @param {Model} model Moonridge model
@@ -388,14 +388,14 @@ var expose = function(model, schema, opts) {
 			},
 			/**
 			 * finds a document by _id and then saves it
-			 * @param {Object} toSave a document which will be saved, must have an existing _id
+			 * @param {Object} toUpdate a document which will be saved, must have an existing _id
 			 * @returns {Promise}
 			 */
-			save: function(toSave) {
+			update: function(toUpdate) {
 				var socket = this;
 				return new Promise(function(resolve, reject) {
-					var id = toSave._id;
-					delete toSave._id;
+					var id = toUpdate._id;
+					delete toUpdate._id;
 
 					model.findById(id, function(err, doc) {
 						if (err) {
@@ -404,14 +404,14 @@ var expose = function(model, schema, opts) {
 						}
 						if (doc) {
 							if (opts.checkPermission(socket, 'U', doc)) {
-								opts.dataTransform(toSave, 'W', socket);
+								opts.dataTransform(toUpdate, 'W', socket);
 								var previousVersion = doc.toObject();
-								if (toSave.__v !== doc.__v) {
-									reject(new Error('Document version mismatch-your copy is version ' + toSave.__v + ', but server has ' + doc.__v));
+								if (toUpdate.__v !== doc.__v) {
+									reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v));
 								} else {
-									delete toSave.__v; //save a bit of unnecessary work when we are extending doc on the next line
+									delete toUpdate.__v; //save a bit of unnecessary work when we are extending doc on the next line
 								}
-								_.merge(doc, toSave);
+								_.merge(doc, toUpdate);
 								doc.increment();
 								schema.emit('preupdate', doc, previousVersion);
 
@@ -437,13 +437,13 @@ var expose = function(model, schema, opts) {
 
 			},
 			/**
-			 * finds one document with a supplied query and then updates it utilizing a provided mongoDB expression
-			 * @param query
-			 * @param expression
-			 * @param item
-			 * @returns {Promise} is resolved when item is pushed, is rejected when path is not found or item
+			 * finds one document with a supplied query and then pushes item into it's array on a path
+			 * @param {Object} query
+			 * @param {String} path
+			 * @param {*} item
+			 * @returns {Promise} is resolved with a length of the array when item is pushed, is rejected when path is not found or item
 			 */
-			update: function(query, expression) {
+			addToSet: function(query, path, item) {
 				var socket = this;
 				return new Promise(function(resolve, reject) {
 					model.findOne(query, function(err, doc) {
@@ -452,19 +452,84 @@ var expose = function(model, schema, opts) {
 							return reject(err);
 						}
 						if (doc) {
-							if (opts.checkPermission(socket, 'U', doc, expression)) {
-								schema.emit('preupdate', doc);	//mongoose does not trigger middleware for update
-								expression.$inc = {__v: 1};		//always increment version of the document by one
-								model.findOneAndUpdate(query, expression, {new: true}, function(err, modifiedDoc) {
+							if (opts.checkPermission(socket, 'U', doc)) {
+								var previousVersion = doc.toObject();
+
+								var set = objectResolvePath(doc, path);
+								if (Array.isArray(set)) {
+									if (set.indexOf(item) === -1) {
+										set.push(item);
+									} else {
+										return resolve(set.length);
+									}
+								} else {
+									return reject(new TypeError("Document ", doc._id, " hasn't an array on path ", path));
+								}
+								doc.increment();
+								schema.emit('preupdate', doc, previousVersion);
+
+								doc.save(function(err) {
 									if (err) {
-										debug('rejecting an update because: ', err);
+										debug('rejecting a save because: ', err);
 										reject(err);
 									} else {
-										schema.emit('update', modifiedDoc, doc);	//mongoose does not trigger middleware for update
-										schema.emit('CUD', 'update', modifiedDoc, doc); //so we are doing it by hand
+										console.log('set.length', set.length);
+										debug('document ', doc._id, ' saved, version now ', doc.__v);
+										resolve(set.length);	//we don't resolve with new document because when you want to display
+										// current version of document, just use liveQuery
+									}
+								});
+							} else {
+								reject(new Error('You lack a privilege to update this document'));
+							}
 
-										debug('document ', doc._id, ' updated to v ', modifiedDoc.__v);
-										resolve(modifiedDoc.__v);	//we don't resolve with new document because when you want to display
+						} else {
+							reject(new Error('no document to update found with _id: ' + id));
+						}
+					});
+				});
+
+			},
+			/**
+			 * finds one document with a supplied query and then pushes ans item into it's array on a path
+			 * @param {Object} query
+			 * @param {String} path
+			 * @param {*} item it is highly recommended to use simple values, not objects
+			 * @returns {Promise} is resolved with a length of the array when item is pushed, is rejected when path is not found or item
+			 */
+			removeFromSet: function(query, path, item) {
+				var socket = this;
+				return new Promise(function(resolve, reject) {
+					model.findOne(query, function(err, doc) {
+						if (err) {
+							debug('rejecting an update because: ', err);
+							return reject(err);
+						}
+						if (doc) {
+							if (opts.checkPermission(socket, 'U', doc)) {
+								var previousVersion = doc.toObject();
+
+								var set = objectResolvePath(doc, path);
+								if (Array.isArray(set)) {
+									var itemIndex = set.indexOf(item);
+                  if (itemIndex !== -1) {
+										set.splice(itemIndex, 1);
+									} else {
+										return resolve(set.length);
+									}
+								} else {
+									return reject(new TypeError("Document ", doc._id, " hasn't an array on path ", path));
+								}
+								doc.increment();
+								schema.emit('preupdate', doc, previousVersion);
+
+								doc.save(function(err) {
+									if (err) {
+										debug('rejecting a save because: ', err);
+										reject(err);
+									} else {
+										debug('document ', doc._id, ' saved, version now ', doc.__v);
+										resolve(set.length);	//we don't resolve with new document because when you want to display
 										// current version of document, just use liveQuery
 									}
 								});

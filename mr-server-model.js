@@ -9,16 +9,15 @@ var _ = require('lodash');
  * @param {Object} opts
  * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
  * @param {Object} opts.permissions should look something like:
- *    example: {
-			C: 1,
-			R: 0,
-			U: 5,
-			D: 5
-		}
+ 																permissions: {
+																	C: 1,
+																	R: 0,
+																	U: 5,
+																	D: 5
+																}
  * @param {Object} opts.statics will extend the mongoose schema.statics so that you can call this function on your model
- * @param {Function} opts.authFn will be passed to socket.io-rpc as authorization function for the whole model channel
  * @param {Function} opts.schemaInit gives you opportunity to use schema before mongoose model is instantiated
- * @returns {*}
+ * @returns {Object}
  * @constructor
  */
 module.exports = function MRModel(name, schema, opts) {
@@ -51,7 +50,7 @@ module.exports = function MRModel(name, schema, opts) {
 			}
 		}
 	}
-	mgSchema.pathPermissions = pathPermissions; // prepared object for handling access controll
+	mgSchema.pathPermissions = pathPermissions; // prepared object for handling access control
 
 	var invokeCUDEvent = function(evName, doc) {
 		mgSchema.emit(evName, doc);

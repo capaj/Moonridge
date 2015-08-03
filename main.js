@@ -52,7 +52,6 @@ module.exports = function (mongoose, connString) {
 	 *
 	 * @param schemaExtend
 	 * @param {Object} opts
-	 * @param {Function} opts.authFn will be set as default authFn for any model which user script might create, MANDATORY parameter
 	 * @returns {MRModel}
 	 */
 	function registerUserModel(schemaExtend, opts) {

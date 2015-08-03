@@ -66,13 +66,13 @@ module.exports = function (MR) {
         console.log("all collections should be clean");
 
         user.model.create({
-            name: 'admin', privilige_level: 50
+            name: 'admin', privilege_level: 50
         }).then(function () {
             console.log("admin created");
         });
 
         user.model.create({
-            name: 'testUser', privilige_level: 10
+            name: 'testUser', privilege_level: 10
         }).then(function () {
             console.log("testUser created");
         });

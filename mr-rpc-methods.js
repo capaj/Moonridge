@@ -30,7 +30,7 @@ var expose = function(model, schema, opts) {
 		 * @returns {*}
 		 */
 		opts.dataTransform = function deleteUnpermittedProps(doc, op, socket) {
-			var userPL = socket.moonridge.user.privilige_level;
+			var userPL = socket.moonridge.user.privilege_level;
 
 			var pathPs = schema.pathPermissions;
 			var docClone = _.clone(doc);
@@ -133,7 +133,7 @@ var expose = function(model, schema, opts) {
 		 */
 		opts.checkPermission = function(socket, op, doc) {
 			var user = socket.moonridge.user;
-			var PL = user.privilige_level; //privilige level
+			var PL = user.privilege_level;
 
 			if (doc && op !== 'C') {   //if not creation, with creation only privileges apply
 				if (doc.owner && doc.owner.toString() === user.id) {
@@ -145,7 +145,7 @@ var expose = function(model, schema, opts) {
 			}
 
 			if (this.permissions && this.permissions[op]) {
-				if (PL < this.permissions[op]) {
+				if (PL < this.permissions[op]) { //if bigger than connected user's
 					return false;
 				}
 			}
@@ -209,7 +209,7 @@ var expose = function(model, schema, opts) {
 			if (!opts.checkPermission(this, 'R')) {
 				throw new Error('You lack a privilege to read this document');
 			}
-			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilige_level, 'R');
+			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');
 			//debug('clientQuery', clientQuery);
 			var queryAndOpts = queryBuilder(model, clientQuery);
 
@@ -238,7 +238,7 @@ var expose = function(model, schema, opts) {
 			}
 
 			if (!clientQuery.count) {
-				accessControlQueryModifier(clientQuery, schema, this.moonridge.privilige_level, 'R');
+				accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');
 			}
 
 			var builtQuery = queryBuilder(model, clientQuery);

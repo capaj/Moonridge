@@ -91,8 +91,6 @@ module.exports = function (mongoose, connString) {
 		server.expressApp.get('/MR/models.js', function (req, res){
 			res.type('application/javascript; charset=utf-8');
 
-			var fullUrl = "'" + req.protocol + '://' + req.get('host') + "'";
-
 			var clSideScript = 'module.exports = function(MR) {' +
 					'var modelsHash = {};' +
 					'var models = ' + JSON.stringify(modelNames) + ';' +

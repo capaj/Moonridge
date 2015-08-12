@@ -6,7 +6,7 @@ var userModel;
 var toCallOnCreate = [];
 var modelNames = [];
 var express = require('express');
-
+var models = {};
 /**
  *
  * @param {Object} mongoose ORM module
@@ -45,6 +45,7 @@ module.exports = function (mongoose, connString) {
 		var model = MRModel.apply(mongoose, arguments);
 		toCallOnCreate.push(model._exposeCallback);
 		modelNames.push(name);
+		models[name] = model.model;
 		return model;
 	}
 
@@ -63,6 +64,7 @@ module.exports = function (mongoose, connString) {
 		_.extend(userSchema, schemaExtend);
 		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
 		modelNames.push('user');
+		models['user'] = userModel.model;
 		toCallOnCreate.push(userModel._exposeCallback);
 
 		return userModel;
@@ -136,6 +138,7 @@ module.exports = function (mongoose, connString) {
 	return {
 		model: regNewModel,
 		userModel: registerUserModel,
-		bootstrap: bootstrap
+		bootstrap: bootstrap,
+		models: models
 	};
 };

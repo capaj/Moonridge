@@ -17,12 +17,12 @@ describe('count queries', function() {
 	it('should be able to live query the count of documents', function() {
 		LQ = fighterModel.liveQuery().count().exec();
 		LQ.promise.then(function(resLQ) {
-			LQ.count.should.eql(3);
+			LQ.result.should.eql(3);
 			return Promise.all([
 				fighterModel.create({name: 'Varys', health: 40}),
 				fighterModel.create({name: 'Tyrion', health: 35})
 			]).then(function(fighters){
-				LQ.count.should.eql(5);
+				LQ.result.should.eql(5);
 				return Promise.all(fighters.map(fighterModel.remove));
 			});
 		});

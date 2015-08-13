@@ -45,11 +45,11 @@ describe('distinct queries', function() {
 				var unsub = LQ.on('any', function(evName, params) {
 					var syncObj = params[1];
 					evName.should.equal('distinctSync');
-					console.log("on any", LQ.values, params);
+					console.log("on any", LQ.result, params);
 					syncObj.add.should.eql([65]);
 					syncObj.remove.should.eql([]);
 
-					LQ.values.should.eql([50, 20, 10, 65]);
+					LQ.result.should.eql([50, 20, 10, 65]);
 					unsub();
 					done();
 

@@ -51,7 +51,7 @@
     <br/>
 
     <br/>
-    Total documents: <span ng-bind="cLQ.count"></span> || Limit: <input type="number" ng-model="limit">
+    Total documents: <span ng-bind="cLQ.result"></span> || Limit: <input type="number" ng-model="limit">
 
     <div class="row query-header">
         <div class="col-md-8">
@@ -61,7 +61,7 @@
             <mr-query-dropdown query="LQ" gui-path-texts="dropdownTexts"></mr-query-dropdown>
         </div>
     </div>
-    <p ng-repeat="fighter in LQ.docs" class="left-slide">
+    <p ng-repeat="fighter in LQ.result" class="left-slide">
         {{ fighter }}
         <button class="btn btn-warning" ng-click="hit(fighter)">Hit</button>
         <button class="btn btn-success" ng-click="heal(fighter)">Heal</button>
@@ -70,10 +70,10 @@
 
     <h1>Find One query</h1>
     <p>
-        {{ oneLQ.doc }}
-        <button class="btn btn-warning" ng-click="hit(oneLQ.doc)">Hit</button>
-        <button class="btn btn-success" ng-click="heal(oneLQ.doc)">Heal</button>
-        <button class="btn btn-danger" ng-click="remove(oneLQ.doc)">Del</button>
+        {{ oneLQ.result }}
+        <button class="btn btn-warning" ng-click="hit(oneLQ.result)">Hit</button>
+        <button class="btn btn-success" ng-click="heal(oneLQ.result)">Heal</button>
+        <button class="btn btn-danger" ng-click="remove(oneLQ.result)">Del</button>
     </p>
     <h4>Admin: {{admin.doc}}</h4>
 

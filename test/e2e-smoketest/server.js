@@ -1,13 +1,12 @@
-var mongoose = require('mongoose');
 var _ = require('lodash');
 var locals = require('./localVariables.json');
 
-var Moonridge = require('../../main');
+var Moonridge = require('../../moonridge');
 var staticMW = require('express').static;
 
+var MR = Moonridge(locals.connString);
+var mongoose = MR.mongoose;
 mongoose.set('debug', true);
-
-var MR = Moonridge(mongoose, locals.connString);
 var dbInit = require('./db-init');
 dbInit(MR);
 

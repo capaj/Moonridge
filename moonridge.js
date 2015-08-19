@@ -7,14 +7,14 @@ var toCallOnCreate = [];
 var modelNames = [];
 var express = require('express');
 var models = {};
+var mongoose = require('mongoose');
 /**
  *
- * @param {Object} mongoose ORM module
  * @param {String} connString to mongoDB
  * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}} moonridge
  * instance which allows to register models and bootstrap itself
  */
-module.exports = function (mongoose, connString) {
+module.exports = function (connString) {
 
 	if (connString) {
 		mongoose.connect(connString, function (err) {
@@ -139,6 +139,7 @@ module.exports = function (mongoose, connString) {
 		model: regNewModel,
 		userModel: registerUserModel,
 		bootstrap: bootstrap,
+		mongoose: mongoose,
 		models: models
 	};
 };

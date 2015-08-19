@@ -32,16 +32,27 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](
 ```
 ## On the CLIENT:
 ```javascript
-   	var $MR = require('moonridge-client');
+   	var Moonridge = require('moonridge-client');
 	//Moonridge backend
-	var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
+	var mr = Moonridge({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
 	var fighterModel = mr.model('fighter');
 	//live query
-	var LQ = fighterModel.liveQuery().sort('health').exec();	
+	var LQ = fighterModel.liveQuery().sort('health').exec();
+
+	LQ.promise.then(function(){
+	  LQ.result; //has a result of the query-array or a number
+	  //query is live now
+	});
 	//create a new entity
 	fighterModel.create({name: 'Arya', health: 50}).then(function(created){
-		console.log('created a fighter: ', created);
-		//LQ.docs now also contains Arya
+	  console.log('created a fighter: ', created);
+	  //LQ.result now also contains Arya
+	  created.health = 49;
+	  //update an entity
+	  fighterModel.update(created).then(function(){
+  	    //remove it from DB
+  	    fighterModel.remove(created);
+	  });
 	});
 ```    
 Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)

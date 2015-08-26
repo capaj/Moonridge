@@ -130,9 +130,10 @@ LiveQuery.prototype = {
 		var evName = opts.evName;
 		var mDoc = opts.mongooseDoc;
 		var doc;
-		if (mDoc.toObject) {
+		if (mDoc) {
 			doc = mDoc.toObject();
 		} else {
+			console.log("no mongooseDoc", opts.mongooseDoc);
 			doc = {_id: opts.docId};
 		}
 		var cQindex = this.getIndexById(doc._id); //index of current doc in the query

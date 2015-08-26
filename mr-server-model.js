@@ -79,7 +79,7 @@ module.exports = function MRModel(name, schema, opts) {
 
 	return {
 		model: model,
-		reInitialize: schemaInit,
+		schemaInit: opts.schemaInit,
 		schema: mgSchema,
 		_exposeCallback: exposeCallback
 	};

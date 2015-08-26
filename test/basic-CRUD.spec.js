@@ -75,7 +75,7 @@ describe("basic CRUD including working liveQueries",function(){
 	});
 
 
-	it('should be able to update an entity of a model', function(done){
+	it('should be able to update an entity of a model', function(){
 		fighterEntity.health += 10;
 		return fighterModel.update(fighterEntity);
 	});
@@ -91,7 +91,7 @@ describe("basic CRUD including working liveQueries",function(){
 		});
 	});
 
-	it('should be able to delete an entity of a model', function(done){
+	it('should be able to delete an entity of a model', function(){
 		return fighterModel.remove({_id: fighterId});
 	});
 

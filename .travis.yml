@@ -6,7 +6,7 @@ services:
 before_script:
   - sleep 1
 before_install:
-  - npm install jspm -g && cd test/e2e-smoketest && npm install && cd ../.. && cd Moonridge-client && npm install && cd ..
+  - npm install jspm -g && cd Moonridge-client && npm install && cd ..
 deploy:
   provider: npm
   email: capajj@gmail.com

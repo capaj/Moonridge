@@ -3,6 +3,7 @@ var populateWithClientQuery = require('./populate-doc-util');
 var liveQueriesStore = require('./live-queries-store');
 var debug = require('debug')('moonridge:server');
 var _ = require('lodash');
+
 /**
  * @param {String} qKey
  * @param {Mongoose.Query} mQuery
@@ -18,11 +19,16 @@ function LiveQuery(qKey, mQuery, queryMethodsHandledByMoonridge, model) {
 	this.listeners = {};
 	this.mQuery = mQuery;   //mongoose query
 
+	if (this.mQuery.op === 'distinct') {
+		 this.sync = LiveQuery.prototype.syncDistinct;
+	}
+
 	this.qKey = qKey;
 	this.model = model;
 	this.modelName = model.modelName;
 	this.indexedByMethods = queryMethodsHandledByMoonridge; //serializable client query object
 	liveQueriesStore[this.modelName][qKey] = this;
+
 	return this;
 }
 
@@ -123,9 +129,6 @@ LiveQuery.prototype = {
 		});
 	},
 	sync: function(opts) {
-		if (this.mQuery.op === 'distinct') {
-			return this.syncDistinct(opts);
-		}
 		var self = this;
 		var evName = opts.evName;
 		var mDoc = opts.mongooseDoc;

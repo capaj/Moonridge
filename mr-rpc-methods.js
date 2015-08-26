@@ -47,20 +47,24 @@ var expose = function(model, schema, opts) {
 		}
 	}
 
-	var modelSync = function(evName, mDoc) {   // will be called by schema's event firing
+	var modelSync = function(evName) {   // will be called by schema's event firing
+		return function(mDoc) {
+			Object.keys(liveQueries).forEach(function(LQString) {
 
-		Object.keys(liveQueries).forEach(function(LQString) {
+				setImmediate(function(){	//we want to break out of promise error catching
+					liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
+				});
 
-			setImmediate(function(){	//we want to break out of promise error catching
-				liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
 			});
-
-    });
-
+		};
   };
-  schema.on('create', modelSync);
-  schema.on('update', modelSync);
-  schema.on('remove', modelSync);
+
+	['create',
+		'update',
+		'remove'
+	].forEach(function (evName){
+			schema.on(evName, modelSync(evName));
+	});
 
 	var notifySubscriber = function(clientPubMethod) {
 		return function(doc, evName) {   // will be called by schema's event firing

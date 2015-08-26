@@ -47,7 +47,7 @@ var expose = function(model, schema, opts) {
 		}
 	}
 
-	schema.on('CUD', function(evName, mDoc) {   // will be called by schema's event firing
+	var modelSync = function(evName, mDoc) {   // will be called by schema's event firing
 
 		Object.keys(liveQueries).forEach(function(LQString) {
 
@@ -55,9 +55,12 @@ var expose = function(model, schema, opts) {
 				liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
 			});
 
-		});
+    });
 
-	});
+  };
+  schema.on('create', modelSync);
+  schema.on('update', modelSync);
+  schema.on('remove', modelSync);
 
 	var notifySubscriber = function(clientPubMethod) {
 		return function(doc, evName) {   // will be called by schema's event firing
@@ -100,7 +103,7 @@ var expose = function(model, schema, opts) {
 				unsubscribe(existing[evName], evName);
 			}
 
-			var clFns = socket.cRpcChnl;
+			var clFns = socket.cRpcChnl;	//this is very possibly wrong, check this
 
 			var evId = model.on(evName, notifySubscriber(clFns.pub, socket));
 

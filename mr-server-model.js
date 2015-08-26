@@ -31,14 +31,10 @@ module.exports = function MRModel(name, schema, opts) {
 		_.extend(mgSchema.statics, opts.statics);
 	}
 
-	var schemaInit = function() {
-		if (opts.schemaInit) {
-			debug('schemaInit for ' + name);
-			opts.schemaInit(mgSchema);
-		}
-	};
-
-	schemaInit();
+	if (opts.schemaInit) {
+		debug('running schemaInit for ' + name);
+		opts.schemaInit(mgSchema);
+	}
 
 	var paths = mgSchema.paths;
 	var pathPermissions = {};
@@ -51,11 +47,6 @@ module.exports = function MRModel(name, schema, opts) {
 		}
 	}
 	mgSchema.pathPermissions = pathPermissions; // prepared object for handling access control
-
-	var invokeCUDEvent = function(evName, doc) {
-		mgSchema.emit(evName, doc);
-		mgSchema.emit('CUD', evName, doc);
-	};
 
 	var newDocs = [];
 	mgSchema.pre('save', function(next) {
@@ -70,17 +61,16 @@ module.exports = function MRModel(name, schema, opts) {
 		var indexInNewDocs = newDocs.indexOf(doc._id);
 		if (indexInNewDocs !== -1) {
 			newDocs.splice(indexInNewDocs, 1);
-			invokeCUDEvent('create', doc);
+			mgSchema.emit('create', doc);
 		} else {
-			invokeCUDEvent('update', doc);
+			mgSchema.emit('update', doc);
 		}
 		return true;
 	});
 
 
 	mgSchema.post('remove', function postRemove(doc) {
-		invokeCUDEvent('remove', doc);
-//        console.log('%s has been removed', doc._id);
+		mgSchema.emit('remove', doc);
 	});
 
 	var model = this.model(name, mgSchema);

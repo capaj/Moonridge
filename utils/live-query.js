@@ -129,7 +129,12 @@ LiveQuery.prototype = {
 		var self = this;
 		var evName = opts.evName;
 		var mDoc = opts.mongooseDoc;
-		var doc = mDoc.toObject();
+		var doc;
+		if (mDoc.toObject) {
+			doc = mDoc.toObject();
+		} else {
+			doc = {_id: opts.docId};
+		}
 		var cQindex = this.getIndexById(doc._id); //index of current doc in the query
 
 		if (evName === 'remove' && this.docs[cQindex]) {
@@ -176,7 +181,10 @@ LiveQuery.prototype = {
 			var checkQuery = opts.model.findOne(this.mQuery);
 			debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + self.qKey);
 			if (!this.indexedByMethods.findOne) {
-				checkQuery = checkQuery.where('_id').equals(doc._id).select('_id');
+				checkQuery = checkQuery.where('_id').equals(doc._id);
+				if (!mDoc) {
+					checkQuery.select('_id');
+				}
 			}
 			checkQuery.exec(function(err, checkedDoc) {
 					if (err) {
@@ -184,6 +192,10 @@ LiveQuery.prototype = {
 					}
 					if (checkedDoc) {   //doc satisfies the query
 
+						if (!mDoc) {	//this is needed for event which don't get a mongoose object passed at the beginning
+							mDoc = checkedDoc;
+							doc = checkedDoc;
+						}
 						if (self.indexedByMethods.populate.length !== 0) {    //needs to populate before send
 							doc = mDoc;
 						}

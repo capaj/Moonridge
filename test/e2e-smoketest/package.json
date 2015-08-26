@@ -3,16 +3,5 @@
   "version": "1.0.0",
   "scripts": {
     "installjspm": "cd angular && jspm install && cd .. && cd aurelia && jspm install && cd .. && cd react && jspm install"
-  },
-  "dependencies": {
-    "lodash": "~2.4",
-    "mongoose": "^4",
-    "morgan": "^1.5.0",
-    "express": "~4.10"
-  },
-  "devDependencies": {
-    "grunt-karma": "~0.9",
-    "karma-jasmine": "^0.3.2",
-    "karma-phantomjs-launcher": "^0.1.4"
   }
 }

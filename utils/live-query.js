@@ -129,6 +129,10 @@ LiveQuery.prototype = {
 			self._distributeChange(syncObj, 'distinctSync');
 		});
 	},
+	/**
+	 * @param {Object} opts sync options
+	 * @param {Object|String} opts.mongooseDoc a document or an id of it to be synced
+   */
 	sync: function(opts) {
 		var self = this;
 		var evName = opts.evName;
@@ -140,7 +144,6 @@ LiveQuery.prototype = {
 			doc = opts.mongooseDoc.toObject();
 			id = doc._id;
 		} else {
-			console.log("no mongooseDoc", opts.mongooseDoc);
 			id = opts.mongooseDoc;
 		}
 		var cQindex = this.getIndexById(id); //index of current doc in the query

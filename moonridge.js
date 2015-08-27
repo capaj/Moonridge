@@ -81,8 +81,6 @@ module.exports = function (connString) {
 		Object.keys(models).forEach(function (modelName) {
 			var model = models[modelName];
       _.assign(model, model._exposeCallback(server));   //return object containing modelName and liveQueries Object for that model
-			console.log("modelName", modelName);
-
 		});
 
 		io.use(function(socket, next) {

@@ -410,7 +410,6 @@ var expose = function(model, schema, opts) {
 										debug('rejecting a save because: ', err);
 										reject(err);
 									} else {
-										console.log('set.length', set.length);
 										debug('document ', doc._id, ' saved, version now ', doc.__v);
 										resolve(set.length);	//we don't resolve with new document because when you want to display
 										// current version of document, just use liveQuery

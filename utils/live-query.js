@@ -62,6 +62,7 @@ LiveQuery.prototype = {
 	_distributeChange: function(doc, evName, resultIndex) {
 		var self = this;
 		var actuallySend = function() {
+
 			for (var socketId in self.listeners) {
 				var listener = self.listeners[socketId];
 				var toSend = null;
@@ -71,7 +72,7 @@ LiveQuery.prototype = {
 				} else if(self.mQuery.op === 'distinct'){
 					toSend = doc;
 				} else {
-					if (evName === 'remove') {
+					if (evName === 'remove' && doc._id) {
 						toSend = doc._id.toString();	//remove needs only _id, which should be always defined
 					} else {
 						toSend = self.model.moonridgeOpts.dataTransform(doc, 'R', listener.socket);
@@ -79,12 +80,12 @@ LiveQuery.prototype = {
 				}
 
 				debug('sending ', toSend,' event ', evName,', pos param ', resultIndex);
-
+				console.log('sending', toSend);
 				listener.socket.rpc('MR.' + self.modelName + '.' + evName)(listener.clIndex, toSend, resultIndex);
 			}
 		};
 
-		if (typeof doc.populate === 'function') { //TODO fix this
+		if (typeof doc.populate === 'function') {
 			populateWithClientQuery(doc, this.indexedByMethods.populate, function(err, populated) {
 				if (err) {
 					throw err;
@@ -147,7 +148,7 @@ LiveQuery.prototype = {
 		if (evName === 'remove' && this.docs[cQindex]) {
 
 			this.docs.splice(cQindex, 1);
-			this._distributeChange(doc, evName, cQindex);
+			this._distributeChange(doc || id.toString(), evName, cQindex);
 
 			if (this.indexedByMethods.limit) {
 				var skip = 0;
@@ -189,7 +190,7 @@ LiveQuery.prototype = {
 			debug('After ' + evName + ' checking ' + id + ' in a query ' + self.qKey);
 			if (!this.indexedByMethods.findOne) {
 				checkQuery = checkQuery.where('_id').equals(id);
-				if (!doc) {
+				if (doc) {
 					checkQuery.select('_id');
 				}
 			}
@@ -197,11 +198,13 @@ LiveQuery.prototype = {
 					if (err) {
 						throw err;
 					}
+
 					if (checkedDoc) {   //doc satisfies the query
 
 						if (!doc) {	//this is needed for event which don't get a mongoose object passed at the beginning
 							doc = checkedDoc;
 						}
+
 						if (self.indexedByMethods.populate.length !== 0) {    //needs to populate before send
 							doc = checkedDoc;
 						}
@@ -226,6 +229,7 @@ LiveQuery.prototype = {
 
 								}
 							}
+
 							if (evName === 'update') {
 								index = getIndexInSorted(doc, self.docs, sortBy);
 
@@ -250,16 +254,13 @@ LiveQuery.prototype = {
 							self._distributeChange(doc, evName, index);
 						} else {
 							if (evName === 'create') {
-								if (cQindex === -1) {
-									self.docs.push(doc);
-									self._distributeChange(doc, 'add', cQindex);
-								}
+								self.docs.push(doc);
+								self._distributeChange(doc, 'add', cQindex);
 							}
 							if (evName === 'update') {
-								if (cQindex === -1) {
-									var newIndex = self.docs.push(doc);
-									self._distributeChange(doc, evName, newIndex);	//doc wasn't in the result, but after update is
-								}
+								var newIndex = self.docs.push(doc);
+								self._distributeChange(doc, evName, newIndex);	//doc wasn't in the result, but after update is
+
 							}
 
 						}
@@ -267,7 +268,7 @@ LiveQuery.prototype = {
 						debug('Checked doc ' + id + ' in a query ' + self.qKey + ' was not found');
 						if (evName === 'update' && cQindex !== -1) {
 							self.docs.splice(cQindex, 1);
-							self._distributeChange(doc, evName, cQindex);		//doc was in the result, but after update is no longer
+							self._distributeChange(doc || id, evName, cQindex);		//doc was in the result, but after update is no longer
 						}
 					}
 				}

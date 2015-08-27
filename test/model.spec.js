@@ -4,7 +4,7 @@ var MR = Moonridge(locals.connString);
 var expect = require('chai').expect;
 var server;
 
-describe.only('Moonridge model', function() {
+describe('Moonridge model', function() {
 	var LQ;
 	var sampleModel;
 
@@ -26,23 +26,27 @@ describe.only('Moonridge model', function() {
 		//normally mongoose would not trigger those-they are only triggered when doing doc.save().
 		// We need to have them triggered in order for liveQueries to work
 		var c = 0;
-		var fakeSocket = {moonridge:{user:{}}, rpc: function() {
+		var id;
+
+		var fakeSocket = {id:'testSocketId', registeredLQs: {}, moonridge:{user:{}}, rpc: function(method) {
 			return function() {
-				console.log("rpc Call", arguments);
+				console.log("rpc Call on ", method, arguments);
 				c++;
+				if (c === 3) {
+					expect(arguments[1]).to.equal(id.toString());
+				}
 			}
 		}};
-		LQ = sampleModel.liveQuery.call(fakeSocket, [], 0);
+		LQ = sampleModel.liveQuery.call(fakeSocket, [], 1);
 
-		//sampleModel.liveQueries["[]"]
 
 		sampleModel.model.create({name: 'test'}).then(function(created) {
-			var id = created._id.valueOf();
+			id = created._id.valueOf();
 
 			sampleModel.schema.on('remove', function(doc) {
 				expect(doc).to.equal(id);
 				setTimeout(function(){
-					expect(c).to.equal(2);
+					expect(c).to.equal(3);
 					done();
 				}, 100);
 			});
@@ -50,10 +54,13 @@ describe.only('Moonridge model', function() {
 
 			sampleModel.schema.on('update', function(doc) {
 				expect(doc).to.equal(id);
-				sampleModel.findByIdAndRemove(id);
+				setTimeout(function(){
+					sampleModel.findByIdAndRemove(id);
+					expect(c).to.equal(2);
+				}, 100);
 			});
 
-      sampleModel.findByIdAndUpdate(id, {name: 'test2'});
+			sampleModel.findByIdAndUpdate(id, {name: 'test2'});
 		}, function(err) {
 			throw err;
 		});

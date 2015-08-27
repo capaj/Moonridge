@@ -216,10 +216,8 @@ var expose = function(model, schema, opts) {
 						} else {
 							retVal.docs = LQ.docs;
 						}
-
-						resolve(retVal);
-
 						LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts};
+						resolve(retVal);
 					};
 
 					LQ.firstExecPromise.then(resolveFn);

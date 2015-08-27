@@ -1,6 +1,4 @@
-.idea/encodings.xml
-.idea/Moonridge.iml
-.idea/misc.xml
+.idea
 node_modules
 lib-cov
 *.seed

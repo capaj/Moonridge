@@ -4,7 +4,7 @@ var queryBuilder = require('./query-builder');
 var LiveQuery = require('./utils/live-query');
 var maxLQsPerClient = 100;
 var debug = require('debug')('moonridge:server');
-var liveQueriesStore = require('./utils/live-queries-store');
+var liveQueriesMap = require('./utils/live-queries-map');
 var objectResolvePath = require('./utils/object-resolve-path');
 /**
  *
@@ -13,9 +13,9 @@ var objectResolvePath = require('./utils/object-resolve-path');
  * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function(model, schema, opts) {
-	var liveQueries;
+	var liveQueries = {};
 	var modelName = model.modelName;
-	liveQueriesStore[modelName] = liveQueries = {};
+	liveQueriesMap.set(model, liveQueries);
 
 	debug('expose model ', modelName);
 	if (opts.dataTransform) {
@@ -171,7 +171,7 @@ var expose = function(model, schema, opts) {
 		},
 		/**
 		 * @param {Object} clientQuery object to be parsed by queryBuilder, consult mongoose query.js docs for reference
-		 * @param {Number} LQIndex
+		 * @param {Number} LQIndex clientside index of this particular query
 		 * @returns {Promise} from mongoose query, resolves with an array of documents
 		 */
 		liveQuery: function(clientQuery, LQIndex) {
@@ -179,24 +179,22 @@ var expose = function(model, schema, opts) {
 				throw new Error('You lack a privilege to read this collection');
 			}
 
-			if (!clientQuery.count) {
-				accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');
-			}
-
-			var builtQuery = queryBuilder(model, clientQuery);
-
-			var queryOptions = builtQuery.opts;
-			var mQuery = builtQuery.mQuery;
-
-			if (!mQuery.exec) {
-				throw new Error('query builder has returned invalid query');
-			}
+			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');
 			var socket = this;
 
-			var qKey = JSON.stringify(clientQuery);
-			var LQ = liveQueries[qKey];
-
 			return new Promise(function(resolve, reject) {
+				var builtQuery = queryBuilder(model, clientQuery);
+
+				var qKey = JSON.stringify(clientQuery);
+				var LQ = liveQueries[qKey];
+
+				var queryOptions = builtQuery.opts;
+				var mQuery = builtQuery.mQuery;
+
+				if (!mQuery.exec) {
+					throw new Error('query builder has returned invalid query');
+				}
+
 				var pushListeners = function(LQOpts) {
 
 					var activeClientQueryIndexes = Object.keys(socket.registeredLQs);

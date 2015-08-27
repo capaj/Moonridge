@@ -1,6 +1,6 @@
 var getIndexInSorted = require('./indexInSortedArray');
 var populateWithClientQuery = require('./populate-doc-util');
-var liveQueriesStore = require('./live-queries-store');
+var liveQueriesMap = require('./live-queries-map');
 var debug = require('debug')('moonridge:server');
 var _ = require('lodash');
 
@@ -27,14 +27,14 @@ function LiveQuery(qKey, mQuery, queryMethodsHandledByMoonridge, model) {
 	this.model = model;
 	this.modelName = model.modelName;
 	this.indexedByMethods = queryMethodsHandledByMoonridge; //serializable client query object
-	liveQueriesStore[this.modelName][qKey] = this;
+	liveQueriesMap.get(this.model)[qKey] = this;
 
 	return this;
 }
 
 LiveQuery.prototype = {
 	destroy: function() {
-		delete liveQueriesStore[this.modelName][this.qKey];
+		delete liveQueriesMap.get(this.model)[this.qKey];
 	},
 	/**
 	 *

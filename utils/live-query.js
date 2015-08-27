@@ -84,7 +84,7 @@ LiveQuery.prototype = {
 			}
 		};
 
-		if (typeof doc.populate === 'function') {
+		if (typeof doc.populate === 'function') { //TODO fix this
 			populateWithClientQuery(doc, this.indexedByMethods.populate, function(err, populated) {
 				if (err) {
 					throw err;
@@ -131,15 +131,18 @@ LiveQuery.prototype = {
 	sync: function(opts) {
 		var self = this;
 		var evName = opts.evName;
-		var mDoc = opts.mongooseDoc;
+
 		var doc;
-		if (mDoc) {
-			doc = mDoc.toObject();
+		var id;
+
+		if (opts.mongooseDoc.toObject) {
+			doc = opts.mongooseDoc.toObject();
+			id = doc._id;
 		} else {
 			console.log("no mongooseDoc", opts.mongooseDoc);
-			doc = {_id: opts.docId};
+			id = opts.mongooseDoc;
 		}
-		var cQindex = this.getIndexById(doc._id); //index of current doc in the query
+		var cQindex = this.getIndexById(id); //index of current doc in the query
 
 		if (evName === 'remove' && this.docs[cQindex]) {
 
@@ -183,10 +186,10 @@ LiveQuery.prototype = {
 
 		} else {
 			var checkQuery = opts.model.findOne(this.mQuery);
-			debug('After ' + evName + ' checking ' + doc._id + ' in a query ' + self.qKey);
+			debug('After ' + evName + ' checking ' + id + ' in a query ' + self.qKey);
 			if (!this.indexedByMethods.findOne) {
-				checkQuery = checkQuery.where('_id').equals(doc._id);
-				if (!mDoc) {
+				checkQuery = checkQuery.where('_id').equals(id);
+				if (!doc) {
 					checkQuery.select('_id');
 				}
 			}
@@ -196,12 +199,11 @@ LiveQuery.prototype = {
 					}
 					if (checkedDoc) {   //doc satisfies the query
 
-						if (!mDoc) {	//this is needed for event which don't get a mongoose object passed at the beginning
-							mDoc = checkedDoc;
+						if (!doc) {	//this is needed for event which don't get a mongoose object passed at the beginning
 							doc = checkedDoc;
 						}
 						if (self.indexedByMethods.populate.length !== 0) {    //needs to populate before send
-							doc = mDoc;
+							doc = checkedDoc;
 						}
 						if (self.indexedByMethods.findOne) {
 							self.docs[0] = checkedDoc;
@@ -262,7 +264,7 @@ LiveQuery.prototype = {
 
 						}
 					} else {
-						debug('Checked doc ' + doc._id + ' in a query ' + self.qKey + ' was not found');
+						debug('Checked doc ' + id + ' in a query ' + self.qKey + ' was not found');
 						if (evName === 'update' && cQindex !== -1) {
 							self.docs.splice(cQindex, 1);
 							self._distributeChange(doc, evName, cQindex);		//doc was in the result, but after update is no longer

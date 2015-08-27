@@ -3,8 +3,7 @@ var _ = require('lodash');
 var debug = require('debug')('moonridge:server');
 var MRModel = require('./mr-server-model');
 var userModel;
-var toCallOnCreate = [];
-var modelNames = [];
+
 var express = require('express');
 var models = {};
 var mongoose = require('mongoose');
@@ -43,9 +42,7 @@ module.exports = function (connString) {
 	function regNewModel(name, schema, opts) {
 
 		var model = MRModel.apply(mongoose, arguments);
-		toCallOnCreate.push(model._exposeCallback);
-		modelNames.push(name);
-		models[name] = model.model;
+		models[name] = model;
 		return model;
 	}
 
@@ -63,26 +60,29 @@ module.exports = function (connString) {
 		var userSchema = require('./utils/user-model-base');
 		_.extend(userSchema, schemaExtend);
 		userModel = MRModel.call(mongoose, 'user', userSchema, opts);
-		modelNames.push('user');
-		models['user'] = userModel.model;
-		toCallOnCreate.push(userModel._exposeCallback);
+		models['user'] = userModel;
 
 		return userModel;
 	}
 
 	/**
-	 *
-	 * @param {Number} port Express.js app object
+	 * Shares the same signature as express.js listen method, because it passes arguments to it
+	 * @param {Number} port
+	 * @param {String} [hostname]
+	 * @param {Function} [Callback]
 	 * @returns {{rpcNsp: (Emitter), io: {Object}, server: http.Server}}
 	 */
-	function bootstrap(port) {
-		var server = new RPC(port);
+	function bootstrap() {
+		var server = RPC.apply(null, arguments);
 		var io = server.io;
 
 		var allQueries = [];
 
-		toCallOnCreate.forEach(function (CB) {
-			allQueries.push(CB(server));   //return object containing modelName and liveQueries Object for that model
+		Object.keys(models).forEach(function (modelName) {
+			var model = models[modelName];
+      _.assign(model, model._exposeCallback(server));   //return object containing modelName and liveQueries Object for that model
+			console.log("modelName", modelName);
+
 		});
 
 		io.use(function(socket, next) {
@@ -92,7 +92,7 @@ module.exports = function (connString) {
 
 		server.expressApp.get('/MR/models.js', function (req, res){
 			res.type('application/javascript; charset=utf-8');
-
+			var modelNames = Object.keys(models);
 			var clSideScript = 'module.exports = function(MR) {' +
 					'var modelsHash = {};' +
 					'var models = ' + JSON.stringify(modelNames) + ';' +

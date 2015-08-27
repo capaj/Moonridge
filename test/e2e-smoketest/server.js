@@ -65,3 +65,5 @@ server.expose({
 		}
 	}
 });
+
+module.exports = MR;

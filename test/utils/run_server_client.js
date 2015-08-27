@@ -8,7 +8,7 @@ var $MR = require('../../Moonridge-client/moonridge-client');
 var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
 
 mr.socket.on('disconnect', function() {
-	throw new Error('Disconnection should not occurr.');
+	throw new Error('Disconnection should not occur');
 });
 
 module.exports = {

@@ -79,7 +79,21 @@ module.exports = function MRModel(name, schema, opts) {
 
 	return {
 		model: model,
-		reInitialize: schemaInit,
+		findByIdAndUpdate: function() {
+			var args = arguments;
+			return model.findByIdAndUpdate.apply(model, args).then(function(result) {
+				mgSchema.emit('update', args[0]);
+				return result;
+			});
+		},
+		findByIdAndRemove: function() {
+			var args = arguments;
+			return model.findByIdAndRemove.apply(model, args).then(function(result) {
+				mgSchema.emit('remove', args[0]);
+				return result;
+			});
+		},
+		schemaInit: opts.schemaInit,
 		schema: mgSchema,
 		_exposeCallback: exposeCallback
 	};

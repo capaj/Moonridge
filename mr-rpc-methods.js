@@ -47,83 +47,24 @@ var expose = function(model, schema, opts) {
 		}
 	}
 
-	var modelSync = function(evName, mDoc) {   // will be called by schema's event firing
+	var modelSync = function(evName) {   // will be called by schema's event firing
+		return function(mDoc) {
+			Object.keys(liveQueries).forEach(function(LQString) {
 
-		Object.keys(liveQueries).forEach(function(LQString) {
-
-			setImmediate(function(){	//we want to break out of promise error catching
-				liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
-			});
-
-    });
-
-  };
-  schema.on('create', modelSync);
-  schema.on('update', modelSync);
-  schema.on('remove', modelSync);
-
-	var notifySubscriber = function(clientPubMethod) {
-		return function(doc, evName) {   // will be called by schema's event firing
-			clientPubMethod(doc, evName);
-		}
-	};
-
-	function unsubscribe(id, event) {  //accepts same args as findFn
-		var res = model.off(id, event);
-		if (res) {
-			delete this.mrEventIds[event];
-		}
-		return res;
-	}
-
-	/**
-	 * @param {Socket} socket
-	 */
-	function unsubscribeAll(socket) {
-		var soc = socket || this;
-		var mrEventIds = soc.mrEventIds;
-		for (var eN in mrEventIds) {
-			unsubscribe.call(soc, mrEventIds[eN], eN);
-		}
-	}
-
-	function subscribe(evName) {
-		if (evName) {
-			var socket = this;
-			if (!socket.mrEventIds) {
-				socket.mrEventIds = {};
-
-				socket.on('disconnect', function() {
-					unsubscribeAll(socket);
+				setImmediate(function(){	//we want to break out of promise error catching
+					liveQueries[LQString].sync({evName: evName, mongooseDoc: mDoc, model: model});
 				});
-			}
-			var existing = this.mrEventIds;
-			if (existing && existing[evName]) {
-				// event already subscribed, we don't want to support more than 1 remote listener so we unregister the old one
-				unsubscribe(existing[evName], evName);
-			}
 
-			var clFns = socket.cRpcChnl;	//this is very possibly wrong, check this
+			});
+		};
+  };
 
-			var evId = model.on(evName, notifySubscriber(clFns.pub, socket));
-
-			socket.mrEventIds[evName] = evId;
-
-			return evId;
-		} else {
-			throw new Error('event must be specified when subscribing to it');
-		}
-
-	}
-
-	function subscribeAll(query) {
-		var evIds = {};
-		var socket = this;
-		eventNames.forEach(function(name) {
-			evIds[name] = subscribe.call(socket, name, query);
-		});
-		return evIds;
-	}
+	['create',
+		'update',
+		'remove'
+	].forEach(function (evName){
+			schema.on(evName, modelSync(evName));
+	});
 
 	if (!opts.checkPermission) {
 		/**
@@ -202,7 +143,7 @@ var expose = function(model, schema, opts) {
 		return clQuery;
 	}
 
-	var channel = {
+	var mrMethods = {
 		/**
 		 * for running normal DB queries
 		 * @param {Object} clientQuery
@@ -218,9 +159,7 @@ var expose = function(model, schema, opts) {
 
 			return queryAndOpts.mQuery.exec();
 		},
-		//unsubscribe
-		unsub: unsubscribe,
-		unsubAll: unsubscribeAll,
+
 		unsubLQ: function(index) {	//when client uses stop method on LQ, this method gets called
 			var LQ = this.registeredLQs[index];
 			if (LQ) {
@@ -327,10 +266,7 @@ var expose = function(model, schema, opts) {
 			});
 
 		},
-		//TODO have a method to stop and resume liveQuery
-		//subscribe
-		sub: subscribe,
-		subAll: subscribeAll,
+
 		/**
 		 * @returns {Array<String>} of the model's properties
 		 */
@@ -340,7 +276,7 @@ var expose = function(model, schema, opts) {
 	};
 
 	if (opts.readOnly !== true) {
-		_.extend(channel, {
+		_.extend(mrMethods, {
 			/**
 			 * @param {Object} newDoc
 			 * @returns {Promise}
@@ -494,7 +430,7 @@ var expose = function(model, schema, opts) {
 
 			},
 			/**
-			 * finds one document with a supplied query and then pushes ans item into it's array on a path
+			 * finds one document with a supplied query and then pushes an item into it's array on a path
 			 * @param {Object} query
 			 * @param {String} path
 			 * @param {*} item it is highly recommended to use simple values, not objects
@@ -514,7 +450,7 @@ var expose = function(model, schema, opts) {
 
 								var set = objectResolvePath(doc, path);
 								if (Array.isArray(set)) {
-									var itemIndex = set.indexOf(item);
+									var itemIndex = set.indexOf(item);	//this would be always -1 for objects
                   if (itemIndex !== -1) {
 										set.splice(itemIndex, 1);
 									} else {
@@ -554,7 +490,7 @@ var expose = function(model, schema, opts) {
 
 	return function exposeCallback(rpcInstance) {
 		var toExpose = {MR: {}};
-		toExpose.MR[modelName] = channel;
+		toExpose.MR[modelName] = mrMethods;
 		rpcInstance.expose(toExpose);
 
 		rpcInstance.io.on('connection', function(socket) {
@@ -570,7 +506,7 @@ var expose = function(model, schema, opts) {
 
 		debug('Model %s was exposed ', modelName);
 
-		return {modelName: modelName, queries: liveQueries}; // returning for health check
+		return _.assign(mrMethods, {modelName: modelName, queries: liveQueries}); // returning for health check
 	};
 
 };

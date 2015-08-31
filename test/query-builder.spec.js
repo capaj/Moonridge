@@ -16,7 +16,7 @@ describe('query-builder', function() {
 
 	it('should throw an error when sorting and counting in one query', function() {
 		try {
-			var query = builder(catModel, [{mN: 'count', args: []}, {mN: 'sort', args: []}]);
+			var query = builder(catModel, [{mN: 'count', args: []}, {mN: 'sort', args: ['name']}]);
 		} catch (err) {
 			err.message.should.equal('Mongoose does not support sort and count in one query');
 		}

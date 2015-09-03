@@ -55,11 +55,13 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](
 	  });
 	});
 ```    
-Also you need to connect to your backend-Moonridge uses a promise resolution for this. See [how in the included smoketest](https://github.com/capaj/Moonridge/blob/8faf7ad4b7c6c0301d70c3d8a346348d2b21e86d/e2e-smoketest/mr-test-ctrl.js#L84)
+Also you need to connect to your backend-just pass a simple object with url property like [HERE](https://github.com/capaj/Moonridge/blob/master/test/e2e-smoketest/react/Fighters.jsx#L7).
+
+The whole client side api for queries shadows the [Mongoose query API](http://mongoosejs.com/docs/api.html#query-js).
 
 ## Errorhandling
 
-All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc) -another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise). This is especially helpful with schema validation errors.
+All server-client communication is done with [socket.io-rpc](https://github.com/capaj/socket.io-rpc)-another project of mine, so errors are propagated for all server-side calls which return an error(or reject their promise). This is especially helpful with schema validation errors, where backend tells the frontend exactly what failed.
 
 ## Supported browsers
 ### Desktop

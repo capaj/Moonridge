@@ -499,9 +499,9 @@ var expose = function(model, schema, opts) {
 			});
 		});
 
+		_.assign(model, {rpcExposedMethods: mrMethods, modelName: modelName, queries: liveQueries}); // returning for health check
 		debug('Model %s was exposed ', modelName);
-
-		return _.assign(mrMethods, {modelName: modelName, queries: liveQueries}); // returning for health check
+		return model;
 	};
 
 };

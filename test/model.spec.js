@@ -1,6 +1,6 @@
-var Moonridge = require('../moonridge');
+var MR = require('../moonridge');
 var locals = require('./e2e-smoketest/localVariables.json');
-var MR = Moonridge(locals.connString);
+MR.connect(locals.connString);
 var expect = require('chai').expect;
 var server;
 
@@ -37,10 +37,10 @@ describe('Moonridge model', function() {
 				}
 			}
 		}};
-		LQ = sampleModel.liveQuery.call(fakeSocket, [], 1);
+		LQ = sampleModel.rpcExposedMethods.liveQuery.call(fakeSocket, [], 1);
 
 
-		sampleModel.model.create({name: 'test'}).then(function(created) {
+		sampleModel.rpcExposedMethods.create.call(fakeSocket, {name: 'test'}).then(function(created) {
 			id = created._id.valueOf();
 
 			sampleModel.schema.on('remove', function(doc) {

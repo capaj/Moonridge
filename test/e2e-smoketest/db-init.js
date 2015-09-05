@@ -1,9 +1,8 @@
 var mongoose = require('mongoose');
 
-module.exports = function (MR) {
+module.exports = function(MR) {
 
-	var user = MR.userModel({name: String, age: Number});
-	var location = MR.model('location', {loc: {type:[Number], index: '2dsphere'}}, {
+	var location = MR.model('location', {loc: {type: [Number], index: '2dsphere'}}, {
 		schemaInit: function(schema) {
 
 		}
@@ -31,7 +30,7 @@ module.exports = function (MR) {
 	});
 
 
-	fighter.schema.on('preupdate', function (doc, previousDocVersion) {
+	fighter.schema.on('preupdate', function(doc, previousDocVersion) {
 		console.log("fighter preupdate callback triggered, is modified ", doc.isModified()); // a good place to put custom save logic
 		console.log('doc', doc);
 		console.log('previousDocVersion', previousDocVersion);
@@ -40,43 +39,44 @@ module.exports = function (MR) {
 	var battleM = MR.model('battle', {
 		name: String,
 		year: {type: Number},
-		fighters: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Fighter' }]
+		fighters: [{type: mongoose.Schema.Types.ObjectId, ref: 'Fighter'}]
 	});
 
-	battleM.schema.on('update', function (doc, previousDocVersion) {
+	battleM.schema.on('update', function(doc, previousDocVersion) {
 		console.log("battle update callback triggered, is modified ", doc.isModified()); // a good place to put custom save logic
 		console.log(doc);
 		console.log(previousDocVersion);
 	});
 
-    var cleaningPromises = [fighter, user].map(function (mrModel) {
-        var dfd = Promise.defer();
+	var user = MR.userModel({name: String, age: Number});
 
-        mrModel.model.remove({}, function(err) {
-            if (err) {
-                dfd.reject();
-            }
-            dfd.resolve();
-        });
-        return dfd.promise;
+	var cleaningPromises = [fighter, user].map(function(mrModel) {
+			var dfd = Promise.defer();
 
-    });
+			mrModel.remove({}, function(err) {
+				if (err) {
+					dfd.reject();
+				}
+				dfd.resolve();
+			});
+			return dfd.promise;
 
-    Promise.all(cleaningPromises).then(function () {
-        console.log("all collections should be clean");
+		});
 
-        user.model.create({
-            name: 'admin', privilege_level: 50
-        }).then(function () {
-            console.log("admin created");
-        });
 
-        user.model.create({
-            name: 'testUser', privilege_level: 10
-        }).then(function () {
-            console.log("testUser created");
-        });
+	return Promise.all(cleaningPromises.concat([
+		user.create({
+			name: 'admin', privilege_level: 50
+		}).then(function() {
+			console.log("admin created");
+		}),
+		user.create({
+			name: 'testUser', privilege_level: 10
+		}).then(function() {
+			console.log("testUser created");
+		})
+	])).then(function() {
+		console.log("all collections should be clean, users created");
 
-    });
-
+	});
 };

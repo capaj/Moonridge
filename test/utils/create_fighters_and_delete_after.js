@@ -12,7 +12,10 @@ module.exports = {
 				fighterModel.create({name: 'Bran', health: 20}),
 				fighterModel.create({name: 'Rickon', health: 10})
 			]);
+			console.log('3 fighters created');
 			return all;
+		}, function (err){
+		    throw err;
 		});
 	},
 	after: function() {

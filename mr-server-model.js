@@ -2,6 +2,8 @@ var exposeMethods = require('./mr-rpc-methods');
 var EventEmitter = require("events").EventEmitter;
 var debug = require('debug')('moonridge:server');
 var _ = require('lodash');
+var mongoose = require('mongoose');
+
 /**
  * @param {String} name
  * @param {Schema} schema NOTE: don't use these properties on your schemas: '$$hashKey', '__id', '__v', those names are
@@ -18,14 +20,13 @@ var _ = require('lodash');
  * @param {Object} opts.statics will extend the mongoose schema.statics so that you can call this function on your model
  * @param {Function} opts.schemaInit gives you opportunity to use schema before mongoose model is instantiated
  * @returns {Object}
- * @constructor
  */
-module.exports = function MRModel(name, schema, opts) {
+module.exports = function moonridgeModel(name, schema, opts) {
 	opts = opts || {};
 
-	_.assign(schema, {owner: {type: this.Schema.Types.ObjectId, ref: 'user'}});   //user model should have owner field also
+	_.assign(schema, {owner: {type: mongoose.Schema.Types.ObjectId, ref: 'user'}});   //users own all other entities
 	//mongoose schema
-	var mgSchema = new this.Schema(schema);
+	var mgSchema = new mongoose.Schema(schema);
 
 	if (opts.statics) {
 		_.extend(mgSchema.statics, opts.statics);
@@ -73,29 +74,33 @@ module.exports = function MRModel(name, schema, opts) {
 		mgSchema.emit('remove', doc);
 	});
 
-	var model = this.model(name, mgSchema);
-
+	var model = mongoose.model(name, mgSchema);
 	var exposeCallback = exposeMethods(model, mgSchema, opts);
 
-	return {
-		model: model,
+	//these two methods are possible to use and your LQ will refresh accordingly, it is not possible with
+	var originalFindByIdAndUpdate = model.findByIdAndUpdate;
+	var originalFindByIdAndRemove = model.findByIdAndRemove;
+
+	_.assign(model, {
 		findByIdAndUpdate: function() {
 			var args = arguments;
-			return model.findByIdAndUpdate.apply(model, args).then(function(result) {
+			return originalFindByIdAndUpdate.apply(model, args).then(function(result) {
 				mgSchema.emit('update', args[0]);
 				return result;
 			});
 		},
 		findByIdAndRemove: function() {
 			var args = arguments;
-			return model.findByIdAndRemove.apply(model, args).then(function(result) {
+			return originalFindByIdAndRemove.apply(model, args).then(function(result) {
 				mgSchema.emit('remove', args[0]);
 				return result;
 			});
 		},
 		schemaInit: opts.schemaInit,
-		schema: mgSchema,
+		moonridgeSchema: schema,
 		_exposeCallback: exposeCallback
-	};
+	});
+
+	return model;
 
 };

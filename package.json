@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "main": "moonridge.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to use Mongoose.js models remotely from your frontend in a framework agnostic fashion",

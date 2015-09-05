@@ -1,16 +1,16 @@
 var _ = require('lodash');
 var locals = require('./localVariables.json');
 
-var Moonridge = require('../../moonridge');
+var MR = require('../../moonridge');
 var staticMW = require('express').static;
 
-var MR = Moonridge(locals.connString);
+MR.connect(locals.connString);
 var mongoose = MR.mongoose;
 mongoose.set('debug', true);
 var dbInit = require('./db-init');
 dbInit(MR);
-
 var server = MR.bootstrap(8080);
+
 var app = server.expressApp;
 app.use(require('morgan')('dev'));
 

@@ -29,7 +29,7 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](
         });
     ...
     //bookModel is an extended mongoose model, so if you know how to work with mongoose models, you'll be right at home
-    MR.bootstrap(app);	//app is your express app, Moonridge will start listening on port app.get("port")
+    MR.bootstrap(8020); //moonridge will launch an express.js server on 8020 with socket.io	
 ```
 ## On the CLIENT:
 ```javascript

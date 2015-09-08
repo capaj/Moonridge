@@ -83,6 +83,9 @@ One could ask why not just port mongoosejs to the client side and let clients ta
 ## How does live querying work in one paragraph
 Every client liveQuery is serialized and sent via socket.io to backend. Backend parses it and constructs real mongoose query, which is immediately run(if it doesn't exist already in server memory). The return is sent back to client. Any change to a certain document (creation, deletion, update) is checked again for all in-memory queries. MongoDB checks just one recently changed document, not the whole query, so it should be pretty quick. If query is satisfied, the changed document is propagated to listening clients. And that is basically it.
 
+## But mongoDB doesn't have JOINs!
+Yes I know and if you need joins, you better look for something else. Moonridge is tailored for web apps which do a lot of small and custom queries. Basically you would want to save any bit of bandwith and show pieces of data in your app as soon as possible, you are best served using Moonridge.
+
 ## Production samples
 I have few production apps running on moonrige, feel free to take a peek how moonridge is used:
 

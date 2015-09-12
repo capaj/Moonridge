@@ -4,10 +4,10 @@ Moonridge    [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.
 
 
 
-isomorphic [client side library](https://github.com/capaj/Moonridge-client) and server framework, which brings Mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with any framework-let it be Angular, Aurelia, React or any other.
+isomorphic [client side library](https://github.com/capaj/Moonridge-client) and server framework, which brings Mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with anything-let it be Angular, Aurelia, React or any other.
 
 
-On top of that, it features live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If one user runs the same query as another, they are hitting the DB only once. 
+Probably the coolest feature is live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If one user runs the same query as another, they are hitting the DB only once. So your DB should be under the same load no matter how many people use your web app(considering they are all looking at the same live queries).
 
 ### How to use it?
 See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](test/e2e-smoketest/react)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.

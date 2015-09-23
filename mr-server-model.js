@@ -10,7 +10,7 @@ var mongoose = require('mongoose');
  * reserved for angular and Mongoose
  * @param {Object} opts
  * @param {Boolean} opts.readOnly will expose only find and sub/pub methods
- * @param {Object} opts.permissions should look something like:
+ * @param {Object} [opts.permissions] should look something like:
  																permissions: {
 																	C: 1,
 																	R: 0,

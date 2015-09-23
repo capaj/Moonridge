@@ -34,8 +34,8 @@ function connect(connString) {
  * @param {String} name
  * @param {Object} schema
  * @param {Object} opts
- * @param {Function} opts.checkPermission function which should return true/false depending if the connected socket has/hasn't priviliges
- * @param {Object} opts.permissions with 4 properties: "C", "R","U", "D" which each represents one type of operation,
+ * @param {Function} [opts.checkPermission] function which should return true/false depending if the connected socket has/hasn't priviliges
+ * @param {Object} [opts.permissions] with 4 properties: "C", "R","U", "D" which each represents one type of operation,
  *                                  values should be numbers indicating which level of privilige is needed
 
  * @returns {MRModel}

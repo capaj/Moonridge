@@ -218,7 +218,11 @@ var expose = function(model, schema, opts) {
 						resolve(retVal);
 					};
 
-					LQ.firstExecPromise.then(resolveFn);
+					if(LQ.firstExecPromise){
+						LQ.firstExecPromise.then(resolveFn);
+					} else {
+						resolveFn();
+					}
 				};
 				if (LQ) {
 					pushListeners(queryOptions);
@@ -231,7 +235,7 @@ var expose = function(model, schema, opts) {
 						LQ.destroy();
 					};
 					LQ.firstExecPromise = mQuery.exec().then(function(rDocs) {
-
+						delete LQ.firstExecPromise;
 						debug('mQuery.op', mQuery.op);
 						if (mQuery.op === 'findOne') {
 							if (rDocs) {

@@ -492,17 +492,6 @@ var expose = function(model, schema, opts) {
 		toExpose.MR[modelName] = mrMethods;
 		rpcInstance.expose(toExpose);
 
-		rpcInstance.io.on('connection', function(socket) {
-			socket.registeredLQs = [];
-			socket.on('disconnect', function() {
-				//clearing out liveQueries listeners
-				for (var LQId in socket.registeredLQs) {
-					var LQ = socket.registeredLQs[LQId];
-					LQ.removeListener(socket);
-				}
-			});
-		});
-
 		_.assign(model, {rpcExposedMethods: mrMethods, modelName: modelName, queries: liveQueries}); // returning for health check
 		debug('Model %s was exposed ', modelName);
 		return model;
@@ -511,5 +500,3 @@ var expose = function(model, schema, opts) {
 };
 
 module.exports = expose;
-
-

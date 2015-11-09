@@ -79,6 +79,17 @@ function bootstrap() {
 
 	var allQueries = [];
 
+	io.on('connection', function(socket) {
+		socket.registeredLQs = [];
+		socket.on('disconnect', function() {
+			//clearing out liveQueries listeners
+			for (var LQId in socket.registeredLQs) {
+				var LQ = socket.registeredLQs[LQId];
+				LQ.removeListener(socket);
+			}
+		});
+	});
+
 	Object.keys(models).forEach(function(modelName) {
 		var model = models[modelName];
 		model._exposeCallback(server);

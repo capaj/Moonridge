@@ -42,7 +42,7 @@ module.exports = function moonridgeModel(name, schema, opts) {
 	for (var prop in paths) {
 		if (paths[prop].options) {
 			var perm = paths[prop].options.permissions; // looks like {R: 10, W: 20}
-			if (perm) {
+			if (perm !== undefined) {
 				pathPermissions[prop] = perm;
 			}
 		}

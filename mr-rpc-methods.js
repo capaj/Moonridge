@@ -37,9 +37,13 @@ var expose = function(model, schema, opts) {
 
 			for (var prop in pathPs) {
 				var perm = pathPs[prop];
-				if (perm[op] && perm[op] > userPL) {
-					if (docClone.hasOwnProperty(prop)) {
-						delete docClone[prop];
+				if (perm === false) {
+					delete docClone[prop];
+				} else {
+					if (perm[op] && perm[op] > userPL) {
+						if (docClone.hasOwnProperty(prop)) {
+							delete docClone[prop];
+						}
 					}
 				}
 			}

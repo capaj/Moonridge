@@ -113,6 +113,14 @@ function bootstrap() {
 		res.end()
 	}
 
+	server.expose({
+		MR: {
+			deAuthorize: function () {
+				this.moonridge.user = {privilege_level: 0}	// for logging users out
+			}
+		}
+	})
+
 	if (process.env.MOONRIDGE_HEALTH === '1') {
 		// this reveals any data that you use in queries to the public, so it should not be used in production when dealing with sensitive data
 

@@ -1,16 +1,17 @@
 language: node_js
 node_js:
-- '4'
+- '5'
 services:
-  - mongodb
+- mongodb
 before_script:
-  - sleep 1
+- sleep 1
 before_install:
-  - npm install jspm -g && cd Moonridge-client && npm install && cd ..
+- npm install jspm -g && cd Moonridge-client && npm install && cd ..
 deploy:
   provider: npm
   email: capajj@gmail.com
+  api_key:
+    secure: QHxKkiEEKweyeztJFb6YmoNSLjK0BITEmei8QVK/nQd4x5Kn8TjKI+adybauZ/DNRKje69xphLILC4KY2g4mD0uAvaBPUUof2e7KePK14vyIGmaeRlYwnMlT2FTSpRwnp87+EO2Z4l0fUz33NLWUsucP1fpUQhk4DbcXtLHZAyk=
   on:
     tags: true
     repo: capaj/Moonridge
-    all_branches: true

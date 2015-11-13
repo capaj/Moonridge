@@ -493,7 +493,7 @@ var expose = function(model, schema, opts) {
 
 	return function exposeCallback(rpcInstance) {
 		var toExpose = {MR: {}};
-		toExpose.MR[modelName] = mrMethods;
+		toExpose.MR[modelName] = _.merge(schema.statics, mrMethods)
 		rpcInstance.expose(toExpose);
 
 		_.assign(model, {rpcExposedMethods: mrMethods, modelName: modelName, queries: liveQueries}); // returning for health check

@@ -64,7 +64,9 @@ describe('Moonridge model', function() {
 		}, function(err) {
 			throw err;
 		});
-
-
 	});
+
+	it('should expose statics of a model', function () {
+		// TODO
+	})
 });

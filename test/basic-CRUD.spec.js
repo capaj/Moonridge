@@ -40,6 +40,15 @@ describe("basic CRUD including working liveQueries",function(){
 		});
 	});
 
+	it('should be able to deauthorize and authorize again', function () {
+		return mr.deAuthorize().then(function() {
+			mr.user.privilege_level.should.equal(0);
+			return mr.authorize({nick: 'admin'}).then(function(user) {
+				mr.user.privilege_level.should.equal(50);
+			});
+		});
+	})
+
 	it('should allow to create an entity of a model', function(done){
 		LQ.on('any', function (evName, params){
 			evName.should.be.equal('add');

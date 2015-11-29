@@ -1,19 +1,17 @@
 System.config({
-  "defaultJSExtensions": true,
-  "transpiler": "babel",
-  "babelOptions": {
+  defaultJSExtensions: true,
+  transpiler: "babel",
+  babelOptions: {
     "optional": [
       "runtime"
     ]
   },
-  "paths": {
+  paths: {
     "github:*": "jspm_packages/github/*",
     "npm:*": "jspm_packages/npm/*"
-  }
-});
+  },
 
-System.config({
-  "map": {
+  map: {
     "angular": "github:angular/bower-angular@1.4.1",
     "angular-animate": "github:angular/bower-angular-animate@1.4.1",
     "babel": "npm:babel-core@5.5.8",
@@ -163,4 +161,3 @@ System.config({
     }
   }
 });
-

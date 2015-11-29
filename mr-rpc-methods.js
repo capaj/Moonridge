@@ -82,6 +82,7 @@ var expose = function(model, schema, opts) {
 		opts.checkPermission = function(socket, op, doc) {
 			var user = socket.moonridge.user;
 			var PL = user.privilege_level;
+			debug('checkPermission privilige level', PL, ', op ', op, ', doc ', doc)
 
 			if (doc && op !== 'C') {   //if not creation, with creation only privileges apply
 				if (doc.owner && doc.owner.toString() === user.id) {
@@ -102,7 +103,6 @@ var expose = function(model, schema, opts) {
 	} else {
 		debug('checkPermission method is overridden for model "%s"', modelName);
 	}
-
 
 	/**
 	 *  This function should always modify the query so that no one sees properties that they are not allowed to see,
@@ -155,7 +155,7 @@ var expose = function(model, schema, opts) {
 		 */
 		query: function(clientQuery) {
 			if (!opts.checkPermission(this, 'R')) {
-				throw new Error('You lack a privilege to read this document');
+				throw new Error(`You lack a privilege to read ${modelName} collection`);
 			}
 			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');
 			//debug('clientQuery', clientQuery);
@@ -180,7 +180,7 @@ var expose = function(model, schema, opts) {
 		 */
 		liveQuery: function(clientQuery, LQIndex) {
 			if (!opts.checkPermission(this, 'R')) {
-				throw new Error('You lack a privilege to read this collection');
+				throw new Error(`You lack a privilege to read ${modelName} collection`);
 			}
 
 			accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R');

@@ -20,7 +20,7 @@ module.exports = function(MR) {
 		},
 		permissions: {
 			C: 20,
-			R: 0,
+			R: 10,
 			U: 50,
 			D: 50
 		}
@@ -50,21 +50,21 @@ module.exports = function(MR) {
 
 	var user = MR.userModel({name: String, age: Number});
 
-	var cleaningPromises = [fighter, user].map(function(mrModel) {
-			var dfd = Promise.defer();
+	// var cleaningPromises = [fighter, user].map(function(mrModel) {
+	// 		var dfd = Promise.defer();
+	//
+	// 		mrModel.remove({}, function(err) {
+	// 			if (err) {
+	// 				dfd.reject();
+	// 			}
+	// 			dfd.resolve();
+	// 		});
+	// 		return dfd.promise;
+	//
+	// 	});
 
-			mrModel.remove({}, function(err) {
-				if (err) {
-					dfd.reject();
-				}
-				dfd.resolve();
-			});
-			return dfd.promise;
 
-		});
-
-
-	return Promise.all(cleaningPromises.concat([
+	return Promise.all([].concat([
 		user.create({
 			name: 'admin', privilege_level: 50
 		}).then(function() {

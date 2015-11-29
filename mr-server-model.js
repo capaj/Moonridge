@@ -77,7 +77,8 @@ module.exports = function moonridgeModel(name, schema, opts) {
 	var model = mongoose.model(name, mgSchema);
 	var exposeCallback = exposeMethods(model, mgSchema, opts);
 
-	//these two methods are possible to use and your LQ will refresh accordingly, it is not possible with
+	// these two methods are possible to use and your LQ will refresh accordingly,
+	// it is not possible with their originals
 	var originalFindByIdAndUpdate = model.findByIdAndUpdate;
 	var originalFindByIdAndRemove = model.findByIdAndRemove;
 

@@ -11,8 +11,8 @@ var dbInit = require('./db-init')
 dbInit(MR)
 var app = require('express')()
 var server = require('http').Server(app)
-
 var rpcServer = MR.bootstrap(server)
+app.use('/api', MR.baucis())
 
 app.use(require('morgan')('dev'))
 

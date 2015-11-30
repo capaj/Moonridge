@@ -7,43 +7,43 @@ var userModel
 var moonridgeSingleton
 
 const baucis = require('baucis')
-const swagger = require('baucis-swagger')
+require('baucis-swagger')
 
 const mapVerbToOperation = {
-	POST: 'C',
+  POST: 'C',
   GET: 'R',
-	PUT: 'U',
+  PUT: 'U',
   DELETE: 'D'
 }
 
 baucis.Controller.decorators(function (options, protect) {
   var controller = this
-	const model = controller.model()
+  const model = controller.model()
   controller.request(function (request, response, next) {
-		// expects request.moonridge to be something like {user: {privilege_level: 30}}
-		debug(request.method)
-		const operation = mapVerbToOperation[request.method]
-		var allow = model.moonridgeOpts.checkPermission(request, operation)
-		if (!allow) {
-			return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
-		}
-		request.baucis.incoming(function(ctx, cb) {
-			const doc = ctx.doc
-			var allow = model.moonridgeOpts.checkPermission(request, mapVerbToOperation[request.method], doc)
-			if (allow) {
-				return cb(null, ctx)
-			} else {
-				return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
-			}
-		})
+    // expects request.moonridge to be something like {user: {privilege_level: 30}}
+    debug(request.method)
+    const operation = mapVerbToOperation[request.method]
+    var allow = model.moonridgeOpts.checkPermission(request, operation)
+    if (!allow) {
+      return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
+    }
+    request.baucis.incoming(function (ctx, cb) {
+      const doc = ctx.doc
+      var allow = model.moonridgeOpts.checkPermission(request, mapVerbToOperation[request.method], doc)
+      if (allow) {
+        return cb(null, ctx)
+      } else {
+        return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
+      }
+    })
     request.baucis.outgoing(function (ctx, cb) {
-      var doc = ctx.doc.toObject()
-			// TODO mask properties
+      // var doc = ctx.doc.toObject()
+      // TODO mask properties
       return cb(null, ctx)
     })
     return next()
   })
-	debug(`${model.modelName} baucis decorator ran`)
+  debug(`${model.modelName} baucis decorator ran`)
 })
 
 var models = {}
@@ -79,8 +79,7 @@ function connect (connString) {
 
  * @returns {MRModel}
  */
-function regNewModel(name, schema, opts) {
-
+function regNewModel (name, schema, opts) {
   var model = MRModel.apply(moonridgeSingleton, arguments)
   models[name] = model
   return model
@@ -92,8 +91,7 @@ function regNewModel(name, schema, opts) {
  * @param {Object} opts
  * @returns {MRModel}
  */
-function registerUserModel(schemaExtend, opts) {
-
+function registerUserModel (schemaExtend, opts) {
   if (userModel) {    // if it was already assigned, we throw
     throw new Error('There can only be one user model and it was already registered')
   }
@@ -112,16 +110,16 @@ function registerUserModel(schemaExtend, opts) {
  * @param {Function} [Callback]
  * @returns {{rpcNsp: (Emitter), io: {Object}, server: http.Server}}
  */
-function bootstrap() {
+function bootstrap () {
   var server = RPC.apply(null, arguments)
   var io = server.io
 
   var allQueries = []
 
-  io.on('connection', function(socket) {
+  io.on('connection', function (socket) {
     socket.registeredLQs = []
-    socket.on('disconnect', function() {
-      //clearing out liveQueries listeners
+    socket.on('disconnect', function () {
+      // clearing out liveQueries listeners
       for (var LQId in socket.registeredLQs) {
         var LQ = socket.registeredLQs[LQId]
         LQ.removeListener(socket)
@@ -129,13 +127,13 @@ function bootstrap() {
     })
   })
 
-  Object.keys(models).forEach(function(modelName) {
+  Object.keys(models).forEach(function (modelName) {
     var model = models[modelName]
     baucis.rest(modelName)
     model._exposeCallback(server)
   })
 
-  io.use(function(socket, next) {
+  io.use(function (socket, next) {
     socket.moonridge = {user: {privilege_level: 0}} // default privilege level for any connected client
     next()
   })
@@ -143,10 +141,10 @@ function bootstrap() {
   server.allModelGetHandler = function (req, res) {
     res.type('application/javascript charset=utf-8')
     var modelNames = Object.keys(models)
-    var clSideScript = 'module.exports = function(MR) {' +
+    var clSideScript = 'module.exports = function (MR) {' +
       'var modelsHash = {}' +
       'var models = ' + JSON.stringify(modelNames) + '' +
-      'models.forEach(function(modelName) {modelsHash[modelName] = MR.model(modelName)})' +
+      'models.forEach(function (modelName) {modelsHash[modelName] = MR.model(modelName)})' +
       'return modelsHash' +
       '}'
     res.send(clSideScript)
@@ -166,7 +164,7 @@ function bootstrap() {
 
     server.expose({
       MR: {
-        getHealth: function() {
+        getHealth: function () {
           var allModels = {}
           var index = allQueries.length
           while (index--) {
@@ -176,13 +174,12 @@ function bootstrap() {
               modelQueriesForSerialization[LQ] = Object.keys(model.queries[LQ].listeners).length
             }
             allModels[model.modelName] = modelQueriesForSerialization
-
           }
           return {
             pid: process.pid,
             memory: process.memoryUsage(),
-            uptime: process.uptime(),   //in seconds
-            liveQueries: allModels  //key is LQ.clientQuery and value is number of listening clients
+            uptime: process.uptime(),   // in seconds
+            liveQueries: allModels  // key is LQ.clientQuery and value is number of listening clients
           }
         }
       }

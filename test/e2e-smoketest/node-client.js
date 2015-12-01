@@ -1,23 +1,10 @@
-var $MR = require('moonridge-client');
-var Promise = require('bluebird');
+var $MR = require('moonridge-client')
 
-var dfd = Promise.defer();
+var MRB = $MR({url: 'http://localhost:8080'})
+console.log(MRB)
 
-//Moonridge backend
-var MRB = $MR('local', dfd.promise, true);  //true indicates, that this backend should be used by default
-MRB.connectPromise.then(function(socket) {
-  //you can hook up more events here
-  socket.on('disconnect', function() {
-    console.log("Ha disconnected!");
-  });
-});
-
-dfd.resolve({url: 'http://localhost:8080'});
-
-MRB.getModel('fighter').then(function(fighter) {
-  var LQ = fighter.liveQuery().sort('health').exec();
-  LQ.on('any', function(params) {
-    console.log("LQ", this);
-    console.log("params", params);
-  })
-});
+var LQ = MRB.model('fighter').liveQuery().find().exec()
+LQ.on('any', function (ev, params) {
+  console.log('LQ', this)
+  console.log('params', ev, params)
+})

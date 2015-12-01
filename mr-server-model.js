@@ -78,7 +78,10 @@ module.exports = function moonridgeModel (name, schema, opts) {
 
   var model = mongoose.model(name, mgSchema)
   if (opts.onExistence) {
-    model.find().exec().then((docs) => {
+    model.find().exec((err, docs) => {
+      if (err) {
+        throw err
+      }
       docs.forEach(opts.onExistence)
     })
   }

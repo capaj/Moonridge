@@ -52,11 +52,8 @@ describe('distinct queries', function() {
 					LQ.result.should.eql([50, 20, 10, 65])
 					unsub()
 					done()
-
 				})
-
 				fighterModel.create({name: 'Littlefinger', health: 65})
-
 			})
 
 			it('should not push a value if it is already contained', function() {

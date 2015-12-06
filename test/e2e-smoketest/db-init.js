@@ -19,10 +19,10 @@ module.exports = function(MR) {
 			// you may notice that we index here field owner even though we did not specify such field in the schema. It is because owner field is added to every model schema
 		},
 		permissions: {
-			C: 20,
-			R: 10,
-			U: 50,
-			D: 50
+			create: 20,
+			read: 10,
+			update: 50,
+			remove: 50
 		}
 //            checkPermission: function () {    //for overriding permission check
 //                return false;

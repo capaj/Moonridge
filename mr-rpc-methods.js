@@ -13,8 +13,8 @@ var objectResolvePath = require('./utils/object-resolve-path')
  * @param {Object} opts same as for regNewModel in ./main.js
  */
 var expose = function (model, schema, opts) {
-  var liveQueries = {}
-  var modelName = model.modelName
+  const liveQueries = {}
+  const modelName = model.modelName
   liveQueriesMap.set(model, liveQueries)
 
   debug('expose model ', modelName)
@@ -51,7 +51,7 @@ var expose = function (model, schema, opts) {
     }
   }
 
-  var modelSync = function (evName) {   // will be called by schema's event firing
+  const modelSyncFactory = function (evName) {   // will be called by schema's event firing
     return function (mDoc) {
       Object.keys(liveQueries).forEach(function (LQString) {
         setImmediate(function () {	// we want to break out of promise error catching
@@ -61,20 +61,33 @@ var expose = function (model, schema, opts) {
     }
   }
 
-  ;[
+  const evNames = [
     'create',
     'update',
     'remove'
-  ].forEach(function (evName) {
-    schema.on(evName, modelSync(evName))
+  ]
+  const subscribers = {}
+
+  evNames.forEach(function (evName) {
+    subscribers[evName] = new Set()
+    const modelSynchronization = modelSyncFactory(evName)
+    schema.on(evName, function (doc) {
+      Array.from(subscribers[evName]).forEach((socket) => {
+        socket.emit('schemaEvent', {
+          modelName: modelName,
+          evName: evName,
+          doc: doc
+        })
+      })
+      modelSynchronization(doc)
+    })
   })
 
   if (!opts.checkPermission) {
     /**
      * default checkPermission handler
-     * @param {String} op operation to check, can be 'C','R', 'U', 'D'
+     * @param {String} op operation to check, can be 'create', 'read', 'update', 'delete'
      * @param socket
-     * @param {Document} [doc]
      * @param {Document} [doc]
      * @returns {Boolean} true when user has permission, false when not
      */
@@ -94,10 +107,9 @@ var expose = function (model, schema, opts) {
 
       if (this.permissions && this.permissions[op]) {
         if (PL < this.permissions[op]) { // if bigger than connected user's
-          return false
+          throw new Error('You lack a privilege to ${op} ${modelName} collection')
         }
       }
-      return true
     }
   } else {
     debug('checkPermission method is overridden for model "%s"', modelName)
@@ -153,9 +165,7 @@ var expose = function (model, schema, opts) {
      * @returns {Promise} from executing the mongoose.Query
      */
     query: function (clientQuery) {
-      if (!opts.checkPermission(this, 'R')) {
-        throw new Error(`You lack a privilege to read ${modelName} collection`)
-      }
+      opts.checkPermission(this, 'read')
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
       // debug('clientQuery', clientQuery)
       var queryAndOpts = queryBuilder(model, clientQuery)
@@ -178,12 +188,10 @@ var expose = function (model, schema, opts) {
      * @returns {Promise} from mongoose query, resolves with an array of documents
      */
     liveQuery: function (clientQuery, LQIndex) {
-      if (!opts.checkPermission(this, 'R')) {
-        throw new Error(`You lack a privilege to read ${modelName} collection`)
-      }
+      opts.checkPermission(this, 'read')
 
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
-      var socket = this
+      const socket = this
 
       return new Promise(function (resolve, reject) {
         var builtQuery = queryBuilder(model, clientQuery)
@@ -279,9 +287,7 @@ var expose = function (model, schema, opts) {
        * @returns {Promise}
        */
       create: function (newDoc) {
-        if (!opts.checkPermission(this, 'C')) {
-          throw new Error('You lack a privilege to create this document')
-        }
+        opts.checkPermission(this, 'create')
         opts.dataTransform(newDoc, 'W', this)
         if (schema.paths.owner) {
           // we should set the owner field if it is present
@@ -295,24 +301,21 @@ var expose = function (model, schema, opts) {
        * @returns {Promise}
        */
       remove: function (id) {
-        var socket = this
+        const socket = this
         return new Promise(function (resolve, reject) {
           model.findById(id, function (err, doc) {
             if (err) {
               return reject(err)
             }
             if (doc) {
-              if (opts.checkPermission(socket, 'D', doc)) {
-                doc.remove(function (err) {
-                  if (err) {
-                    reject(err)
-                  }
-                  debug('removed a doc _id ', id)
-                  resolve()
-                })
-              } else {
-                reject(new Error('You lack a privilege to delete this document'))
-              }
+              opts.checkPermission(socket, 'remove')
+              doc.remove(function (err) {
+                if (err) {
+                  reject(err)
+                }
+                debug('removed a doc _id ', id)
+                resolve()
+              })
             } else {
               reject(new Error('no document to remove found with _id: ' + id))
             }
@@ -325,7 +328,7 @@ var expose = function (model, schema, opts) {
        * @returns {Promise}
        */
       update: function (toUpdate) {
-        var socket = this
+        const socket = this
         return new Promise(function (resolve, reject) {
           var id = toUpdate._id
           delete toUpdate._id
@@ -336,31 +339,28 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              if (opts.checkPermission(socket, 'U', doc)) {
-                opts.dataTransform(toUpdate, 'W', socket)
-                var previousVersion = doc.toObject()
-                if (toUpdate.__v !== doc.__v) {
-                  reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
-                } else {
-                  delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
-                }
-                _.merge(doc, toUpdate)
-                doc.increment()
-                schema.emit('preupdate', doc, previousVersion)
-
-                doc.save(function (err) {
-                  if (err) {
-                    debug('rejecting a save because: ', err)
-                    reject(err)
-                  } else {
-                    debug('document ', id, ' saved, version now ', doc.__v)
-                    resolve()	// we don't resolve with new document because when you want to display
-                    // current version of document, just use liveQuery
-                  }
-                })
+              opts.checkPermission(socket, 'update')
+              opts.dataTransform(toUpdate, 'W', socket)
+              var previousVersion = doc.toObject()
+              if (toUpdate.__v !== doc.__v) {
+                reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
               } else {
-                reject(new Error('You lack a privilege to update this document'))
+                delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
               }
+              _.merge(doc, toUpdate)
+              doc.increment()
+              schema.emit('preupdate', doc, previousVersion)
+
+              doc.save(function (err) {
+                if (err) {
+                  debug('rejecting a save because: ', err)
+                  reject(err)
+                } else {
+                  debug('document ', id, ' saved, version now ', doc.__v)
+                  resolve()	// we don't resolve with new document because when you want to display
+                  // current version of document, just use liveQuery
+                }
+              })
             } else {
               reject(new Error('no document to save found with _id: ' + id))
             }
@@ -375,7 +375,7 @@ var expose = function (model, schema, opts) {
        * @returns {Promise} is resolved with a length of the array when item is pushed, is rejected when path is not found or item
        */
       addToSet: function (query, path, item) {
-        var socket = this
+        const socket = this
         return new Promise(function (resolve, reject) {
           model.findOne(query, function (err, doc) {
             if (err) {
@@ -383,35 +383,32 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              if (opts.checkPermission(socket, 'U', doc)) {
-                var previousVersion = doc.toObject()
+              opts.checkPermission(socket, 'update')
+              var previousVersion = doc.toObject()
 
-                var set = objectResolvePath(doc, path)
-                if (Array.isArray(set)) {
-                  if (set.indexOf(item) === -1) {
-                    set.push(item)
-                  } else {
-                    return resolve(set.length)
-                  }
+              var set = objectResolvePath(doc, path)
+              if (Array.isArray(set)) {
+                if (set.indexOf(item) === -1) {
+                  set.push(item)
                 } else {
-                  return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
+                  return resolve(set.length)
                 }
-                doc.increment()
-                schema.emit('preupdate', doc, previousVersion)
-
-                doc.save(function (err) {
-                  if (err) {
-                    debug('rejecting a save because: ', err)
-                    reject(err)
-                  } else {
-                    debug('document ', doc._id, ' saved, version now ', doc.__v)
-                    resolve(set.length)	// we don't resolve with new document because when you want to display
-                    // current version of document, just use liveQuery
-                  }
-                })
               } else {
-                reject(new Error('You lack a privilege to update this document'))
+                return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
               }
+              doc.increment()
+              schema.emit('preupdate', doc, previousVersion)
+
+              doc.save(function (err) {
+                if (err) {
+                  debug('rejecting a save because: ', err)
+                  reject(err)
+                } else {
+                  debug('document ', doc._id, ' saved, version now ', doc.__v)
+                  resolve(set.length)	// we don't resolve with new document because when you want to display
+                  // current version of document, just use liveQuery
+                }
+              })
             } else {
               reject(new Error('no document to update found with query: ', query))
             }
@@ -426,7 +423,7 @@ var expose = function (model, schema, opts) {
        * @returns {Promise} is resolved with a length of the array when item is pushed, is rejected when path is not found or item
        */
       removeFromSet: function (query, path, item) {
-        var socket = this
+        const socket = this
         return new Promise(function (resolve, reject) {
           model.findOne(query, function (err, doc) {
             if (err) {
@@ -434,41 +431,53 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              if (opts.checkPermission(socket, 'U', doc)) {
-                var previousVersion = doc.toObject()
+              opts.checkPermission(socket, 'update')
+              var previousVersion = doc.toObject()
 
-                var set = objectResolvePath(doc, path)
-                if (Array.isArray(set)) {
-                  var itemIndex = set.indexOf(item)	// this would be always -1 for objects
-                  if (itemIndex !== -1) {
-                    set.splice(itemIndex, 1)
-                  } else {
-                    return resolve(set.length)
-                  }
+              var set = objectResolvePath(doc, path)
+              if (Array.isArray(set)) {
+                var itemIndex = set.indexOf(item)	// this would be always -1 for objects
+                if (itemIndex !== -1) {
+                  set.splice(itemIndex, 1)
                 } else {
-                  return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
+                  return resolve(set.length)
                 }
-                doc.increment()
-                schema.emit('preupdate', doc, previousVersion)
-
-                doc.save(function (err) {
-                  if (err) {
-                    debug('rejecting a save because: ', err)
-                    reject(err)
-                  } else {
-                    debug('document ', doc._id, ' saved, version now ', doc.__v)
-                    resolve(set.length)	// we don't resolve with new document because when you want to display
-                    // current version of document, just use liveQuery
-                  }
-                })
               } else {
-                reject(new Error('You lack a privilege to update this document'))
+                return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
               }
+              doc.increment()
+              schema.emit('preupdate', doc, previousVersion)
+
+              doc.save(function (err) {
+                if (err) {
+                  debug('rejecting a save because: ', err)
+                  reject(err)
+                } else {
+                  debug('document ', doc._id, ' saved, version now ', doc.__v)
+                  resolve(set.length)	// we don't resolve with new document because when you want to display
+                  // current version of document, just use liveQuery
+                }
+              })
             } else {
               reject(new Error('no document to update found with query: ', query))
             }
           })
         })
+      },
+      subscribe: function (evName) {
+        const socket = this
+        if (!subscribers.hasOwnProperty(evName)) {
+          throw new Error(`event ${evName} does not exist`)
+        }
+        opts.checkPermission(this, 'read')
+        const subscribersForThisEvent = subscribers[evName]
+        subscribersForThisEvent.add(socket)
+        socket.on('disconnect', () => {
+          subscribersForThisEvent.delete(socket)
+        })
+      },
+      unsubscribe: function (evName) {
+        return subscribers[evName].delete(this)
       }
     })
 

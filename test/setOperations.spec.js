@@ -44,10 +44,11 @@ describe('set operations', function() {
 
   })
 
-  it('should remove an item from a nested array utilizing removeFromSet', function(){	//safeguards, that we don't overwrite $inc with version incrementing object
-      return battleModel.removeFromSet({_id: battleId}, 'fighters', fighterId).then(function(length){
-        length.should.eql(0)
-      })
+  it('should remove an item from a nested array utilizing removeFromSet', function(done) {	//safeguards, that we don't overwrite $inc with version incrementing object
+    return battleModel.removeFromSet({_id: battleId}, 'fighters', fighterId).then(function(length){
+      length.should.eql(0)
+      done()
+    })
   })
 
 

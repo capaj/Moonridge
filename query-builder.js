@@ -1,4 +1,4 @@
-var mongooseMethodValidations = require('./Moonridge-client/moonridge/moonridge-method-validations')
+var mongooseMethodValidations = require('./Moonridge-client/lib/moonridge-method-validations')
 
 var maxQueryLength = 70    // hardcoded max query length
 var qMethodsEnum = []

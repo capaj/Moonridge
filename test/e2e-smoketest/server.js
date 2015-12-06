@@ -1,4 +1,3 @@
-var _ = require('lodash')
 var locals = require('./localVariables.json')
 
 var MR = require('../../moonridge')
@@ -51,7 +50,6 @@ rpcServer.io.use(function (socket, next) { // example of initial authorization
     console.log('auth error ' + err)
     next(err)
   })
-
 })
 
 rpcServer.expose({

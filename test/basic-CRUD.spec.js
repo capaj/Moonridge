@@ -22,12 +22,9 @@ describe("basic CRUD including working liveQueries",function(){
 		LQ.on('init', function(evName, params) {
 
 			console.log("params", params)
-
 			params.docs.length.should.equal(0)
 			done()
-
 		})
-
 	})
 
 	it('should rerun liveQuery on authorization', function(){

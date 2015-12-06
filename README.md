@@ -9,15 +9,20 @@ isomorphic [client side library](https://github.com/capaj/Moonridge-client) and 
 
 Probably the coolest feature is live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If 10000 users run the same query, the DB performance performs the same amount of operations as if one user was accessing it. So your DB should be under the same load no matter how many people use your web app(presuming they are not writing into the DB).
 
+##Install
+```
+npm i moonridge -S
+```
+
 ### How to use it?
 See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](test/e2e-smoketest/react)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
 
 ## Basic usage serverside
 ```javascript
-    var MR = require('moonridge');
+    var MR = require('moonridge')
 
-	MR.connect("mongodb://localhost/moonridge_showcase"); //MongoDB address is optional-you can connect as always with mongoose
-	var mongoose = MR.mongoose;
+	MR.connect("mongodb://localhost/moonridge_showcase") //MongoDB address is optional-you can connect as always with mongoose
+	var mongoose = MR.mongoose
     var bookModel = MR.model('book', {  //mongoose schema definition
             name: String,
             author: String
@@ -26,33 +31,40 @@ See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](
                 // makes sure only one book per nameXauthor exists
                 schema.index({ name: 1, author: 1 }, { unique: true, dropDups: true });
             }
-        });
+        })
     ...
+    var app = require('express')()
+    var server = require('http').Server(app)
     //bookModel is an extended mongoose model, so if you know how to work with mongoose models, you'll be right at home
-    MR.bootstrap(8020); //moonridge will launch an express.js server on 8020 with socket.io
+    MR.bootstrap(server) 
+    app.use('/api', MR.baucis()) // gives your REST api for your DB in case you need it alongside to socket.io API
+    server.listen(port, () => {
+          app.emit('listening')
+          console.log('started listening on ' + port, ' in ', env, new Date())
+    })
 ```
 ## On the CLIENT:
 ```javascript
-   	var Moonridge = require('moonridge-client');
+   	var Moonridge = require('moonridge-client')
 	//Moonridge backend
-	var mr = Moonridge({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}});
-	var fighterModel = mr.model('fighter');
+	var mr = Moonridge({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}})
+	var fighterModel = mr.model('fighter')
 	//live query
-	var LQ = fighterModel.liveQuery().sort('health').exec();
+	var LQ = fighterModel.liveQuery().sort('health').exec()
 
 	LQ.promise.then(function(){
-	  LQ.result; //has a result of the query-array or a number
+	  LQ.result //has a result of the query-array or a number
 	  //query is live now
 	});
 	//create a new entity
 	fighterModel.create({name: 'Arya', health: 50}).then(function(created){
-	  console.log('created a fighter: ', created);
+	  console.log('created a fighter: ', created)
 	  //LQ.result now also contains Arya
-	  created.health = 49;
+	  created.health = 49
 	  //update an entity
-	  fighterModel.update(created).then(function(){
+	  fighterModel.update(created).then(function () {
   	    //remove it from DB
-  	    fighterModel.remove(created);
+  	    fighterModel.remove(created)
 	  });
 	});
 ```    

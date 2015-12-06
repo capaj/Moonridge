@@ -6,13 +6,12 @@ services:
 # Handle git submodules yourself
 git:
   submodules: false
-  # Use sed to replace the SSH URL with the public URL, then initialize submodules
-before_install:
-  - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
-  - git submodule update --init --recursive
 before_script:
   - sleep 1
 before_install:
+  # Use sed to replace the SSH URL with the public URL, then initialize submodules
+  - sed -i 's/git@github.com:/https:\/\/github.com\//' .gitmodules
+  - git submodule update --init --recursive
   - npm install jspm -g && cd Moonridge-client && npm install && cd ..
 deploy:
   provider: npm

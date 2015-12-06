@@ -79,7 +79,6 @@ LiveQuery.prototype = {
         }
 
         debug('sending ', toSend, ' event ', evName, ', pos param ', resultIndex)
-        console.log('sending', toSend)
         listener.socket.rpc('MR.' + self.modelName + '.' + evName)(listener.clIndex, toSend, resultIndex)
       }
     }

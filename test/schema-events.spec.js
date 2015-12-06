@@ -18,7 +18,7 @@ describe("schema events", function (){
 
   describe('invoking listeners for events', function () {
     it('should invoke listener for create', function (done) {
-      fighterModel.on('create', function(doc) {
+      fighterModel.on('create', function (doc) {
         doc.name.should.equal('Hound')
         fighterEntity = doc
         done()

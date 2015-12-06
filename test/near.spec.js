@@ -1,3 +1,4 @@
+/* eslint-env node, mocha */
 require('chai').should()
 var mrPair = require('./utils/run_server_client')
 var mr = mrPair.client

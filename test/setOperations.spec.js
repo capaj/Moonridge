@@ -1,9 +1,10 @@
+/* eslint-env node, mocha */
 require('chai').should()
 var mrPair = require('./utils/run_server_client')
 var mr = mrPair.client
-var locationsDbCreation = require('./utils/create_locations_and_delete_after')
+require('./utils/create_locations_and_delete_after')
 
-describe('set operations', function() {
+describe('set operations', function () {
   //while update works great for assigning values/merging objects it
   this.timeout(4000)
   var fighterModel
@@ -44,10 +45,11 @@ describe('set operations', function() {
 
   })
 
-  it('should remove an item from a nested array utilizing removeFromSet', function(){	//safeguards, that we don't overwrite $inc with version incrementing object
-      return battleModel.removeFromSet({_id: battleId}, 'fighters', fighterId).then(function(length){
-        length.should.eql(0)
-      })
+  it('should remove an item from a nested array utilizing removeFromSet', function(done) {	//safeguards, that we don't overwrite $inc with version incrementing object
+    return battleModel.removeFromSet({_id: battleId}, 'fighters', fighterId).then(function(length){
+      length.should.eql(0)
+      done()
+    })
   })
 
 

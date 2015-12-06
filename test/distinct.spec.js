@@ -4,7 +4,7 @@ var mr = mrPair.client
 var fightersCreation = require('./utils/create_fighters_and_delete_after')
 
 describe('distinct queries', function() {
-	this.timeout(7000)
+	this.timeout(6000)
 	var fighterModel
 	var LQ
 
@@ -30,9 +30,7 @@ describe('distinct queries', function() {
 		})
 
 		it('should yield all the distinct values for a field in a database when liveQuerying', function(done) {
-			LQ.on('init', function(evName, params) {
-				console.log("params", params, evName)
-
+			LQ.on('init', function(params) {
 				params.values.length.should.eql(3)
 				done()
 			})
@@ -40,27 +38,31 @@ describe('distinct queries', function() {
 		})
 
 		describe('when adding', function() {
+			var unsub
 			it('new entity with a distinct value, this value should be pushed on the client', function(done) {
 
-				var unsub = LQ.on('any', function(evName, params) {
+				unsub = LQ.onAny(function(evName, params) {
 					var syncObj = params[1]
 					evName.should.equal('distinctSync')
-					console.log("on any", LQ.result, params)
 					syncObj.add.should.eql([65])
 					syncObj.remove.should.eql([])
 
 					LQ.result.should.eql([50, 20, 10, 65])
-					unsub()
+
 					done()
-
 				})
-
 				fighterModel.create({name: 'Littlefinger', health: 65})
-
 			})
 
-			it('should not push a value if it is already contained', function() {
+			it('should not push a value if it is already contained', function(done) {
 				//array should always be a set-no duplicates
+				fighterModel.create({name: 'Littlefinger2', health: 65}).then(() => {
+					setTimeout(() => {
+						LQ.result.should.eql([50, 20, 10, 65])
+						unsub()
+						done()
+					}, 300)
+				})
 			})
 		})
 

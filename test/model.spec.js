@@ -1,3 +1,4 @@
+/* eslint-env node, mocha */
 var MR = require('../moonridge')
 var locals = require('./e2e-smoketest/localVariables.json')
 MR.connect(locals.connString)

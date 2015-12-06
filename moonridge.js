@@ -10,10 +10,10 @@ const baucis = require('baucis')
 require('baucis-swagger')
 
 const mapVerbToOperation = {
-  POST: 'C',
-  GET: 'R',
-  PUT: 'U',
-  DELETE: 'D'
+  POST: 'create',
+  GET: 'read',
+  PUT: 'update',
+  DELETE: 'remove'
 }
 
 baucis.Controller.decorators(function (options, protect) {
@@ -48,26 +48,33 @@ baucis.Controller.decorators(function (options, protect) {
 
 var models = {}
 var mongoose = require('mongoose')
+const defaultOpts = {
+  server: {
+    socketOptions: { keepAlive: 1 }
+  },
+  replset: {
+    socketOptions: { keepAlive: 1 }
+  }
+}
+
 /**
- *
  * @param {String} connString to mongoDB
+ * @param {Object} opts connection options
  * @returns {{model: regNewModel, userModel: registerUserModel, authUser: authUser, bootstrap: createServer}} moonridge
  * instance which allows to register models and bootstrap itself
  */
-function connect (connString) {
-  if (connString) {
-    mongoose.connect(connString, function (err) {
-      // if we failed to connect, abort
-      if (err) {
-        throw err
-      } else {
-        debug('DB connected succesfully')
-      }
-    })
-    mongoose.connection.on('error', function (err) {
-      console.error('MongoDB error: %s', err)
-    })
-  }
+function connect (connString, opts) {
+  _.merge(defaultOpts, opts)
+  mongoose.connect(connString, defaultOpts, function (err) {
+    if (err) {
+      throw err
+    } else {
+      console.log(`connected to mongo ${connString} succesfully`)
+    }
+  })
+  mongoose.connection.on('error', function (err) {
+    console.error('MongoDB error: %s', err)
+  })
 }
 /**
  * @param {String} name

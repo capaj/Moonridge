@@ -78,11 +78,15 @@ module.exports = function moonridgeModel (name, schema, opts) {
 
   var model = mongoose.model(name, mgSchema)
   if (opts.onExistence) {
-    model.find().exec((err, docs) => {
-      if (err) {
-        throw err
-      }
-      docs.forEach(opts.onExistence)
+    model.initPromise = new Promise(function (resolve, reject) {
+      model.find().exec((err, docs) => {
+        if (err) {
+          reject(err)
+          throw err
+        }
+        docs.forEach(opts.onExistence)
+        resolve(docs)
+      })
     })
   }
   var exposeCallback = exposeMethods(model, mgSchema, opts)

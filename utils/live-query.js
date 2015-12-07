@@ -1,3 +1,4 @@
+'use strict'
 var getIndexInSorted = require('./indexInSortedArray')
 var populateWithClientQuery = require('./populate-doc-util')
 var liveQueriesMap = require('./live-queries-map')

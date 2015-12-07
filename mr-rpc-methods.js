@@ -289,7 +289,7 @@ var expose = function (model, schema, opts) {
       create: function (newDoc) {
         opts.checkPermission(this, 'create')
         opts.dataTransform(newDoc, 'W', this)
-        if (schema.paths.owner) {
+        if (schema.paths.owner && newDoc.owner === undefined) {
           // we should set the owner field if it is present
           newDoc.owner = this.moonridge.user._id
         }

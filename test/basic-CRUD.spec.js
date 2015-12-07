@@ -56,6 +56,7 @@ describe('basic CRUD including working liveQueries', function () {
 
     fighterModel.create({name: 'Arya', health: 50, isNew: false}).then(function (created) {
       created.should.have.property('_id')
+      created.should.have.property('owner')
       created.should.not.have.property('isNew')	// this is reserved by Mongoose
       created.health.should.equal(50)
       fighterId = created._id

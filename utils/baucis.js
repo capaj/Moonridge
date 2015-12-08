@@ -1,3 +1,4 @@
+'use strict'
 const debug = require('debug')('moonridge:baucis')
 const baucis = require('baucis')
 require('baucis-swagger')

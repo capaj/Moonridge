@@ -1,50 +1,12 @@
 'use strict'
 var RPC = require('socket.io-rpc')
 const _ = require('lodash')
-const debug = require('debug')('moonridge:server')
+// const debug = require('debug')('moonridge:server')
 const MRModel = require('./mr-server-model')
 var userModel
 var moonridgeSingleton
 
-const baucis = require('baucis')
-require('baucis-swagger')
-
-const mapVerbToOperation = {
-  POST: 'create',
-  GET: 'read',
-  PUT: 'update',
-  DELETE: 'remove'
-}
-
-baucis.Controller.decorators(function (options, protect) {
-  var controller = this
-  const model = controller.model()
-  controller.request(function (request, response, next) {
-    // expects request.moonridge to be something like {user: {privilege_level: 30}}
-    debug(request.method)
-    const operation = mapVerbToOperation[request.method]
-    var allow = model.moonridgeOpts.checkPermission(request, operation)
-    if (!allow) {
-      return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
-    }
-    request.baucis.incoming(function (ctx, cb) {
-      const doc = ctx.doc
-      var allow = model.moonridgeOpts.checkPermission(request, mapVerbToOperation[request.method], doc)
-      if (allow) {
-        return cb(null, ctx)
-      } else {
-        return response.status(403).send(baucis.Error.Forbidden(`You lack a privilege to ${request.method} ${model.modelName} collection`))
-      }
-    })
-    request.baucis.outgoing(function (ctx, cb) {
-      // var doc = ctx.doc.toObject()
-      // TODO mask properties
-      return cb(null, ctx)
-    })
-    return next()
-  })
-  debug(`${model.modelName} baucis decorator ran`)
-})
+const baucis = require('./utils/baucis')
 
 var models = {}
 var mongoose = require('mongoose')

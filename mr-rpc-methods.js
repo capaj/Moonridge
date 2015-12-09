@@ -308,7 +308,11 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              opts.checkPermission(socket, 'remove')
+              try {
+                opts.checkPermission(socket, 'remove', doc)
+              } catch (err) {
+                reject(err)
+              }
               doc.remove(function (err) {
                 if (err) {
                   reject(err)
@@ -339,7 +343,11 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              opts.checkPermission(socket, 'update')
+              try {
+                opts.checkPermission(socket, 'update', doc)
+              } catch (err) {
+                reject(err)
+              }
               opts.dataTransform(toUpdate, 'W', socket)
               var previousVersion = doc.toObject()
               if (toUpdate.__v !== doc.__v) {
@@ -383,7 +391,11 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              opts.checkPermission(socket, 'update')
+              try {
+                opts.checkPermission(socket, 'update', doc)
+              } catch (err) {
+                reject(err)
+              }
               var previousVersion = doc.toObject()
 
               var set = objectResolvePath(doc, path)
@@ -431,7 +443,11 @@ var expose = function (model, schema, opts) {
               return reject(err)
             }
             if (doc) {
-              opts.checkPermission(socket, 'update')
+              try {
+                opts.checkPermission(socket, 'update', doc)
+              } catch (err) {
+                reject(err)
+              }
               var previousVersion = doc.toObject()
 
               var set = objectResolvePath(doc, path)

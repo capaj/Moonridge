@@ -107,7 +107,7 @@ var expose = function (model, schema, opts) {
 
       if (this.permissions && this.permissions[op]) {
         if (PL < this.permissions[op]) { // if bigger than connected user's
-          throw new Error('You lack a privilege to ${op} ${modelName} collection')
+          throw new Error(`You lack a privilege to ${op} ${modelName} collection`)
         }
       }
     }

@@ -107,21 +107,11 @@ function bootstrap () {
     next()
   })
 
-  server.allModelGetHandler = function (req, res) {
-    res.type('application/javascript charset=utf-8')
-    var modelNames = Object.keys(models)
-    var clSideScript = 'module.exports = function (MR) {' +
-      'var modelsHash = {}' +
-      'var models = ' + JSON.stringify(modelNames) + '' +
-      'models.forEach(function (modelName) {modelsHash[modelName] = MR.model(modelName)})' +
-      'return modelsHash' +
-      '}'
-    res.send(clSideScript)
-    res.end()
-  }
-
   server.expose({
     MR: {
+      getModels: function () {
+        return Object.keys(models)
+      },
       deAuthorize: function () {
         this.moonridge.user = {privilege_level: 0}	// for logging users out
       }

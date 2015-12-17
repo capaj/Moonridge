@@ -1,11 +1,12 @@
-var _ = require('lodash')
+'use strict'
+const _ = require('lodash')
 
-var queryBuilder = require('./query-builder')
-var LiveQuery = require('./utils/live-query')
+const queryBuilder = require('./query-builder')
+const LiveQuery = require('./utils/live-query')
 var maxLQsPerClient = 100
-var debug = require('debug')('moonridge:server')
-var liveQueriesMap = require('./utils/live-queries-map')
-var objectResolvePath = require('./utils/object-resolve-path')
+const debug = require('debug')('moonridge:server')
+const liveQueriesMap = require('./utils/live-queries-map')
+const objectResolvePath = require('./utils/object-resolve-path')
 /**
  *
  * @param {Model} model Moonridge model

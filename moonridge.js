@@ -1,5 +1,5 @@
 'use strict'
-var RPC = require('socket.io-rpc')
+const RPC = require('socket.io-rpc')
 const _ = require('lodash')
 // const debug = require('debug')('moonridge:server')
 const MRModel = require('./mr-server-model')
@@ -8,8 +8,8 @@ var moonridgeSingleton
 
 const baucis = require('./utils/baucis')
 
-var models = {}
-var mongoose = require('mongoose')
+const models = {}
+const mongoose = require('mongoose')
 const defaultOpts = {
   server: {
     socketOptions: { keepAlive: 1 }

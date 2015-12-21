@@ -351,10 +351,12 @@ var expose = function (model, schema, opts) {
               }
               opts.dataTransform(toUpdate, 'W', socket)
               var previousVersion = doc.toObject()
-              if (toUpdate.__v !== doc.__v) {
-                reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
-              } else {
-                delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
+              if (toUpdate.__v !== undefined) {
+                if (toUpdate.__v !== doc.__v) {
+                  reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
+                } else {
+                  delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
+                }
               }
               _.merge(doc, toUpdate)
               doc.increment()

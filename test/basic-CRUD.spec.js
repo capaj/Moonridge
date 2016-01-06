@@ -96,7 +96,25 @@ describe('basic CRUD including working liveQueries', function () {
     })
   })
 
+  it('should fail when we try to update with an older __v of that entity', function (done) {
+    fighterEntity.health += 10
+    fighterEntity.__v = 0 // wheres actual is 1 after the update in previous test
+    fighterModel.update(fighterEntity).then(function () {
+      throw new Error('Entity should not have been updated')
+    }, function (err) {
+      err.message.should.equal('Document version mismatch-your copy is version 0, but server has 1')
+      done()
+    })
+  })
+
   it('should be able to delete an entity of a model', function () {
     return fighterModel.remove({_id: fighterId})
+  })
+
+  it('should be able to invoke static methods on model over rpc', function (done) {
+    fighterModel.modelRpc('testStaticMethod')('works').then((ret) => {
+      ret.should.equal('static method works')
+      done()
+    })
   })
 })

@@ -330,9 +330,10 @@ var expose = function (model, schema, opts) {
       /**
        * finds a document by _id and then saves it
        * @param {Object} toUpdate a document which will be saved, must have an existing _id
+       * @param {Boolean} resolveWhole
        * @returns {Promise}
        */
-      update: function (toUpdate) {
+      update: function (toUpdate, resolveWhole) {
         const socket = this
         return new Promise(function (resolve, reject) {
           var id = toUpdate._id
@@ -368,7 +369,10 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', id, ' saved, version now ', doc.__v)
-                  resolve()	// we don't resolve with new document because when you want to display
+                  if (resolveWhole) {
+                    return resolve(resolveWhole)
+                  }
+                  resolve(doc.__v)	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
               })
@@ -420,7 +424,7 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
-                  resolve(set.length)	// we don't resolve with new document because when you want to display
+                  resolve({length: set.length, __v: doc._v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
               })
@@ -473,7 +477,7 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
-                  resolve(set.length)	// we don't resolve with new document because when you want to display
+                  resolve({length: set.length, __v: doc._v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
               })

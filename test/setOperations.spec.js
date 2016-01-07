@@ -36,7 +36,7 @@ describe('set operations', function () {
 
       return battleModel.addToSet({year: 281}, 'fighters', fighterId).then(function(length){
 
-        length.should.eql(1)
+        length.should.eql({length: 1, __v: 1})
         return battleModel.query().findOne({_id: battleId}).exec().promise.then(function(battle){
           battle.fighters[0].should.eql(fighterId)
         }, onRejected)
@@ -47,7 +47,7 @@ describe('set operations', function () {
 
   it('should remove an item from a nested array utilizing removeFromSet', function(done) {	//safeguards, that we don't overwrite $inc with version incrementing object
     return battleModel.removeFromSet({_id: battleId}, 'fighters', fighterId).then(function(length){
-      length.should.eql(0)
+      length.should.eql({length: 0, __v: 2})
       done()
     })
   })

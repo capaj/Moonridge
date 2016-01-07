@@ -424,7 +424,7 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
-                  resolve({length: set.length, __v: doc._v})	// we don't resolve with new document because when you want to display
+                  resolve({length: set.length, __v: doc.__v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
               })
@@ -477,7 +477,7 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
-                  resolve({length: set.length, __v: doc._v})	// we don't resolve with new document because when you want to display
+                  resolve({length: set.length, __v: doc.__v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
               })

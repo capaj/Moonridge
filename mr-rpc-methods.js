@@ -495,8 +495,10 @@ var expose = function (model, schema, opts) {
         opts.checkPermission(this, 'read')
         const subscribersForThisEvent = subscribers[evName]
         subscribersForThisEvent.add(socket)
+        debug(`there is a new subscriber ${socket.id} for model ${modelName} event ${evName}`)
         socket.on('disconnect', () => {
           subscribersForThisEvent.delete(socket)
+          debug(`subscriber disconnected ${socket.id} unsubscribed from model ${modelName} event ${evName}`)
         })
       },
       unsubscribe: function (evName) {

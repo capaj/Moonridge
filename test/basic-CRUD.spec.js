@@ -45,10 +45,21 @@ describe('basic CRUD including working liveQueries', function () {
     })
   })
 
+  it('should fail to create when validation fails with a mongoose errors', function (done) {
+    fighterModel.create({health: 'ssf'}).then(function (created) {
+      setTimeout(() => {
+        throw new Error('this should not happen')
+      })
+    }, (err) => {
+      err.errors.health.name.should.equal('CastError')
+      err.errors.name.name.should.equal('ValidatorError')
+      done()
+    })
+  })
+
   it('should allow to create an entity of a model', function (done) {
     LQ.onAny(function (evName, params) {
       evName.should.be.equal('add')
-      console.log('params!!!!', params)
       fighterEntity = params[1]
       fighterEntity.name.should.equal('Arya')
       done()

@@ -43,7 +43,7 @@
     "express": "^4.13",
     "lodash": "^3.10",
     "mongoose": "^4.3.4",
-    "socket.io-rpc": "^1.0.4"
+    "socket.io-rpc": "^1.0.6"
   },
   "devDependencies": {
     "chai": "^3.4.1",
@@ -51,7 +51,7 @@
     "mocha": "^2.3.4",
     "mongojs": "^2.2.2",
     "morgan": "^1.6.1",
-    "socket.io-rpc-client": "^1.0.3",
+    "socket.io-rpc-client": "^1.0.6",
     "standard": "^5.4.1"
   },
   "standard": {

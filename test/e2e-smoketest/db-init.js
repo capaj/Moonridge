@@ -6,14 +6,14 @@ module.exports = function(MR) {
     schemaInit: function(schema) {
 
     }
-  })	//for testing near queries
+  })	// for testing near queries
   var fighter = MR.model('fighter', {
-    name: String,
+    name: {type: String, required: true},
     health: Number,
     born: Date,
     death: {type: Date, permissions: {R: 4, W: 20}}
   }, {
-    schemaInit: function(schema) {
+    schemaInit: function (schema) {
       // if you want to call any methods on schema before model is created, you can do so in schemaInit
       schema.index({owner: 1, name: 1}, {unique: true, dropDups: true})
       // you may notice that we index here field owner even though we did not specify such field in the schema. It is because owner field is added to every model schema

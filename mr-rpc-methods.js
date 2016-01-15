@@ -176,9 +176,9 @@ var expose = function (model, schema, opts) {
     query: function (clientQuery) {
       opts.checkPermission(this, 'read')
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
-      runQueryMiddleware.call(this, clientQuery)
-      debug('query to be executed: ', clientQuery)
+      debug('query to be built: ', clientQuery)
       var queryAndOpts = queryBuilder(model, clientQuery)
+      runQueryMiddleware.call(this, queryAndOpts)
 
       return queryAndOpts.mQuery.exec()
     },
@@ -200,13 +200,13 @@ var expose = function (model, schema, opts) {
     liveQuery: function (clientQuery, LQIndex) {
       opts.checkPermission(this, 'read')
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
-      runQueryMiddleware.call(this, clientQuery)
-      debug('liveQuery to be executed: ', clientQuery)
+      debug('liveQuery to be built: ', clientQuery)
 
       const socket = this
 
       return new Promise(function (resolve, reject) {
         var builtQuery = queryBuilder(model, clientQuery)
+        runQueryMiddleware.call(this, builtQuery)
 
         var qKey = JSON.stringify(clientQuery)
         var LQ = liveQueries[qKey]

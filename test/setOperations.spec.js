@@ -42,7 +42,6 @@ describe('set operations', function () {
         }, onRejected)
       }, onRejected)
     })
-
   })
 
   it('should remove an item from a nested array utilizing removeFromSet', function(done) {	//safeguards, that we don't overwrite $inc with version incrementing object
@@ -52,12 +51,10 @@ describe('set operations', function () {
     })
   })
 
-
   after(function() {
     return Promise.all([
       battleModel.remove({_id: battleId}),
       fighterModel.remove(fighterEntity)
     ])
   })
-
 })

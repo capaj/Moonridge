@@ -1,73 +1,72 @@
 /* eslint-env node, mocha */
+
 var MR = require('../moonridge')
 var locals = require('./e2e-smoketest/localVariables.json')
 MR.connect(locals.connString)
 var expect = require('chai').expect
 var server
-
-describe('Moonridge model', function() {
+describe('Moonridge model', function () {
 	var LQ
 	var sampleModel
 
-	it('should run schemaInit on registering a new model', function(done) {
-		sampleModel = MR.model('sample_model', {
-			name: String
-		}, {
-			schemaInit: function(schema) {
-				expect(schema.pathType('name')).to.eql('real')
-				done()
-			}
+  it('should run schemaInit on registering a new model', function (done) {
+    sampleModel = MR.model('sample_model', {
+      name: String
+    }, {
+      schemaInit: function (schema) {
+        expect(schema.pathType('name')).to.eql('real')
+        done()
+      },
+      ownerRequired: false
+    })
 
-		})
+    server = MR.bootstrap(8079)
+  })
 
-		server = MR.bootstrap(8079)
-	})
+  it('should trigger schema events even when utilising findByIdAnd... methods on moonridge model directly', function (done) {
+    // normally mongoose would not trigger those-they are only triggered when doing doc.save().
+    // We need to have them triggered in order for liveQueries to work
+    var c = 0
+    var id
 
-	it('should trigger schema events even when utilising findByIdAnd... methods on moonridge model directly', function(done){
-		//normally mongoose would not trigger those-they are only triggered when doing doc.save().
-		// We need to have them triggered in order for liveQueries to work
-		var c = 0
-		var id
+    var fakeSocket = {id: 'testSocketId', registeredLQs: {}, moonridge: {user: {_id: '56520e8adc7237d62a081f6a'}}, rpc: function (method) {
+      return function () {
+        c++
+        if (c === 3) {
+          expect(arguments[1]).to.equal(id.toString())
+        }
+      }
+    }}
+    LQ = sampleModel.rpcExposedMethods.liveQuery.call(fakeSocket, [], 1)
 
-		var fakeSocket = {id:'testSocketId', registeredLQs: {}, moonridge:{user:{}}, rpc: function(method) {
-			return function() {
-				console.log("rpc Call on ", method, arguments)
-				c++
-				if (c === 3) {
-					expect(arguments[1]).to.equal(id.toString())
-				}
-			}
-		}}
-		LQ = sampleModel.rpcExposedMethods.liveQuery.call(fakeSocket, [], 1)
+    sampleModel.rpcExposedMethods.create.call(fakeSocket, {name: 'test'}).then(function (created) {
+      id = created._id.valueOf()
+      sampleModel.schema.on('remove', function (doc) {
+        expect(doc).to.equal(id)
+        setTimeout(function () {
+          expect(c).to.equal(3)
+          done()
+        }, 100)
+      })
 
+      sampleModel.schema.on('update', function (doc) {
+        expect(doc).to.equal(id)
+        setTimeout(function () {
+          sampleModel.findByIdAndRemove(id)
+          expect(c).to.equal(2)
+        }, 100)
+      })
 
-		sampleModel.rpcExposedMethods.create.call(fakeSocket, {name: 'test'}).then(function(created) {
-			id = created._id.valueOf()
+      sampleModel.findByIdAndUpdate(id, {name: 'test2'})
+    }, function (err) {
+      console.error(err.errors)
+      setTimeout(() => {
+        throw err
+      })
+    })
+  })
 
-			sampleModel.schema.on('remove', function(doc) {
-				expect(doc).to.equal(id)
-				setTimeout(function(){
-					expect(c).to.equal(3)
-					done()
-				}, 100)
-			})
-
-
-			sampleModel.schema.on('update', function(doc) {
-				expect(doc).to.equal(id)
-				setTimeout(function(){
-					sampleModel.findByIdAndRemove(id)
-					expect(c).to.equal(2)
-				}, 100)
-			})
-
-			sampleModel.findByIdAndUpdate(id, {name: 'test2'})
-		}, function(err) {
-			throw err
-		})
-	})
-
-	it('should expose statics of a model', function () {
-		// TODO
-	})
+  it('should expose statics of a model', function () {
+    // TODO
+  })
 })

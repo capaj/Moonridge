@@ -159,6 +159,14 @@ var expose = function (model, schema, opts) {
     return clQuery
   }
 
+  function runQueryMiddleware (socket, query) {
+    if (opts.queryMiddleware) {
+      opts.queryMiddleware.forEach((middlewareFn) => {
+        middlewareFn(socket, query)
+      })
+    }
+  }
+
   var mrMethods = {
     /**
      * for running normal DB queries
@@ -168,8 +176,9 @@ var expose = function (model, schema, opts) {
     query: function (clientQuery) {
       opts.checkPermission(this, 'read')
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
-      // debug('clientQuery', clientQuery)
+      debug('query to be built: ', clientQuery)
       var queryAndOpts = queryBuilder(model, clientQuery)
+      runQueryMiddleware.call(this, queryAndOpts)
 
       return queryAndOpts.mQuery.exec()
     },
@@ -190,12 +199,14 @@ var expose = function (model, schema, opts) {
      */
     liveQuery: function (clientQuery, LQIndex) {
       opts.checkPermission(this, 'read')
-
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
+      debug('liveQuery to be built: ', clientQuery)
+
       const socket = this
 
       return new Promise(function (resolve, reject) {
         var builtQuery = queryBuilder(model, clientQuery)
+        runQueryMiddleware.call(this, builtQuery)
 
         var qKey = JSON.stringify(clientQuery)
         var LQ = liveQueries[qKey]

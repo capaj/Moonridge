@@ -1,5 +1,7 @@
 var mongoose = require('mongoose')
-
+process.on('unhandledRejection', function (error, promise) {
+  console.error('UNHANDLED REJECTION', error)
+})
 module.exports = function(MR) {
 
   var location = MR.model('location', {loc: {type: [Number], index: '2dsphere'}}, {
@@ -21,6 +23,7 @@ module.exports = function(MR) {
         return 'static method ' + works
       }
     },
+    ownerRequired: false,
     permissions: {
       create: 20,
       read: 10,
@@ -42,7 +45,7 @@ module.exports = function(MR) {
     name: String,
     year: {type: Number},
     fighters: [{type: mongoose.Schema.Types.ObjectId, ref: 'Fighter'}]
-  })
+  }, {ownerRequired: false})
 
   battleM.schema.on('update', function (doc, previousDocVersion) {
     console.log("battle update callback triggered, is modified ", doc.isModified()) // a good place to put custom save logic

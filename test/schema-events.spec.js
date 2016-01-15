@@ -4,7 +4,7 @@ require('chai').should()
 var mrPair = require('./utils/run_server_client')
 var mr = mrPair.client
 
-describe("schema events", function (){
+describe('schema events', function () {
   this.timeout(4000)
 
   var fighterModel
@@ -12,7 +12,7 @@ describe("schema events", function (){
 
   before(function () {
     fighterModel = mr.model('fighter')
-    battleModel = mr.model('battle')
+    // battleModel = mr.model('battle')
     return mr.authorize({nick: 'admin'})
   })
 

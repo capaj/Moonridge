@@ -64,6 +64,7 @@ function registerUserModel (schemaExtend, opts) {
   if (userModel) {    // if it was already assigned, we throw
     throw new Error('There can only be one user model and it was already registered')
   }
+
   var userSchema = require('./utils/user-model-base')
   _.extend(userSchema, schemaExtend)
   userModel = MRModel.call(moonridgeSingleton, 'user', userSchema, opts)

@@ -49,6 +49,15 @@ baucis.Controller.decorators(function (options, protect) {
     })
     return next()
   })
+
+  controller.query(function (request, response, next) {
+    if (mrOpts.queryMiddleware) {
+      mrOpts.queryMiddleware.forEach((middlewareFn) => {
+        middlewareFn.call(request, request.baucis.query, request.moonridge.user)
+      })
+    }
+    next()
+  })
   debug(`${model.modelName} baucis decorator ran`)
 })
 

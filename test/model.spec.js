@@ -29,7 +29,7 @@ describe('Moonridge model', function () {
     var c = 0
     var id
 
-    var fakeSocket = {id: 'testSocketId', registeredLQs: {}, moonridge: {user: {_id: '56520e8adc7237d62a081f6a'}}, rpc: function (method) {
+    var fakeSocket = {id: 'testSocketId', moonridge: {registeredLQs: [], user: {_id: '56520e8adc7237d62a081f6a'}}, rpc: function (method) {
       return function () {
         c++
         if (c === 3) {

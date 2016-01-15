@@ -86,17 +86,6 @@ function bootstrap () {
 
   var allQueries = []
 
-  io.on('connection', function (socket) {
-    socket.registeredLQs = []
-    socket.on('disconnect', function () {
-      // clearing out liveQueries listeners
-      for (var LQId in socket.registeredLQs) {
-        var LQ = socket.registeredLQs[LQId]
-        LQ.removeListener(socket)
-      }
-    })
-  })
-
   Object.keys(models).forEach(function (modelName) {
     var model = models[modelName]
     baucis.rest(modelName)
@@ -104,7 +93,20 @@ function bootstrap () {
   })
 
   io.use(function (socket, next) {
-    socket.moonridge = {user: {privilege_level: 0}} // default privilege level for any connected client
+    const registeredLQs = []
+    socket.moonridge = {
+      registeredLQs: registeredLQs,
+      user: {privilege_level: 0}
+    } // default privilege level for any connected client
+
+    socket.on('disconnect', function () {
+      // clearing out liveQueries listeners
+      for (var LQId in registeredLQs) {
+        var LQ = registeredLQs[LQId]
+        LQ.removeListener(socket)
+      }
+    })
+
     next()
   })
 

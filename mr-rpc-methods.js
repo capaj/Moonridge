@@ -162,7 +162,7 @@ var expose = function (model, schema, opts) {
   function runQueryMiddleware (socket, query) {
     if (opts.queryMiddleware) {
       opts.queryMiddleware.forEach((middlewareFn) => {
-        middlewareFn(socket, query)
+        middlewareFn.call(socket, query, socket.moonridge.user)
       })
     }
   }
@@ -178,15 +178,15 @@ var expose = function (model, schema, opts) {
       accessControlQueryModifier(clientQuery, schema, this.moonridge.privilege_level, 'R')
       debug('query to be built: ', clientQuery)
       var queryAndOpts = queryBuilder(model, clientQuery)
-      runQueryMiddleware.call(this, queryAndOpts)
+      runQueryMiddleware(this, queryAndOpts.mQuery)
 
       return queryAndOpts.mQuery.exec()
     },
 
     unsubLQ: function (index) {	// when client uses stop method on LQ, this method gets called
-      var LQ = this.registeredLQs[index]
+      var LQ = this.moonridge.registeredLQs[index]
       if (LQ) {
-        delete this.registeredLQs[index]
+        delete this.moonridge.registeredLQs[index]
         LQ.removeListener(this)
       } else {
         throw new Error('Index param in LQ unsubscribe is not valid!')
@@ -206,20 +206,20 @@ var expose = function (model, schema, opts) {
 
       return new Promise(function (resolve, reject) {
         var builtQuery = queryBuilder(model, clientQuery)
-        runQueryMiddleware.call(this, builtQuery)
+        const mQuery = builtQuery.mQuery
+        const queryOptions = builtQuery.opts
+
+        runQueryMiddleware(socket, mQuery)
 
         var qKey = JSON.stringify(clientQuery)
         var LQ = liveQueries[qKey]
-
-        var queryOptions = builtQuery.opts
-        var mQuery = builtQuery.mQuery
 
         if (!mQuery.exec) {
           throw new Error('query builder has returned invalid query')
         }
 
         var pushListeners = function (LQOpts) {
-          var activeClientQueryIndexes = Object.keys(socket.registeredLQs)
+          var activeClientQueryIndexes = Object.keys(socket.moonridge.registeredLQs)
 
           if (activeClientQueryIndexes.length > maxLQsPerClient) {
             reject(new Error('Limit for queries per client reached. Try stopping some live queries.'))
@@ -278,8 +278,8 @@ var expose = function (model, schema, opts) {
           pushListeners(queryOptions)
         }
 
-        if (!socket.registeredLQs[LQIndex]) { // query can be reexecuted when user authenticates, then we already have
-          socket.registeredLQs[LQIndex] = LQ
+        if (!socket.moonridge.registeredLQs[LQIndex]) { // query can be reexecuted when user authenticates, then we already have
+          socket.moonridge.registeredLQs[LQIndex] = LQ
         }
       })
     },

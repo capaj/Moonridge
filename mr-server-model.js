@@ -23,13 +23,18 @@ var mongoose = require('mongoose')
  */
 module.exports = function moonridgeModel (name, schema, opts) {
   opts = opts || {}
-  _.assign(schema, {
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'user',
-      required: opts.ownerRequired || true
-    }
-  })   // users own all other entities
+  var ownerSchema = {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user'
+  }
+  console.log('opts.ownerRequired', ownerSchema)
+
+  if (name !== 'user') {
+    _.assign(schema, {
+      owner: ownerSchema
+    })   // users own all other entities
+  }
+
   // mongoose schema
   var mgSchema = new mongoose.Schema(schema)
 

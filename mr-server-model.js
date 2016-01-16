@@ -27,7 +27,6 @@ module.exports = function moonridgeModel (name, schema, opts) {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'user'
   }
-  console.log('opts.ownerRequired', ownerSchema)
 
   if (name !== 'user') {
     _.assign(schema, {

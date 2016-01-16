@@ -189,7 +189,7 @@ var expose = function (model, schema, opts) {
         delete this.moonridge.registeredLQs[index]
         LQ.removeListener(this)
       } else {
-        throw new Error('Index param in LQ unsubscribe is not valid!')
+        throw new Error(`Index ${index} in LQ unsubscribe is not valid!`)
       }
     },
     /**

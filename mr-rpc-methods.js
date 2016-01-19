@@ -381,7 +381,7 @@ var expose = function (model, schema, opts) {
                 } else {
                   debug('document ', id, ' saved, version now ', doc.__v)
                   if (resolveWhole) {
-                    return resolve(resolveWhole)
+                    return resolve(doc.toObject())
                   }
                   resolve(doc.__v)	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery

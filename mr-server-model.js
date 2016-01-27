@@ -93,8 +93,8 @@ module.exports = function moonridgeModel (name, schema, opts) {
           reject(err)
           throw err
         }
-        docs.forEach(opts.onExistence)
-        resolve(docs)
+        const proms = docs.map(opts.onExistence)
+        return Promise.all(proms).then(resolve, reject)
       })
     })
   }

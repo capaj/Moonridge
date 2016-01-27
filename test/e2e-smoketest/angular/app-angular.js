@@ -40,10 +40,6 @@ angular.module('MRTest', ['ngAnimate']).controller('fighterCtrl', function($scop
 		console.log(LQ);    //LiveQuery
 	});
 
-	fighter.listPaths().then(function(paths) {
-		console.log(paths);
-	});
-
 	$scope.oneLQ.on('add', function(LQ) {
 		console.log('add event handler called');    //
 	});

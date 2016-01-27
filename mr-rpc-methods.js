@@ -1,6 +1,7 @@
 'use strict'
 const _ = require('lodash')
-
+const Schema = require('mongoose').Schema
+const mss = require('mongoose-schema-serializer')(Schema)
 const queryBuilder = require('./query-builder')
 const LiveQuery = require('./utils/live-query')
 var maxLQsPerClient = 100
@@ -285,10 +286,10 @@ var expose = function (model, schema, opts) {
     },
 
     /**
-     * @returns {Array<String>} of the model's properties
+     * @returns {Object} model's schema
      */
-    listPaths: function () {
-      return Object.keys(schema.paths)
+    getSchema: function () {
+      return mss.stringify(schema)
     }
   }
 

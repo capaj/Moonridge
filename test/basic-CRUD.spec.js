@@ -26,7 +26,17 @@ describe('basic CRUD including working liveQueries', function () {
     })
   })
 
-  it('should rerun liveQuery on authorization', function () {
+  it('should have a method getSchema for getting a schema of the model', function () {
+  })
+
+  describe('rerun liveQueries', function () {
+    it('should rerun after authorization promise resolves', function () {
+
+    })
+    it('should rerun immediatelly after reconnect if not authorized asynchronously', function () {
+
+    })
+
     // TODO implement
   })
 

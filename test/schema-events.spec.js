@@ -5,7 +5,7 @@ var mrPair = require('./utils/run_server_client')
 var mr = mrPair.client
 
 describe('schema events', function () {
-  this.timeout(4000)
+  this.timeout(3000)
 
   var fighterModel
   var fighterEntity
@@ -18,19 +18,21 @@ describe('schema events', function () {
 
   describe('invoking listeners for events', function () {
     it('should invoke listener for create', function (done) {
-      fighterModel.on('create', function (doc) {
+      return fighterModel.on('create', function (doc) {
         doc.name.should.equal('Hound')
         fighterEntity = doc
         done()
-      })
-
-      fighterModel.create({name: 'Hound', health: 25, isNew: false}).then(function (created) {
-        console.log('created the Hound')
+      }).then(() => {
+        fighterModel.create({name: 'Hound', health: 25, isNew: true}).then(function (created) {
+          console.log('created the Hound')
+        })
       })
     })
 
     it('should invoke listener for update', function (done) {
       fighterModel.on('update', (updatedDoc) => {
+        console.log(arguments)
+        console.log('arguments')
         updatedDoc.health.should.equal(0)
         done()
       })
@@ -42,8 +44,9 @@ describe('schema events', function () {
       fighterModel.on('remove', (removed) => {
         removed.name.should.equal('Hound')
         done()
+      }).then(() => {
+        fighterModel.remove(fighterEntity)
       })
-      fighterModel.remove(fighterEntity)
     })
   })
 

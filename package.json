@@ -52,7 +52,8 @@
     "mongojs": "^2.2.2",
     "morgan": "^1.6.1",
     "socket.io-rpc-client": "^1.1.0",
-    "standard": "^5.4.1"
+    "standard": "^5.4.1",
+    "express": "^4.13"
   },
   "standard": {
     "ignore": [

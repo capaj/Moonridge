@@ -40,7 +40,6 @@
     "baucis": "^1.6.3",
     "baucis-swagger": "^1.1.2",
     "debug": "^2.2.0",
-    "express": "^4.13",
     "lodash": "^3.10",
     "mongoose": "^4.3.7",
     "mongoose-schema-serializer": "^1.0.1",

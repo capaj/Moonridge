@@ -3,5 +3,8 @@
   "version": "1.0.0",
   "scripts": {
     "installjspm": "cd angular && jspm install && cd .. && cd aurelia && jspm install && cd .. && cd react && jspm install"
-  }
+  },
+  "dependencies": {
+    "express": "^4.13"
+  },
 }

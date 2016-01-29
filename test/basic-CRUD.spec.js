@@ -27,6 +27,18 @@ describe('basic CRUD including working liveQueries', function () {
   })
 
   it('should have a method getSchema for getting a schema of the model', function () {
+    return fighterModel.getSchema().then(schema => {
+      schema.should.eql({
+        name: {type: String, required: true},
+        health: Number,
+        born: Date,
+        death: {type: Date, permissions: {R: 4, W: 20}},
+        owner: {
+          ref: 'user',
+          type: 'ObjectId'
+        }
+      })
+    })
   })
 
   describe('rerun liveQueries', function () {

@@ -289,7 +289,7 @@ var expose = function (model, schema, opts) {
      * @returns {Object} model's schema
      */
     getSchema: function () {
-      return mss.stringify(schema)
+      return mss.stringify(model.moonridgeSchema)
     }
   }
 

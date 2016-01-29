@@ -2,11 +2,9 @@ var mongoose = require('mongoose')
 process.on('unhandledRejection', function (error, promise) {
   console.error('UNHANDLED REJECTION', error)
 })
-module.exports = function(MR) {
-
+module.exports = function (MR) {
   var location = MR.model('location', {loc: {type: [Number], index: '2dsphere'}}, {
-    schemaInit: function(schema) {
-
+    schemaInit: function (schema) {
     }
   })	// for testing near queries
   var fighter = MR.model('fighter', {
@@ -36,7 +34,7 @@ module.exports = function(MR) {
   })
 
   fighter.schema.on('preupdate', function (doc, previousDocVersion) {
-    console.log("fighter preupdate callback triggered, is modified ", doc.isModified()) // a good place to put custom save logic
+    console.log('fighter preupdate callback triggered, is modified ', doc.isModified()) // a good place to put custom save logic
     console.log('doc', doc)
     console.log('previousDocVersion', previousDocVersion)
   })
@@ -48,7 +46,7 @@ module.exports = function(MR) {
   }, {ownerRequired: false})
 
   battleM.schema.on('update', function (doc, previousDocVersion) {
-    console.log("battle update callback triggered, is modified ", doc.isModified()) // a good place to put custom save logic
+    console.log('battle update callback triggered, is modified ', doc.isModified()) // a good place to put custom save logic
     console.log(doc)
     console.log(previousDocVersion)
   })
@@ -68,20 +66,18 @@ module.exports = function(MR) {
   //
   // 	})
 
-
   return Promise.all([].concat([
     user.create({
       name: 'admin', privilege_level: 50
-    }).then(function() {
-      console.log("admin created")
+    }).then(function () {
+      console.log('admin created')
     }),
     user.create({
       name: 'testUser', privilege_level: 10
-    }).then(function() {
-      console.log("testUser created")
+    }).then(function () {
+      console.log('testUser created')
     })
-  ])).then(function() {
-    console.log("all collections should be clean, users created")
-
+  ])).then(function () {
+    console.log('all collections should be clean, users created')
   })
 }

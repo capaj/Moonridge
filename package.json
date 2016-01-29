@@ -43,7 +43,7 @@
     "express": "^4.13",
     "lodash": "^3.10",
     "mongoose": "^4.3.7",
-    "mongoose-schema-serializer": "^1.0.0",
+    "mongoose-schema-serializer": "^1.0.1",
     "socket.io-rpc": "^1.1.0"
   },
   "devDependencies": {

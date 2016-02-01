@@ -6,8 +6,8 @@ MR.connect(locals.connString)
 var expect = require('chai').expect
 var server
 describe('Moonridge model', function () {
-	var LQ
-	var sampleModel
+  var LQ
+  var sampleModel
 
   it('should run schemaInit on registering a new model', function (done) {
     sampleModel = MR.model('sample_model', {
@@ -64,6 +64,10 @@ describe('Moonridge model', function () {
         throw err
       })
     })
+  })
+
+  it.skip('should rethrow when model initialisation fails for a document with marking the error', function () {
+
   })
 
   it('should expose statics of a model', function () {

@@ -238,6 +238,9 @@ var expose = function (model, schema, opts) {
               retVal.docs = LQ.docs
             }
             LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts}
+            socket.on('disconnect', () => {
+              delete LQ.listeners[socket.id]
+            })
             resolve(retVal)
           }
 

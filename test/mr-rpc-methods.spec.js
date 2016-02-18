@@ -25,4 +25,8 @@ describe('rpc methods', function () {
   it('should expose a query/liveQuery method which runs middlewares on built queries', function () {
     // TODO
   })
+
+  it('should delete a listener when socket disconnects', function () {
+    // TODO
+  })
 })

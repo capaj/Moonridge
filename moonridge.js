@@ -3,6 +3,7 @@ const RPC = require('socket.io-rpc')
 const _ = require('lodash')
 // const debug = require('debug')('moonridge:server')
 const MRModel = require('./mr-server-model')
+const debug = require('debug')('moonridge:main')
 var userModel
 var moonridgeSingleton
 
@@ -93,7 +94,7 @@ function bootstrap () {
   })
 
   io.use(function (socket, next) {
-    const registeredLQs = []
+    const registeredLQs = {}
     socket.moonridge = {
       registeredLQs: registeredLQs,
       user: {privilege_level: 0}
@@ -101,6 +102,7 @@ function bootstrap () {
 
     socket.on('disconnect', function () {
       // clearing out liveQueries listeners
+      debug(socket.id, ' socket disconnected, cleaning up LQ listeners')
       for (var LQId in registeredLQs) {
         var LQ = registeredLQs[LQId]
         LQ.removeListener(socket)

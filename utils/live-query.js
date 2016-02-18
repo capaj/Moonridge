@@ -1,8 +1,8 @@
 'use strict'
-var getIndexInSorted = require('./indexInSortedArray')
-var populateWithClientQuery = require('./populate-doc-util')
-var liveQueriesMap = require('./live-queries-map')
-var debug = require('debug')('moonridge:server')
+const getIndexInSorted = require('./indexInSortedArray')
+const populateWithClientQuery = require('./populate-doc-util')
+const liveQueriesMap = require('./live-queries-map')  // mapped by the query stringified
+const debug = require('debug')('moonridge:live-query')
 var _ = require('lodash')
 
 /**
@@ -95,6 +95,11 @@ LiveQuery.prototype = {
     } else {
       actuallySend()
     }
+  },
+  registerListener: function (opts) {
+    const socket = opts.socket
+    debug(`listener ${socket.id} registered`)
+    this.listeners[socket.id] = opts
   },
   /**
    * removes a socket listener from liveQuery and also destroys the whole liveQuery if no more listeners are present

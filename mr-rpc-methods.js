@@ -220,6 +220,7 @@ var expose = function (model, schema, opts) {
           }
 
           var resolveFn = function () {
+            debug('resolving LQ', modelName, qKey)
             var retVal = {index: LQIndex}
 
             if (LQOpts.hasOwnProperty('count')) {
@@ -229,15 +230,14 @@ var expose = function (model, schema, opts) {
             } else {
               retVal.docs = LQ.docs
             }
-            LQ.listeners[socket.id] = {socket: socket, clIndex: LQIndex, qOpts: LQOpts}
-            socket.on('disconnect', () => {
-              delete LQ.listeners[socket.id]
-            })
+            LQ.registerListener({socket: socket, clIndex: LQIndex, qOpts: LQOpts})
             resolve(retVal)
           }
 
           if (LQ.firstExecPromise) {
-            LQ.firstExecPromise.then(resolveFn)
+            LQ.firstExecPromise.then(resolveFn).catch((e) => {
+              throw e
+            })
           } else {
             resolveFn()
           }
@@ -500,6 +500,7 @@ var expose = function (model, schema, opts) {
           subscribers[evName] = new Set()
           schema.on(evName, (doc) => {
             Array.from(subscribers[evName]).forEach((socket) => {
+              debug('schemaEvent ', evName)
               socket.emit('schemaEvent', {
                 modelName: modelName,
                 evName: evName,

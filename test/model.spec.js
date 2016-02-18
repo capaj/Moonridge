@@ -1,13 +1,13 @@
 /* eslint-env node, mocha */
-
+'use strict'
 var MR = require('../moonridge')
 var locals = require('./e2e-smoketest/localVariables.json')
 MR.connect(locals.connString)
 var expect = require('chai').expect
-var server
 describe('Moonridge model', function () {
-  var LQ
   var sampleModel
+  let server
+  let LQ
 
   it('should run schemaInit on registering a new model', function (done) {
     sampleModel = MR.model('sample_model', {
@@ -29,14 +29,24 @@ describe('Moonridge model', function () {
     var c = 0
     var id
 
-    var fakeSocket = {id: 'testSocketId', moonridge: {registeredLQs: [], user: {_id: '56520e8adc7237d62a081f6a'}}, rpc: function (method) {
-      return function () {
-        c++
-        if (c === 3) {
-          expect(arguments[1]).to.equal(id.toString())
+    var fakeSocket = {
+      id: 'testSocketId',
+      moonridge: {
+        registeredLQs: {},
+        user: {_id: '56520e8adc7237d62a081f6a'}
+      },
+      on: function (name, cb) {
+        expect(typeof cb).to.equal('function')
+      },
+      rpc: function (method) {
+        return function () {
+          c++
+          if (c === 3) {
+            expect(arguments[1]).to.equal(id.toString())
+          }
         }
       }
-    }}
+    }
     LQ = sampleModel.rpcExposedMethods.liveQuery.call(fakeSocket, [], 1)
 
     sampleModel.rpcExposedMethods.create.call(fakeSocket, {name: 'test'}).then(function (created) {

@@ -22,11 +22,15 @@ describe('rpc methods', function () {
     })
     exposeCb(fakeRpcInstance)
   })
-  it('should expose a query/liveQuery method which runs middlewares on built queries', function () {
+  it.skip('should expose a query/liveQuery method which runs middlewares on built queries', function () {
     // TODO
   })
 
-  it('should delete a listener when socket disconnects', function () {
+  it.skip('should delete a listener when socket disconnects', function () {
     // TODO
+  })
+
+  it.skip('should subscribe to any schema event', function () {
+
   })
 })

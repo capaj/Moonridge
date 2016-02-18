@@ -71,16 +71,8 @@ var expose = function (model, schema, opts) {
   const subscribers = {}
 
   evNames.forEach(function (evName) {
-    subscribers[evName] = new Set()
     const modelSynchronization = modelSyncFactory(evName)
     schema.on(evName, function (doc) {
-      Array.from(subscribers[evName]).forEach((socket) => {
-        socket.emit('schemaEvent', {
-          modelName: modelName,
-          evName: evName,
-          doc: doc
-        })
-      })
       modelSynchronization(doc)
     })
   })
@@ -505,7 +497,16 @@ var expose = function (model, schema, opts) {
       subscribe: function (evName) {
         const socket = this
         if (!subscribers.hasOwnProperty(evName)) {
-          throw new Error(`event ${evName} does not exist`)
+          subscribers[evName] = new Set()
+          schema.on(evName, (doc) => {
+            Array.from(subscribers[evName]).forEach((socket) => {
+              socket.emit('schemaEvent', {
+                modelName: modelName,
+                evName: evName,
+                doc: doc
+              })
+            })
+          })
         }
         opts.checkPermission(this, 'read')
         const subscribersForThisEvent = subscribers[evName]

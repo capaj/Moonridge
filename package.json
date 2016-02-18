@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.9.25",
+  "version": "0.9.26",
   "main": "moonridge.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to use Mongoose.js models via socket.io-rpc doing regular queries and liveQueries",

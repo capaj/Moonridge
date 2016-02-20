@@ -1,6 +1,6 @@
 {
   "name": "moonridge",
-  "version": "0.9.27",
+  "version": "0.9.28",
   "main": "moonridge.js",
   "author": "Capaj <capajj@gmail.com>",
   "description": "Isomorphic library, which allows you to use Mongoose.js models via socket.io-rpc doing regular queries and liveQueries",
@@ -41,7 +41,7 @@
     "baucis-swagger": "^1.1.2",
     "debug": "^2.2.0",
     "lodash": "^3.10",
-    "mongoose": "^4.4.2",
+    "mongoose": "^4.4.4",
     "mongoose-schema-serializer": "^1.0.1",
     "socket.io-rpc": "^1.1.3"
   },

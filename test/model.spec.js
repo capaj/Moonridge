@@ -9,6 +9,18 @@ describe('Moonridge model', function () {
   let server
   let LQ
 
+  it('should have a baucis controller', function () {
+    sampleModel = MR.model('first_test_model', {
+      name: String
+    })
+    const ctrl = sampleModel.controller
+    expect(ctrl).to.be.a('function')
+    expect(ctrl.put).to.be.a('function')
+    expect(ctrl.get).to.be.a('function')
+    expect(ctrl.delete).to.be.a('function')
+    expect(ctrl.post).to.be.a('function')
+  })
+
   it('should run schemaInit on registering a new model', function (done) {
     sampleModel = MR.model('sample_model', {
       name: String

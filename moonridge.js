@@ -52,6 +52,7 @@ function connect (connString, opts) {
 function regNewModel (name, schema, opts) {
   var model = MRModel.apply(moonridgeSingleton, arguments)
   models[name] = model
+  model.controller = baucis.rest(name)
   return model
 }
 
@@ -70,7 +71,7 @@ function registerUserModel (schemaExtend, opts) {
   _.extend(userSchema, schemaExtend)
   userModel = MRModel.call(moonridgeSingleton, 'user', userSchema, opts)
   models['user'] = userModel
-
+  userModel.controller = baucis.rest('user')
   return userModel
 }
 
@@ -89,7 +90,6 @@ function bootstrap () {
 
   Object.keys(models).forEach(function (modelName) {
     var model = models[modelName]
-    baucis.rest(modelName)
     model._exposeCallback(server)
   })
 

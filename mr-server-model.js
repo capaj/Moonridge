@@ -88,20 +88,19 @@ module.exports = function moonridgeModel (name, schema, opts) {
   var model = mongoose.model(name, mgSchema)
   if (opts.onExistence) {
     model.initPromise = new Promise(function (resolve, reject) {
-      model.find().exec((err, docs) => {
-        if (err) {
-          reject(err)
-          throw err
-        }
-        const proms = docs.map(function (doc) {
-          return Promise.resolve(opts.onExistence(doc)).catch((e) => {
-            console.error('failed onExistence initialisation on ', doc, ' error: ', e)
-            e.fromMoonridgeModelInit = true
-            e.doc = doc
-            throw e // rethrown with fromMoonridgeModelInit so that it can be handled in process-wide handler
-          })
-        })
-        return Promise.all(proms).then(resolve, reject)
+      const stream = model.find().stream()
+      const proms = []
+      stream.on('data', function (doc) {
+        proms.push(Promise.resolve(opts.onExistence(doc)).catch((e) => {
+          console.error('failed onExistence initialisation on ', doc, ' error: ', e)
+          e.fromMoonridgeModelInit = true
+          e.doc = doc
+          throw e // rethrown with fromMoonridgeModelInit so that it can be handled in process-wide handler
+        }))
+      })
+      .on('error', reject)
+      .on('close', function () {
+        Promise.all(proms).then(resolve, reject)
       })
     })
   }

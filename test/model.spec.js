@@ -1,11 +1,12 @@
 /* eslint-env node, mocha */
 'use strict'
-var MR = require('../moonridge')
-var locals = require('./e2e-smoketest/localVariables.json')
+const MR = require('../moonridge')
+const locals = require('./e2e-smoketest/localVariables.json')
 MR.connect(locals.connString)
 var expect = require('chai').expect
+
 describe('Moonridge model', function () {
-  var sampleModel
+  let sampleModel
   let server
   let LQ
 
@@ -19,6 +20,34 @@ describe('Moonridge model', function () {
     expect(ctrl.get).to.be.a('function')
     expect(ctrl.delete).to.be.a('function')
     expect(ctrl.post).to.be.a('function')
+  })
+
+  it('should run onExistence for each created instance of a model', function (done) {
+    sampleModel = MR.model('sample_model_two', {
+      name: String
+    }, {
+      onExistence: function (d) {
+        expect(d.name).to.eql('on existence test')
+        done()
+      }
+    })
+    const doc = new sampleModel({name: 'on existence test'})
+    doc.save()
+  })
+
+  it('should NOT save the new model if onExistence throws', function (done) {
+    let testModel = MR.model('sample_model_three', {
+      name: String
+    }, {
+      onExistence: function (d) {
+        return Promise.reject(new Error('just a test error'))
+      }
+    })
+    const doc = new testModel({name: 'onexistence throw test'})
+    doc.save().then(() => {}, (e) => {
+      expect(e.message).to.equal('just a test error')
+      done()
+    })
   })
 
   it('should run schemaInit on registering a new model', function (done) {

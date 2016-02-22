@@ -1,7 +1,7 @@
-var exposeMethods = require('./mr-rpc-methods')
-var debug = require('debug')('moonridge:server')
-var _ = require('lodash')
-var mongoose = require('mongoose')
+const exposeMethods = require('./mr-rpc-methods')
+const debug = require('debug')('moonridge:server')
+const _ = require('lodash')
+const mongoose = require('mongoose')
 
 /**
  * @param {String} name
@@ -58,23 +58,24 @@ module.exports = function moonridgeModel (name, schema, opts) {
   }
   mgSchema.pathPermissions = pathPermissions // prepared object for handling access control
 
-  var newDocs = []
+  const newDocs = new Set()
   mgSchema.pre('save', function (next) {
     if (this.isNew) {
-      newDocs.push(this._id)
+      newDocs.add(this._id)
+      if (opts.onExistence) {
+        return Promise.resolve(opts.onExistence.call(model, this)).then(() => {
+          next()
+        }, next)
+      }
     }
     next()
   })
 
   // Hook `save` post method called after creation/update
   mgSchema.post('save', function postSave (doc) {
-    var indexInNewDocs = newDocs.indexOf(doc._id)
-    if (indexInNewDocs !== -1) {
-      newDocs.splice(indexInNewDocs, 1)
+    if (newDocs.has(doc._id)) {
+      newDocs.delete(doc._id)
       mgSchema.emit('create', doc)
-      if (opts.onExistence) {
-        opts.onExistence.call(model, doc)
-      }
     } else {
       mgSchema.emit('update', doc)
     }

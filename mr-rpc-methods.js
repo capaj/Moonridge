@@ -4,7 +4,7 @@ const Schema = require('mongoose').Schema
 const mss = require('mongoose-schema-serializer')(Schema)
 const queryBuilder = require('./query-builder')
 const LiveQuery = require('./utils/live-query')
-var maxLQsPerClient = 100
+const maxLQsPerClient = 100
 const debug = require('debug')('moonridge:server')
 const liveQueriesMap = require('./utils/live-queries-map')
 const objectResolvePath = require('./utils/object-resolve-path')
@@ -160,7 +160,7 @@ var expose = function (model, schema, opts) {
     }
   }
 
-  var mrMethods = {
+  const mrMethods = {
     /**
      * for running normal DB queries
      * @param {Object} clientQuery
@@ -285,10 +285,38 @@ var expose = function (model, schema, opts) {
      */
     getSchema: function () {
       return mss.stringify(model.moonridgeSchema)
+    },
+    subscribe: function (evName) {
+      const socket = this
+      if (!subscribers.hasOwnProperty(evName)) {
+        subscribers[evName] = new Set()
+        schema.on(evName, (doc) => {
+          Array.from(subscribers[evName]).forEach((socket) => {
+            debug('schemaEvent ', evName)
+            socket.emit('schemaEvent', {
+              modelName: modelName,
+              evName: evName,
+              doc: doc
+            })
+          })
+        })
+      }
+      opts.checkPermission(this, 'read')
+      const subscribersForThisEvent = subscribers[evName]
+      subscribersForThisEvent.add(socket)
+      debug(`there is a new subscriber ${socket.id} for model ${modelName} event ${evName}`)
+      socket.on('disconnect', () => {
+        subscribersForThisEvent.delete(socket)
+        debug(`subscriber disconnected ${socket.id} unsubscribed from model ${modelName} event ${evName}`)
+      })
+    },
+    unsubscribe: function (evName) {
+      return subscribers[evName].delete(this)
     }
   }
 
   if (opts.readOnly !== true) {
+    const updatePromisesMap = new Map()
     _.extend(mrMethods, {
       /**
        * @param {Object} newDoc
@@ -342,52 +370,60 @@ var expose = function (model, schema, opts) {
        */
       update: function (toUpdate, resolveWhole) {
         const socket = this
-        return new Promise(function (resolve, reject) {
-          var id = toUpdate._id
-          delete toUpdate._id
-
-          model.findById(id, function (err, doc) {
-            if (err) {
-              debug('rejecting an update because: ', err)
-              return reject(err)
-            }
-            if (doc) {
-              try {
-                opts.checkPermission(socket, 'update', doc)
-              } catch (err) {
-                reject(err)
+        const id = toUpdate._id
+        const runUpdate = () => {
+          return new Promise(function (resolve, reject) {
+            delete toUpdate._id
+            model.findById(id, function (err, doc) {
+              if (err) {
+                debug('rejecting an update because: ', err)
+                return reject(err)
               }
-              opts.dataTransform(toUpdate, 'W', socket)
-              var previousVersion = doc.toObject()
-              if (toUpdate.__v !== undefined) {
-                if (toUpdate.__v !== doc.__v) {
-                  reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
-                } else {
-                  delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
-                }
-              }
-              _.merge(doc, toUpdate)
-              doc.increment()
-              schema.emit('preupdate', doc, previousVersion)
-
-              doc.save(function (err) {
-                if (err) {
-                  debug('rejecting a save because: ', err)
+              if (doc) {
+                try {
+                  opts.checkPermission(socket, 'update', doc)
+                } catch (err) {
                   reject(err)
-                } else {
-                  debug('document ', id, ' saved, version now ', doc.__v)
-                  if (resolveWhole) {
-                    return resolve(doc.toObject())
-                  }
-                  resolve(doc.__v)	// we don't resolve with new document because when you want to display
-                  // current version of document, just use liveQuery
                 }
-              })
-            } else {
-              reject(new Error('no document to save found with _id: ' + id))
-            }
+                opts.dataTransform(toUpdate, 'W', socket)
+                const previousVersion = doc.toObject()
+                if (toUpdate.__v !== undefined) {
+                  if (toUpdate.__v !== doc.__v) {
+                    reject(new Error('Document version mismatch-your copy is version ' + toUpdate.__v + ', but server has ' + doc.__v))
+                  } else {
+                    delete toUpdate.__v // save a bit of unnecessary work when we are extending doc on the next line
+                  }
+                }
+                _.merge(doc, toUpdate)
+                doc.increment()
+                doc.save(function (err) {
+                  if (err) {
+                    debug('rejecting a save because: ', err)
+                    reject(err)
+                  } else {
+                    debug('document ', id, ' saved, version now ', doc.__v)
+                    model.emit('updated', doc, previousVersion)  // this is emitted only when updated via this update method
+                    if (resolveWhole) {
+                      return resolve(doc.toObject())
+                    }
+                    resolve(doc.__v)	// we don't resolve with new document because when you want to display
+                    // current version of document, just use liveQuery
+                  }
+                })
+              } else {
+                reject(new Error('no document to save found with _id: ' + id))
+              }
+            })
           })
-        })
+        }
+
+        const newProm = Promise.resolve(updatePromisesMap.get(id)).then(runUpdate, runUpdate)
+        updatePromisesMap.set(id, newProm)
+        const deleteProm = () => {
+          updatePromisesMap.delete(id)
+        }
+        newProm.then(deleteProm, deleteProm)
+        return newProm
       },
       /**
        * finds one document with a supplied query and then pushes item into it's array on a path
@@ -423,7 +459,6 @@ var expose = function (model, schema, opts) {
                 return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
               }
               doc.increment()
-              schema.emit('preupdate', doc, previousVersion)
 
               doc.save(function (err) {
                 if (err) {
@@ -431,6 +466,7 @@ var expose = function (model, schema, opts) {
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
+                  model.emit('addedToSet', doc, previousVersion)
                   resolve({length: set.length, __v: doc.__v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
@@ -476,14 +512,13 @@ var expose = function (model, schema, opts) {
                 return reject(new TypeError('Document ', doc._id, " hasn't an array on path ", path))
               }
               doc.increment()
-              schema.emit('preupdate', doc, previousVersion)
-
               doc.save(function (err) {
                 if (err) {
                   debug('rejecting a save because: ', err)
                   reject(err)
                 } else {
                   debug('document ', doc._id, ' saved, version now ', doc.__v)
+                  model.emit('removedFromSet', doc, previousVersion)
                   resolve({length: set.length, __v: doc.__v})	// we don't resolve with new document because when you want to display
                   // current version of document, just use liveQuery
                 }
@@ -494,32 +529,15 @@ var expose = function (model, schema, opts) {
           })
         })
       },
-      subscribe: function (evName) {
-        const socket = this
-        if (!subscribers.hasOwnProperty(evName)) {
-          subscribers[evName] = new Set()
-          schema.on(evName, (doc) => {
-            Array.from(subscribers[evName]).forEach((socket) => {
-              debug('schemaEvent ', evName)
-              socket.emit('schemaEvent', {
-                modelName: modelName,
-                evName: evName,
-                doc: doc
-              })
-            })
-          })
+      callMethod: function (onId, methodName, args) {
+        const method = schema.methods[methodName]
+        opts.checkPermission(this, 'executeMethod')
+        if (method.checkPermission) {
+          method.checkPermission(this)  // should throw if not permitted
         }
-        opts.checkPermission(this, 'read')
-        const subscribersForThisEvent = subscribers[evName]
-        subscribersForThisEvent.add(socket)
-        debug(`there is a new subscriber ${socket.id} for model ${modelName} event ${evName}`)
-        socket.on('disconnect', () => {
-          subscribersForThisEvent.delete(socket)
-          debug(`subscriber disconnected ${socket.id} unsubscribed from model ${modelName} event ${evName}`)
+        return model.findById(onId).then((doc) => {
+          return method.apply(doc, args)
         })
-      },
-      unsubscribe: function (evName) {
-        return subscribers[evName].delete(this)
       }
     })
 
@@ -527,11 +545,16 @@ var expose = function (model, schema, opts) {
   }
 
   return function exposeCallback (rpcInstance) {
-    var toExpose = {MR: {}}
-    toExpose.MR[modelName] = _.merge(schema.statics, mrMethods)
+    const toExpose = {MR: {}}
+    toExpose.MR[modelName] = mrMethods
+    toExpose.MR[modelName].statics = schema.statics
     rpcInstance.expose(toExpose)
 
-    _.assign(model, {rpcExposedMethods: mrMethods, modelName: modelName, queries: liveQueries}) // returning for health check
+    _.assign(model, {
+      rpcExposedMethods: mrMethods,
+      modelName: modelName,
+      queries: liveQueries
+    }) // returning for health check
     debug('Model %s was exposed ', modelName)
     return model
   }

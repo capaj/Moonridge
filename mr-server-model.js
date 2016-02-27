@@ -2,6 +2,7 @@ const exposeMethods = require('./mr-rpc-methods')
 const debug = require('debug')('moonridge:server')
 const _ = require('lodash')
 const mongoose = require('mongoose')
+const baucis = require('./utils/baucis')
 
 /**
  * @param {String} name
@@ -75,15 +76,15 @@ module.exports = function moonridgeModel (name, schema, opts) {
   mgSchema.post('save', function postSave (doc) {
     if (newDocs.has(doc._id)) {
       newDocs.delete(doc._id)
-      mgSchema.emit('create', doc)
+      model.emit('create', doc)
     } else {
-      mgSchema.emit('update', doc)
+      model.emit('update', doc)
     }
     return true
   })
 
   mgSchema.post('remove', function postRemove (doc) {
-    mgSchema.emit('remove', doc)
+    model.emit('remove', doc)
   })
 
   var model = mongoose.model(name, mgSchema)
@@ -105,25 +106,25 @@ module.exports = function moonridgeModel (name, schema, opts) {
       })
     })
   }
-  var exposeCallback = exposeMethods(model, mgSchema, opts)
+  const exposeCallback = exposeMethods(model, mgSchema, opts)
 
   // these two methods are possible to use and your LQ will refresh accordingly,
   // it is not possible with their originals
-  var originalFindByIdAndUpdate = model.findByIdAndUpdate
-  var originalFindByIdAndRemove = model.findByIdAndRemove
+  const originalFindByIdAndUpdate = model.findByIdAndUpdate
+  const originalFindByIdAndRemove = model.findByIdAndRemove
 
   _.assign(model, {
     findByIdAndUpdate: function () {
-      var args = arguments
+      const args = arguments
       return originalFindByIdAndUpdate.apply(model, args).then(function (result) {
-        mgSchema.emit('update', args[0])
+        model.emit('update', args[0])
         return result
       })
     },
     findByIdAndRemove: function () {
-      var args = arguments
+      const args = arguments
       return originalFindByIdAndRemove.apply(model, args).then(function (result) {
-        mgSchema.emit('remove', args[0])
+        model.emit('remove', args[0])
         return result
       })
     },
@@ -132,5 +133,14 @@ module.exports = function moonridgeModel (name, schema, opts) {
     _exposeCallback: exposeCallback
   })
 
+  model.controller = baucis.rest(name)
+
+  Object.keys(schema.statics).forEach((methodName) => {
+    model.controller.post(methodName, function (req, res, next) {
+      Promise.resolve(model[methodName].apply(req, req.body)).then((value) => {
+        res.send(value)
+      }, next)
+    })
+  })
   return model
 }

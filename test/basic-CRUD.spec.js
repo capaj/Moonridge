@@ -38,6 +38,9 @@ describe('basic CRUD including working liveQueries', function () {
           type: 'ObjectId'
         }
       })
+    }, (e) => {
+      console.log(e.stack)
+      throw e
     })
   })
 
@@ -108,7 +111,7 @@ describe('basic CRUD including working liveQueries', function () {
   })
 
   it('should allow to query the model', function () {
-    fighterModel.query().find({name: 'Arya'}).exec().promise.then(function (arya) {
+    fighterModel.query().find({name: 'Arya'}).exec().then(function (arya) {
       arya.health.should.eql(50)
     })
   })
@@ -145,7 +148,7 @@ describe('basic CRUD including working liveQueries', function () {
   })
 
   it('should be able to invoke static methods on model over rpc', function (done) {
-    fighterModel.modelRpc('testStaticMethod')('works').then((ret) => {
+    fighterModel.static('testStaticMethod')('works').then((ret) => {
       ret.should.equal('static method works')
       done()
     })

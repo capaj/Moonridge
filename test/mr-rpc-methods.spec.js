@@ -7,7 +7,9 @@ const fakeSchema = {
 
 describe('rpc methods', function () {
   it('should return a callback for exposing methods over socket.io-rpc', function (done) {
-    const model = {}
+    const model = {
+      on: function () {}
+    }
     const fakeRpcInstance = {
       expose: function () {
         done()
@@ -36,7 +38,9 @@ describe('rpc methods', function () {
   })
 
   it('should expose an rpc method to call schema methods', function (done) {
-    const model = {modelName: 'fakeModel'}
+    const model = {modelName: 'fakeModel',
+      on: function () {}
+    }
     const fakeRpcInstance = {
       expose: function (toExpose) {
         expect(toExpose.MR.fakeModel.callMethod).to.be.a.function

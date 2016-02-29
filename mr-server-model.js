@@ -134,13 +134,14 @@ module.exports = function moonridgeModel (name, schema, opts) {
   })
 
   model.controller = baucis.rest(name)
-
-  Object.keys(schema.statics).forEach((methodName) => {
-    model.controller.post(methodName, function (req, res, next) {
-      Promise.resolve(model[methodName].apply(req, req.body)).then((value) => {
-        res.send(value)
-      }, next)
+  if (schema.statics) {
+    Object.keys(schema.statics).forEach((methodName) => {
+      model.controller.post(methodName, function (req, res, next) {
+        Promise.resolve(model[methodName].apply(req, req.body)).then((value) => {
+          res.send(value)
+        }, next)
+      })
     })
-  })
+  }
   return model
 }

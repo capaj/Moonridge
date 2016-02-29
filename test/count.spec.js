@@ -31,7 +31,7 @@ describe('count queries', function () {
   })
 
   it('should be able to query the count of documents', function () {
-    return fighterModel.query().count().exec().promise.then(function (res) {
+    return fighterModel.query().count().exec().then(function (res) {
       res.should.eql(3)
     })
   })
@@ -39,5 +39,4 @@ describe('count queries', function () {
   after(function () {
     return fightersCreation.after()
   })
-
 })

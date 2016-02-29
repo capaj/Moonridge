@@ -72,7 +72,7 @@ var expose = function (model, schema, opts) {
 
   evNames.forEach(function (evName) {
     const modelSynchronization = modelSyncFactory(evName)
-    schema.on(evName, function (doc) {
+    model.on(evName, function (doc) {
       modelSynchronization(doc)
     })
   })
@@ -290,7 +290,7 @@ var expose = function (model, schema, opts) {
       const socket = this
       if (!subscribers.hasOwnProperty(evName)) {
         subscribers[evName] = new Set()
-        schema.on(evName, (doc) => {
+        model.on(evName, (doc) => {
           Array.from(subscribers[evName]).forEach((socket) => {
             debug('schemaEvent ', evName)
             socket.emit('schemaEvent', {

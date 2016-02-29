@@ -37,7 +37,7 @@ describe('set operations', function () {
       return battleModel.addToSet({year: 281}, 'fighters', fighterId).then(function(length){
 
         length.should.eql({length: 1, __v: 1})
-        return battleModel.query().findOne({_id: battleId}).exec().promise.then(function(battle){
+        return battleModel.query().findOne({_id: battleId}).exec().then(function(battle){
           battle.fighters[0].should.eql(fighterId)
         }, onRejected)
       }, onRejected)

@@ -92,7 +92,7 @@ describe('Moonridge model', function () {
 
     sampleModel.rpcExposedMethods.create.call(fakeSocket, {name: 'test'}).then(function (created) {
       id = created._id.valueOf()
-      sampleModel.schema.on('remove', function (doc) {
+      sampleModel.on('remove', function (doc) {
         expect(doc).to.equal(id)
         setTimeout(function () {
           expect(c).to.equal(3)
@@ -100,7 +100,7 @@ describe('Moonridge model', function () {
         }, 100)
       })
 
-      sampleModel.schema.on('update', function (doc) {
+      sampleModel.on('update', function (doc) {
         expect(doc).to.equal(id)
         setTimeout(function () {
           sampleModel.findByIdAndRemove(id)

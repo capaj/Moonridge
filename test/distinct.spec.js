@@ -14,7 +14,7 @@ describe('distinct queries', function() {
 	})
 
 	it('should yield all the distinct values for a field in a database when querying', function() {
-		return fighterModel.query().distinct('health').exec().promise.then(function(healths) {
+		return fighterModel.query().distinct('health').exec().then(function(healths) {
 			healths.length.should.eql(3)
 			healths[0].should.eql(50)
 			healths[1].should.eql(20)

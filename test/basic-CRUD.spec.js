@@ -26,6 +26,13 @@ describe('basic CRUD including working liveQueries', function () {
     })
   })
 
+  it('should return available models', function () {
+    return mr.fetchAllModels().then((models) => {
+      models[0].name.should.equal('location')
+      models.length.should.equal(4)
+    })
+  })
+
   it('should have a method getSchema for getting a schema of the model', function () {
     return fighterModel.getSchema().then(schema => {
       schema.should.eql({

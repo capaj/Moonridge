@@ -15,7 +15,9 @@ npm i moonridge -S
 ```
 
 ### How to use it?
-See examples in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](test/e2e-smoketest/react)|[Aurelia](test/e2e-smoketest/aurelia)), if still not sufficent, read source code. Better docs are planned/WIP.
+[Serverside API](https://github.com/capaj/Moonridge/wiki/API) is quite straightforward, if still not sufficent, read source code of examples.
+
+in smoke test folder([Angular](test/e2e-smoketest/angular)|[React](test/e2e-smoketest/react)|[Aurelia](test/e2e-smoketest/aurelia)), 
 
 ## Basic usage serverside
 ```javascript

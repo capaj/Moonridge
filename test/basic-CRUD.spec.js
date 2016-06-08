@@ -118,7 +118,7 @@ describe('basic CRUD including working liveQueries', function () {
   })
 
   it('should allow to query the model', function () {
-    fighterModel.query().find({name: 'Arya'}).exec().then(function (arya) {
+    return fighterModel.query().findOne({name: 'Arya'}).exec().then(function (arya) {
       arya.health.should.eql(50)
     })
   })
@@ -128,13 +128,24 @@ describe('basic CRUD including working liveQueries', function () {
     return fighterModel.update(fighterEntity)
   })
 
-  it('should fail when we try to update nonexistent entity', function (done) {
+  it('should fail when we try to update with malformed _id', function (done) {
     fighterEntity.health += 10
     var fakeId = 'fake6c5c6983ef1828ec7af4'
     fighterModel.update({_id: fakeId}).then(function () {
       throw new Error('Entity should not have been updated')
     }, function (err) {
-      err.message.should.equal('no document to save found with _id: fake6c5c6983ef1828ec7af4')
+      err.message.should.equal('Cast to ObjectId failed for value "fake6c5c6983ef1828ec7af4" at path "_id"')
+      done()
+    })
+  })
+
+  it('should fail when we try to update nonexistent entity', function (done) {
+    fighterEntity.health += 10
+    var fakeId = '575846963e5d8a9541c41e54'
+    fighterModel.update({_id: fakeId}).then(function () {
+      throw new Error('Entity should not have been updated')
+    }, function (err) {
+      err.message.should.equal('no document to save found with _id: 575846963e5d8a9541c41e54')
       done()
     })
   })

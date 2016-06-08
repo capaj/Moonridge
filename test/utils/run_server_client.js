@@ -1,13 +1,15 @@
 /* eslint-env node, mocha */
 'use strict'
-var cp = require('child_process')
+const cp = require('child_process')
+process.on('unhandledRejection', function (error, promise) {
+  console.error('UNHANDLED REJECTION', error.stack, error.message)
+})
+const server = cp.fork('./test/e2e-smoketest/server.js')
 
-var server = cp.fork('./test/e2e-smoketest/server.js')
-
-var $MR = require('../../Moonridge-client/moonridge-client')
+const $MR = require('../../Moonridge-client/moonridge-client')
 
 // Moonridge backend
-var mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}})
+const mr = $MR({url: 'http://localhost:8080', hs: {query: 'nick=testUser'}})
 const mongojs = require('mongojs')
 
 let models = ['fighters', 'battles', 'users', 'locations', 'sample_models']

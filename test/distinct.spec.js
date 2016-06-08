@@ -89,7 +89,14 @@ describe('distinct queries', function() {
 	})
 
 	after(function() {
-		return fightersCreation.after()
+    return Promise.all([
+      fighterModel.query().find().exec().then((fighters) => {
+        return fighters.map((f) => {
+          return fighterModel.remove(f)
+        })
+      }),
+      fightersCreation.after()
+    ])
 	})
 
 })

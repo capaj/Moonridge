@@ -171,4 +171,26 @@ describe('basic CRUD including working liveQueries', function () {
       done()
     })
   })
+
+  it("should be able to remove documents, which don't match anymore from the live query result", function (done) {
+    return fighterModel.create({name: 'Gendry', health: 50}).then(() => {
+      LQ = fighterModel.liveQuery().find().gte('health', 10).exec()
+      LQ.on('init', function (params) {
+        const gendry = params.docs[0]
+        gendry.health = 0
+        LQ.onAny(function (evName, params) {
+          // console.log(evName, params)
+          if (evName === 'update') {
+            LQ.result.length.should.equal(0)
+            console.log(gendry)
+            
+            fighterModel.remove(gendry).then(done)
+          }
+        })
+        fighterModel.update(gendry)
+      })
+
+    })
+
+  })
 })

@@ -1,15 +1,16 @@
+## Deprecated notice
+I don't maintain this anymore, so use only if you're willing to fix bugs yourself.
+
 Moonridge    [![Build Status](https://travis-ci.org/capaj/Moonridge.svg?tag=1.0.3)](https://travis-ci.org/capaj/Moonridge) [![Dependency Status](https://david-dm.org/capaj/Moonridge.svg)](https://david-dm.org/capaj/Moonridge)
 =========
 [![NPM badge](https://nodei.co/npm/moonridge.png?downloads=true&downloadRank=true&stars=true)](https://nodei.co/npm/moonridge/)
-
-
 
 isomorphic [client side library](https://github.com/capaj/Moonridge-client) and server framework, which brings Mongoose model to the browser(or over the network to other node process). Based on [socket.io-rpc](https://github.com/capaj/socket.io-rpc). Framework agnostic-usable with anything-let it be Angular, Aurelia, React or any other.
 
 
 Probably the coolest feature is live queries. These are performance hungry, but Moonridge is caching live queries in memory, so that one query is being live checked only once. If 10000 users run the same query, the DB performance performs the same amount of operations as if one user was accessing it. So your DB should be under the same load no matter how many people use your web app(presuming they are not writing into the DB).
 
-##Install
+## Install
 ```
 npm i moonridge -S
 ```

@@ -1,4 +1,4 @@
-##Typical flow
+## Typical flow
 
 1. an anonymous user connects(no handshake)
 2. on the client side, user obtains an access token(from your API or 3rd party like facebook)
